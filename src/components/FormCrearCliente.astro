@@ -1,0 +1,145 @@
+<form class="form-container" autocomplete="off">
+    <h2>Registro de Cliente</h2>
+
+    <div class="field">
+        <label>Cédula</label>
+        <input type="text" name="cli_cedula" maxlength="10" required />
+    </div>
+
+    <div class="field">
+        <label>Nombre completo</label>
+        <input type="text" name="cli_nombre" required />
+    </div>
+
+    <div class="field">
+        <label>Fecha de nacimiento</label>
+        <input type="date" name="cli_fecha_nacimiento" required />
+    </div>
+
+    <div class="field">
+        <label>Tipo de cliente</label>
+        <select name="tic_id_tipoc" required>
+            <option value="">Seleccione</option>
+            <option value="1">Consumidor Final</option>
+            <option value="2">Cliente Frecuente</option>
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Dirección</label>
+        <textarea name="cli_direccion" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+        <label>Teléfono</label>
+        <input type="text" name="cli_telefono" maxlength="15" required />
+    </div>
+
+    <div class="field">
+        <label>Email</label>
+        <input type="email" name="cli_email" required />
+    </div>
+
+    <div class="field checkbox">
+        <label>
+            <input type="checkbox" name="cli_estado" checked />
+            Cliente activo
+        </label>
+    </div>
+
+    <button type="submit">Guardar Cliente</button>
+</form>
+
+<style>
+    input,
+    select,
+    textarea,
+    button {
+        appearance: none;
+        -webkit-appearance: none;
+        outline: none;
+    }
+
+    .form-container {
+        max-width: 480px;
+        margin: 40px auto;
+        padding: 30px;
+        background: #e8f1fb;
+        border-radius: 14px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        font-family: Arial, sans-serif;
+    }
+
+    h2 {
+        text-align: center;
+        color: #005a9e;
+        margin-bottom: 10px;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    label {
+        font-weight: 600;
+        color: #004578;
+    }
+
+    input,
+    select,
+    textarea {
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #0078d4;
+        font-size: 14px;
+        background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #005a9e;
+        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
+    }
+
+    textarea {
+        resize: none;
+    }
+
+    .checkbox {
+        margin-top: 5px;
+    }
+
+    .checkbox input {
+        margin-right: 6px;
+    }
+
+    button {
+        margin-top: 15px;
+        padding: 12px;
+        background: linear-gradient(90deg, #0078d4, #005a9e);
+        color: white;
+        font-size: 15px;
+        font-weight: bold;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active {
+        transform: scale(0.97);
+    }
+</style>
