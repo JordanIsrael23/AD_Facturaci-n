@@ -44,3 +44,17 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+Documentación de AStro
+
+https://docs.astro.build/en/reference/integrations-reference/
+
+Comando para instalar ASTRO
+
+npm create astro@latest
+
+Instalar Extensuones Astro VS Code 
