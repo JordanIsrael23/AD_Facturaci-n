@@ -1,6 +1,26 @@
 ---
 import background from '../assets/background.svg';
 ---
+<div class="container pt-3"> 
+    <div>
+        <a href="/" class="btn btn-outline-secondary btn-sm mb-3">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                class="bi bi-arrow-left me-1"
+                viewBox="0 0 16 16"
+            >
+                <path
+                    fill-rule="evenodd"
+                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+                ></path>
+            </svg>
+            Volver a Menu
+        </a>
+    </div>
+</div>
 
 <div id="container">
     <img id="background" src={background.src} alt="" fetchpriority="high" />
@@ -32,7 +52,7 @@ import background from '../assets/background.svg';
                     <tbody>
                         <tr>
 							<td>
-                                <a href="#" class="btn btn-sm btn-warning me-2">Editar</a>
+                                <a href="editar_clientes" class="btn btn-sm btn-warning me-2">Editar</a>
                                 <button type="button" class="btn btn-sm btn-danger">Eliminar</button>
                             </td>
                             <td>1710000000</td>
@@ -44,22 +64,6 @@ import background from '../assets/background.svg';
                             <td>juan.perez@email.com</td>
                             <td>
                                 <span class="badge text-bg-success">Activo</span>
-                            </td>
-                        </tr>
-                        <tr>
-							<td>
-                                <a href="#" class="btn btn-sm btn-warning me-2">Editar</a>
-                                <button type="button" class="btn btn-sm btn-danger">Eliminar</button>
-                            </td>
-                            <td>0920000000</td>
-                            <td>María García</td>
-                            <td>1985-11-20</td>
-                            <td>RUC</td>
-                            <td>Calle Secundaria #202</td>
-                            <td>0987654321</td>
-                            <td>maria.garcia@email.com</td>
-                            <td>
-                                <span class="badge text-bg-danger">Inactivo</span>
                             </td>
                         </tr>
                         </tbody>
