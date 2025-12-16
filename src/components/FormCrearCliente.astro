@@ -19,148 +19,267 @@
     </div>
 </div>
 
-<form class="form-container" autocomplete="off">
-    <h2>Registro de Cliente</h2>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm mt-4">
+                <div class="card-body p-4">
+                    <form autocomplete="off">
+                        <h2 class="text-center text-primary mb-4">
+                            Registrar Cliente<br>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="40"
+                                height="40"
+                                fill="currentColor"
+                                class="bi bi-person-add"
+                                viewBox="0 0 16 16"
+                            >
+                                <path
+                                    d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0m-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4"
+                                ></path>
+                                <path
+                                    d="M8.256 14a4.5 4.5 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10q.39 0 .74.025c.226-.341.496-.65.804-.918Q8.844 9.002 8 9c-5 0-6 3-6 4s1 1 1 1z"
+                                ></path>
+                            </svg>
+                        </h2>
 
-    <div class="field">
-        <label>Cédula</label>
-        <input type="text" name="cli_cedula" maxlength="10" required />
+                        <div class="mb-3">
+                            <label for="cedula" class="form-label">Cédula</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-person-vcard-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm9 1.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4a.5.5 0 0 0-.5.5M9 8a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4A.5.5 0 0 0 9 8m1 2.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 0-1h-3a.5.5 0 0 0-.5.5m-1 2C9 10.567 7.21 9 5 9c-2.086 0-3.8 1.398-3.984 3.181A1 1 0 0 0 2 13h6.96q.04-.245.04-.5M7 6a2 2 0 1 0-4 0 2 2 0 0 0 4 0"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="cedula"
+                                    name="cli_cedula"
+                                    placeholder="Número de Cédula"
+                                    maxlength="10"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cliNombre" class="form-label"
+                                >Nombre Completo</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-person-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="cliNombre"
+                                    name="cli_nombre"
+                                    placeholder="Nombre completo"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="fechaNacimiento" class="form-label"
+                                >Fecha de nacimiento</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-calendar-event-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2m-3.5-7h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <input
+                                    type="date"
+                                    class="form-control"
+                                    id="fechaNacimiento"
+                                    name="cli_fecha_nacimiento"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tipoCliente" class="form-label"
+                                >Tipo de cliente</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-person-check-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M15.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L12.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"
+                                        ></path>
+                                        <path
+                                            d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <select
+                                    class="form-select"
+                                    id="tipoCliente"
+                                    name="tic_id_tipoc"
+                                    required
+                                >
+                                    <option value="">Seleccione</option>
+                                    <option value="1">Contado</option>
+                                    <option value="2">Crédito</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="direccion" class="form-label"
+                                >Dirección</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-geo-alt-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <textarea
+                                    class="form-control"
+                                    id="direccion"
+                                    name="cli_direccion"
+                                    rows="3"
+                                    placeholder="Ingrese la dirección"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label"
+                                >Teléfono</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-phone-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3 2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm6 11a1 1 0 1 0-2 0 1 1 0 0 0 2 0"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="telefono"
+                                    name="cli_telefono"
+                                    placeholder="Número de teléfono"
+                                    maxlength="15"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        fill="currentColor"
+                                        class="bi bi-envelope-open-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M8.941.435a2 2 0 0 0-1.882 0l-6 3.2A2 2 0 0 0 0 5.4v.314l6.709 3.932L8 8.928l1.291.718L16 5.714V5.4a2 2 0 0 0-1.059-1.765zM16 6.873l-5.693 3.337L16 13.372v-6.5Zm-.059 7.611L8 10.072.059 14.484A2 2 0 0 0 2 16h12a2 2 0 0 0 1.941-1.516M0 13.373l5.693-3.163L0 6.873z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    id="email"
+                                    name="cli_email"
+                                    placeholder="Correo electrónico"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    name="cli_estado"
+                                    id="cli_estado"
+                                    checked
+                                />
+                                <label
+                                    class="form-check-label"
+                                    for="cli_estado"
+                                >
+                                    Cliente activo
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            Guardar Cliente
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="field">
-        <label>Nombre completo</label>
-        <input type="text" name="cli_nombre" required />
-    </div>
-
-    <div class="field">
-        <label>Fecha de nacimiento</label>
-        <input type="date" name="cli_fecha_nacimiento" required />
-    </div>
-
-    <div class="field">
-        <label>Tipo de cliente</label>
-        <select name="tic_id_tipoc" required>
-            <option value="">Seleccione</option>
-            <option value="1">Consumidor Final</option>
-            <option value="2">Cliente Frecuente</option>
-        </select>
-    </div>
-
-    <div class="field">
-        <label>Dirección</label>
-        <textarea name="cli_direccion" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-        <label>Teléfono</label>
-        <input type="text" name="cli_telefono" maxlength="15" required />
-    </div>
-
-    <div class="field">
-        <label>Email</label>
-        <input type="email" name="cli_email" required />
-    </div>
-
-    <div class="field checkbox">
-        <label>
-            <input type="checkbox" name="cli_estado" checked />
-            Cliente activo
-        </label>
-    </div>
-
-    <button type="submit">Guardar Cliente</button>
-</form>
-
-<style>
-    input,
-    select,
-    textarea,
-    button {
-        appearance: none;
-        -webkit-appearance: none;
-        outline: none;
-    }
-
-    .form-container {
-        max-width: 480px;
-        margin: 40px auto;
-        padding: 30px;
-        background: #e8f1fb;
-        border-radius: 14px;
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        font-family: Arial, sans-serif;
-    }
-
-    h2 {
-        text-align: center;
-        color: #005a9e;
-        margin-bottom: 10px;
-    }
-
-    .field {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    label {
-        font-weight: 600;
-        color: #004578;
-    }
-
-    input,
-    select,
-    textarea {
-        padding: 10px;
-        border-radius: 6px;
-        border: 1px solid #0078d4;
-        font-size: 14px;
-        background: white;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-        border-color: #005a9e;
-        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
-    }
-
-    textarea {
-        resize: none;
-    }
-
-    .checkbox {
-        margin-top: 5px;
-    }
-
-    .checkbox input {
-        margin-right: 6px;
-    }
-
-    button {
-        margin-top: 15px;
-        padding: 12px;
-        background: linear-gradient(90deg, #0078d4, #005a9e);
-        color: white;
-        font-size: 15px;
-        font-weight: bold;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        transition:
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
-    }
-
-    button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-    }
-
-    button:active {
-        transform: scale(0.97);
-    }
-</style>
+</div>
