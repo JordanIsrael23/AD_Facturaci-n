@@ -141,6 +141,7 @@ import background from "../assets/background.svg";
                 <button
                     type="button"
                     class="btn btn-success d-inline-flex align-items-center"
+                    id="confirmRestoreBtn"
                 >
                     <i class="bi bi-check-circle-fill me-1"></i> Confirmar y Restablecer
                 </button>
@@ -156,3 +157,123 @@ import background from "../assets/background.svg";
         </div>
     </div>
 </div>
+
+<script>
+    declare const bootstrap: any;
+    const API_URL = "http://127.0.0.1:5055/api/Clientes";
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadInactiveClients();
+        setupSelectAll();
+        setupRestoreAction();
+    });
+
+    async function loadInactiveClients() {
+        const tbody = document.querySelector("tbody");
+        if (!tbody) return;
+        tbody.innerHTML =
+            '<tr><td colspan="9" class="text-center">Cargando clientes inactivos...</td></tr>';
+
+        try {
+            // La API /api/Clientes devuelve TODOS los clientes
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error("Error al cargar clientes");
+
+            let clientes = await response.json();
+
+            // Filtrar inactivos (cliEstado == false)
+            clientes = clientes.filter((c: any) => c.cliEstado === false);
+
+            if (clientes.length === 0) {
+                tbody.innerHTML =
+                    '<tr><td colspan="9" class="text-center">No hay clientes inactivos para restablecer.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = clientes
+                .map(
+                    (c: any) => `
+                <tr>
+                    <td class="text-center">
+                        <input
+                            type="checkbox"
+                            class="form-check-input client-checkbox"
+                            value="${c.cliCedula}"
+                        />
+                    </td>
+                    <td>${c.cliCedula}</td>
+                    <td>${c.cliNombre}</td>
+                    <td>${c.cliFechaNacimiento ? c.cliFechaNacimiento.split("T")[0] : "N/A"}</td>
+                    <td>${c.tipoCliente ? c.tipoCliente.ticDescripcion : c.ticIdTipoc === 1 ? "Contado" : "Crédito"}</td>
+                    <td>${c.cliDireccion || ""}</td>
+                    <td>${c.cliTelefono || ""}</td>
+                    <td>${c.cliEmail || ""}</td>
+                    <td>
+                        <span class="badge text-bg-secondary">Inactivo</span>
+                    </td>
+                </tr>
+            `,
+                )
+                .join("");
+        } catch (error) {
+            console.error(error);
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error al cargar datos.</td></tr>`;
+        }
+    }
+
+    function setupSelectAll() {
+        const selectAll = document.getElementById(
+            "selectAll",
+        ) as HTMLInputElement;
+
+        selectAll?.addEventListener("change", (e) => {
+            const checkboxes = document.querySelectorAll(".client-checkbox");
+            checkboxes.forEach(
+                (cb: any) =>
+                    (cb.checked = (e.target as HTMLInputElement).checked),
+            );
+        });
+    }
+
+    function setupRestoreAction() {
+        const confirmBtn = document.getElementById("confirmRestoreBtn");
+        if (!confirmBtn) return;
+
+        confirmBtn.addEventListener("click", async () => {
+            const checkboxes = document.querySelectorAll(
+                ".client-checkbox:checked",
+            );
+            const ids = Array.from(checkboxes).map((cb: any) => cb.value);
+
+            if (ids.length === 0) {
+                alert("No has seleccionado ningún cliente");
+                return; // Deberíamos cerrar modal pero bueno
+            }
+
+            try {
+                // Ejecutar peticiones en paralelo
+                const promises = ids.map((id) =>
+                    fetch(`${API_URL}/${id}/estado`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ estado: true }),
+                    }),
+                );
+
+                await Promise.all(promises);
+
+                // @ts-ignore
+                const modalEl = document.getElementById("confirmRestoreModal");
+                // @ts-ignore
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                loadInactiveClients();
+                alert("Clientes restablecidos exitosamente");
+            } catch (error) {
+                console.error(error);
+                alert("Hubo un error al intentar restablecer algunos clientes");
+            }
+        });
+    }
+</script>
