@@ -56,8 +56,6 @@ import background from "../assets/background.svg";
             </div>
         </div>
 
-        
-
         <div class="table-responsive shadow-sm rounded-3">
             <table
                 class="table table-striped table-hover align-middle table-bordered"
@@ -78,20 +76,22 @@ import background from "../assets/background.svg";
                 <tbody>
                     <tr>
                         <td>
-                            <a
-                                href="editar_clientes"
-                                class="btn btn-sm btn-warning me-2 d-inline-flex align-items-center"
-                            >
-                                <i class="bi bi-pencil-square me-1"></i> Editar
-                            </a>
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-danger d-inline-flex align-items-center"
-                                data-bs-toggle="modal"
-                                data-bs-target="#confirmDeleteModal"
-                            >
-                                <i class="bi bi-trash me-1"></i> Eliminar
-                            </button>
+                            <div class="d-flex gap-2">
+                                <a
+                                    href="editar_clientes"
+                                    class="btn btn-sm btn-warning me-2 d-inline-flex align-items-center"
+                                >
+                                    <i class="bi bi-pencil-square me-1"></i> Editar
+                                </a>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-danger d-inline-flex align-items-center"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#confirmDeleteModal"
+                                >
+                                    <i class="bi bi-trash me-1"></i> Eliminar
+                                </button>
+                            </div>
                         </td>
                         <td>1710000000</td>
                         <td>Juan Pérez</td>
@@ -199,17 +199,19 @@ import background from "../assets/background.svg";
                     (c: any) => `
                 <tr>
                     <td>
-                        <a href="editar_clientes?id=${c.cliCedula}" class="btn btn-sm btn-warning me-2 d-inline-flex align-items-center">
-                            <i class="bi bi-pencil-square me-1"></i> Editar
-                        </a>
-                        <button 
-                            type="button" 
-                            class="btn btn-sm btn-danger d-inline-flex align-items-center btn-delete" 
-                            data-cedula="${c.cliCedula}"
-                            data-nombre="${c.cliNombre}"
-                        >
-                            <i class="bi bi-trash me-1"></i> Eliminar
-                        </button>
+                        <div class="d-flex gap-2">
+                            <a href="editar_clientes?id=${c.cliCedula}" class="btn btn-sm btn-warning me-2 d-inline-flex align-items-center">
+                                <i class="bi bi-pencil-square me-1"></i> Editar
+                            </a>
+                            <button 
+                                type="button" 
+                                class="btn btn-sm btn-danger d-inline-flex align-items-center btn-delete" 
+                                data-cedula="${c.cliCedula}"
+                                data-nombre="${c.cliNombre}"
+                            >
+                                <i class="bi bi-trash me-1"></i> Eliminar
+                            </button>
+                        </div>
                     </td>
                     <td>${c.cliCedula}</td>
                     <td>${c.cliNombre}</td>
