@@ -26,7 +26,7 @@
                 <div class="card-body p-4">
                     <form autocomplete="off">
                         <h2 class="text-center text-primary mb-4">
-                            Registrar Cliente<br>
+                            Registrar Cliente<br />
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="40"
@@ -283,3 +283,57 @@
         </div>
     </div>
 </div>
+
+<script>
+    const API_URL = "http://127.0.0.1:5055/api/Clientes";
+
+    document.querySelector("form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+
+        // Función auxiliar para convertir vacíos a null
+        const getValue = (key: string) => {
+            const val = formData.get(key)?.toString().trim();
+            return val === "" ? null : val;
+        };
+
+        const cliente = {
+            cliCedula: getValue("cli_cedula"),
+            cliNombre: getValue("cli_nombre"),
+            cliFechaNacimiento: getValue("cli_fecha_nacimiento"),
+            ticIdTipoc: parseInt(getValue("tic_id_tipoc") || "0"), // API requiere entero
+            cliDireccion: getValue("cli_direccion"),
+            cliTelefono: getValue("cli_telefono"),
+            cliEmail: getValue("cli_email"),
+            cliEstado:
+                form.querySelector<HTMLInputElement>("#cli_estado")?.checked,
+            // Campos de auditoría se llenan en backend usualmente, pero si son requeridos:
+            cliFechaCreacion: new Date().toISOString(),
+            // cliUsuarioCreacion: "system"
+        };
+
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(cliente),
+            });
+
+            if (response.ok) {
+                alert("Cliente creado exitosamente");
+                window.location.href = "/clientes";
+            } else {
+                const errorText = await response.text();
+                console.error("Error creating client:", errorText);
+                alert("Error al crear cliente: " + errorText);
+            }
+        } catch (error) {
+            console.error("Network error:", error);
+            alert("Error de conexión con la API");
+        }
+    });
+</script>
