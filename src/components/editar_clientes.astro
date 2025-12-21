@@ -146,12 +146,13 @@
                                     <select
                                         class="form-select"
                                         id="tipoCliente"
+                                        name="tic_id_tipoc"
                                     >
                                         <option value="" selected disabled
                                             >Seleccione un tipo</option
                                         >
-                                        <option value="contado">Contado</option>
-                                        <option value="credito">Crédito</option>
+                                        <option value="1">Contado</option>
+                                        <option value="2">Crédito</option>
                                     </select>
                                 </div>
                             </div>
@@ -188,6 +189,7 @@
                                         type="tel"
                                         class="form-control"
                                         id="cliTelefono"
+                                        name="cli_telefono"
                                         placeholder="Número de teléfono"
                                         value=""
                                     />
@@ -217,6 +219,7 @@
                                         type="email"
                                         class="form-control"
                                         id="email"
+                                        name="cli_email"
                                         placeholder="Correo electrónico"
                                         value=""
                                     />
@@ -248,6 +251,7 @@
                                         type="text"
                                         class="form-control"
                                         id="cliDireccion"
+                                        name="cli_direccion"
                                         placeholder="Dirección completa del cliente"
                                         value=""
                                     />
@@ -281,3 +285,121 @@
         </div>
     </div>
 </div>
+
+<script>
+    const API_URL = "http://127.0.0.1:5055/api/Clientes";
+    const params = new URLSearchParams(window.location.search);
+    const cedula = params.get("id");
+
+    const form = document.querySelector("form") as HTMLFormElement;
+
+    if (!cedula) {
+        alert("No se especificó un cliente para editar");
+        window.location.href = "/clientes";
+    }
+
+    // Cargar datos
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const response = await fetch(`${API_URL}/${cedula}`);
+            if (!response.ok) throw new Error("Cliente no encontrado");
+
+            const data = await response.json();
+
+            // Mapear datos al formulario
+            (document.getElementById("cedula") as HTMLInputElement).value =
+                data.cliCedula || "";
+            // Cedula es PK, mejor hacerla readonly
+            (document.getElementById("cedula") as HTMLInputElement).readOnly =
+                true;
+
+            (document.getElementById("cliNombre") as HTMLInputElement).value =
+                data.cliNombre || "";
+
+            if (data.cliFechaNacimiento) {
+                (
+                    document.getElementById(
+                        "fechaNacimiento",
+                    ) as HTMLInputElement
+                ).value = data.cliFechaNacimiento.split("T")[0];
+            }
+
+            (
+                document.getElementById("tipoCliente") as HTMLSelectElement
+            ).value = data.ticIdTipoc?.toString() || "";
+            (document.getElementById("cliTelefono") as HTMLInputElement).value =
+                data.cliTelefono || "";
+            (document.getElementById("email") as HTMLInputElement).value =
+                data.cliEmail || "";
+            (
+                document.getElementById("cliDireccion") as HTMLInputElement
+            ).value = data.cliDireccion || "";
+        } catch (error) {
+            console.error(error);
+            alert("Error al cargar datos del cliente");
+            window.location.href = "/clientes";
+        }
+    });
+
+    // Guardar cambios
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+
+        const getValue = (key: string) => {
+            const val = formData.get(key)?.toString().trim();
+            return val === "" ? null : val;
+        };
+
+        const cliente = {
+            cliCedula: cedula, // Usar el original
+            cliNombre: getValue("cli_nombre"), // Hay que asegurar que los inputs tengan name="cli_nombre" si se usa formData.get
+            // Como arriba NO puse names en todos los inputs, mejor selecciono por ID 
+            // Pero voy a asumir que agregamos los names en el replaceContent de arriba
+            cliFechaNacimiento:
+                (document.getElementById("fechaNacimiento") as HTMLInputElement)
+                    .value || null,
+            ticIdTipoc: parseInt(
+                (document.getElementById("tipoCliente") as HTMLSelectElement)
+                    .value || "0",
+            ),
+            cliDireccion:
+                (document.getElementById("cliDireccion") as HTMLInputElement)
+                    .value || null,
+            cliTelefono:
+                (document.getElementById("cliTelefono") as HTMLInputElement)
+                    .value || null,
+            cliEmail:
+                (document.getElementById("email") as HTMLInputElement).value ||
+                null,
+
+            // Campos requeridos por el modelo para el PUT (si el backend valida todo el objeto)
+            cliEstado: true, // Asumimos que sigue activo si se edita
+        };
+
+        // Arreglar nombres si usé getElementById
+        // @ts-ignore
+        cliente.cliNombre = (
+            document.getElementById("cliNombre") as HTMLInputElement
+        ).value;
+
+        try {
+            const response = await fetch(`${API_URL}/${cedula}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cliente),
+            });
+
+            if (response.ok || response.status === 204) {
+                alert("Cliente actualizado correctamente");
+                window.location.href = "/clientes";
+            } else {
+                const text = await response.text();
+                alert("Error al actualizar: " + text);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    });
+</script>
