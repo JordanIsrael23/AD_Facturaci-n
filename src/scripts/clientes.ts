@@ -75,7 +75,7 @@ function renderClientes(clientes: any[]) {
         return;
     }
 
-    // Aquí es donde "creamos HTML en JS". En Vanilla JS/Astro es aceptable 
+ 
     // para actualizaciones dinámicas rápidas sin frameworks pesados.
     tbody.innerHTML = clientes.map((c: any) => `
         <tr>
@@ -118,7 +118,7 @@ function aplicarFiltros(inputOrigen: "filtroCedula" | "filtroNombre") {
 
     renderClientes(filtrados);
 
-    // 👉 SOLO el icono del input que cambió
+    
     actualizarIcono("filtroCedula", cedula !== "");
     actualizarIcono("filtroNombre", nombre !== "");
 }
