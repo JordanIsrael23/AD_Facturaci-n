@@ -1,5 +1,9 @@
 const API_URL = "http://127.0.0.1:5055/api/Clientes";
 let clientesInactivos: any[] = [];
+let paginaActual = 1;
+const registrosPorPagina = 10;
+let clientesFiltrados: any[] = [];
+
 
 declare const bootstrap: any;
 
@@ -8,25 +12,50 @@ export function initRestablecer() {
     setupSelectAll();
     setupRestoreAction();
 
-    document.getElementById("filtroCedula")?.addEventListener("input", aplicarFiltros);
-    document.getElementById("filtroNombre")?.addEventListener("input", aplicarFiltros);
+    document
+        .getElementById("filtroCedula")
+        ?.addEventListener("input", () => aplicarFiltros("filtroCedula"));
+
+    document
+        .getElementById("filtroNombre")
+        ?.addEventListener("input", () => aplicarFiltros("filtroNombre"));
+
+    document.querySelectorAll(".btnFiltro").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const inputId = btn.getAttribute("data-for");
+            if (inputId) limpiarFiltroIndividual(inputId);
+        });
+    });
 }
+
 
 async function loadInactiveClients() {
     const tbody = document.querySelector("tbody");
     if (!tbody) return;
+
     tbody.innerHTML = '<tr><td colspan="9" class="text-center p-4">Cargando clientes inactivos...</td></tr>';
 
     try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error("Error al cargar clientes");
+
         const data = await response.json();
         clientesInactivos = (data || []).filter((c: any) => c.cliEstado === false);
-        renderTabla(clientesInactivos);
+
+        clientesFiltrados = [...clientesInactivos];
+        paginaActual = 1;
+
+        renderPagina();
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error al conectar con la API.</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-danger">
+                    Error al conectar con la API.
+                </td>
+            </tr>`;
     }
 }
+
 
 function renderTabla(clientes: any[]) {
     const tbody = document.querySelector("tbody");
@@ -53,14 +82,25 @@ function renderTabla(clientes: any[]) {
     `).join("");
 }
 
-function aplicarFiltros() {
-    const cedula = (document.getElementById("filtroCedula") as HTMLInputElement).value.toLowerCase();
-    const nombre = (document.getElementById("filtroNombre") as HTMLInputElement).value.toLowerCase();
-    const filtrados = clientesInactivos.filter((c) => 
-        c.cliCedula.toString().includes(cedula) && c.cliNombre.toLowerCase().includes(nombre)
+function aplicarFiltros(inputOrigen: "filtroCedula" | "filtroNombre") {
+    const cedulaInput = document.getElementById("filtroCedula") as HTMLInputElement;
+    const nombreInput = document.getElementById("filtroNombre") as HTMLInputElement;
+
+    const cedula = cedulaInput.value.toLowerCase();
+    const nombre = nombreInput.value.toLowerCase();
+
+    clientesFiltrados = clientesInactivos.filter((c) =>
+        c.cliCedula.toString().includes(cedula) &&
+        c.cliNombre.toLowerCase().includes(nombre)
     );
-    renderTabla(filtrados);
+
+    paginaActual = 1;
+    renderPagina();
+
+    actualizarIcono("filtroCedula", cedula !== "");
+    actualizarIcono("filtroNombre", nombre !== "");
 }
+
 
 function setupSelectAll() {
     const selectAll = document.getElementById("selectAll") as HTMLInputElement;
@@ -121,5 +161,62 @@ function setupRestoreAction() {
         } catch (error) {
             console.error("Error al restablecer:", error);
         }
+    });
+}
+function actualizarIcono(inputId: string, activo: boolean) {
+    const btn = document.querySelector(
+        `.btnFiltro[data-for="${inputId}"]`
+    ) as HTMLElement | null;
+
+    const icono = btn?.querySelector(".iconoFiltro");
+    if (!icono) return;
+
+    icono.classList.remove("bi-funnel", "bi-funnel-fill");
+    icono.classList.add(activo ? "bi-funnel-fill" : "bi-funnel");
+}
+
+function limpiarFiltroIndividual(inputId: string) {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (!input) return;
+
+    input.value = "";
+    aplicarFiltros(inputId as any);
+}
+function renderPagina() {
+    const inicio = (paginaActual - 1) * registrosPorPagina;
+    const fin = inicio + registrosPorPagina;
+
+    const clientesPagina = clientesFiltrados.slice(inicio, fin);
+    renderTabla(clientesPagina);
+    renderPaginacion();
+}
+
+function renderPaginacion() {
+    const totalPaginas = Math.ceil(clientesFiltrados.length / registrosPorPagina);
+    const contenedor = document.getElementById("paginacion");
+    if (!contenedor) return;
+
+    contenedor.innerHTML = `
+        <button class="btn btn-sm btn-outline-secondary me-2"
+            ${paginaActual === 1 ? "disabled" : ""} id="btnAnterior">
+            Anterior
+        </button>
+
+        <span>Página ${paginaActual} de ${totalPaginas}</span>
+
+        <button class="btn btn-sm btn-outline-secondary ms-2"
+            ${paginaActual === totalPaginas ? "disabled" : ""} id="btnSiguiente">
+            Siguiente
+        </button>
+    `;
+
+    document.getElementById("btnAnterior")?.addEventListener("click", () => {
+        paginaActual--;
+        renderPagina();
+    });
+
+    document.getElementById("btnSiguiente")?.addEventListener("click", () => {
+        paginaActual++;
+        renderPagina();
     });
 }
