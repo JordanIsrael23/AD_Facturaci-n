@@ -4,6 +4,8 @@
 const API_URL = "http://127.0.0.1:5055/api/Clientes";
 let clienteIdToDelete: string | null = null;
 let clientesData: any[] = [];
+let hayFiltros = false;
+
 
 // Declaramos bootstrap para evitar errores de TS
 declare const bootstrap: any;
@@ -11,10 +13,38 @@ declare const bootstrap: any;
 export function initClientes() {
     loadClientes();
     setupDeleteModal();
-    
-    document.getElementById("filtroCedula")?.addEventListener("input", aplicarFiltros);
-    document.getElementById("filtroNombre")?.addEventListener("input", aplicarFiltros);
+
+    document
+        .getElementById("filtroCedula")
+        ?.addEventListener("input", () => aplicarFiltros("filtroCedula"));
+
+    document
+        .getElementById("filtroNombre")
+        ?.addEventListener("input", () => aplicarFiltros("filtroNombre"));
+
+    document.querySelectorAll(".btnFiltro").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const inputId = btn.getAttribute("data-for");
+            if (inputId) limpiarFiltroIndividual(inputId);
+        });
+    });
 }
+
+
+function limpiarFiltros() {
+    (document.getElementById("filtroCedula") as HTMLInputElement).value = "";
+    (document.getElementById("filtroNombre") as HTMLInputElement).value = "";
+
+    hayFiltros = false;
+
+    renderClientes(clientesData);
+
+    document.querySelectorAll(".iconoFiltro").forEach((icono) => {
+        icono.classList.remove("bi-funnel-fill");
+        icono.classList.add("bi-funnel");
+    });
+}
+
 
 async function loadClientes() {
     const tbody = document.querySelector("tbody");
@@ -74,17 +104,47 @@ function renderClientes(clientes: any[]) {
     attachDeleteListeners();
 }
 
-function aplicarFiltros() {
-    const cedula = (document.getElementById("filtroCedula") as HTMLInputElement).value.toLowerCase();
-    const nombre = (document.getElementById("filtroNombre") as HTMLInputElement).value.toLowerCase();
+function aplicarFiltros(inputOrigen: "filtroCedula" | "filtroNombre") {
+    const cedulaInput = document.getElementById("filtroCedula") as HTMLInputElement;
+    const nombreInput = document.getElementById("filtroNombre") as HTMLInputElement;
 
-    const filtrados = clientesData.filter((c) => 
-        c.cliCedula.toString().includes(cedula) && 
+    const cedula = cedulaInput.value.toLowerCase();
+    const nombre = nombreInput.value.toLowerCase();
+
+    const filtrados = clientesData.filter((c) =>
+        c.cliCedula.toString().includes(cedula) &&
         c.cliNombre.toLowerCase().includes(nombre)
     );
 
     renderClientes(filtrados);
+
+    // 👉 SOLO el icono del input que cambió
+    actualizarIcono("filtroCedula", cedula !== "");
+    actualizarIcono("filtroNombre", nombre !== "");
 }
+function actualizarIcono(inputId: string, activo: boolean) {
+    const btn = document.querySelector(
+        `.btnFiltro[data-for="${inputId}"]`
+    ) as HTMLElement | null;
+
+    const icono = btn?.querySelector(".iconoFiltro");
+
+    if (!icono) return;
+
+    icono.classList.remove("bi-funnel", "bi-funnel-fill");
+    icono.classList.add(activo ? "bi-funnel-fill" : "bi-funnel");
+}
+
+function limpiarFiltroIndividual(inputId: string) {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (!input) return;
+
+    input.value = "";
+
+    aplicarFiltros(inputId as any);
+}
+
+
 
 function setupDeleteModal() {
     const confirmBtn = document.getElementById("confirmDeleteBtn");
