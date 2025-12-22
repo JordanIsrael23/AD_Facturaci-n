@@ -1,0 +1,111 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(40px); opacity: 0.4; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main class="container d-flex align-items-center justify-content-center min-vh-100">
+    <div class="row justify-content-center w-100">
+        <div class="col-lg-10 col-xl-8">
+            
+            <div class="text-center mb-5">
+                <div class="mb-3">
+                    <i class="bi bi-cpu-fill display-2 text-primary opacity-75"></i>
+                </div>
+                <h1 class="display-4 fw-bold text-secondary text-uppercase tracking-wider mb-2">
+                    Sistema de <span class="text-primary">Facturación</span>
+                </h1>
+                <div class="mx-auto bg-primary opacity-25" style="height: 3px; width: 60px; border-radius: 2px;"></div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <a href="/clientes" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-primary-subtle text-primary">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">Gestión de Clientes</h5>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6">
+                    <a href="/proceso" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-info-subtle text-info">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">Gestión de Facturas</h5>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6">
+                    <a href="/proceso" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-success-subtle text-success">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">Establecimientos</h5>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6">
+                    <a href="/proceso" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-warning-subtle text-warning">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">Revisión de Auditoría</h5>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<style>
+    /* Solo usamos CSS para detalles de comportamiento que Bootstrap no maneja por defecto */
+    .btn-menu-custom {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 1rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        height: 100%;
+    }
+
+    .btn-menu-custom:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        border-color: #0d6efd44;
+    }
+
+    .icon-wrapper {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        font-size: 1.75rem;
+        flex-shrink: 0;
+    }
+
+    .tracking-wider {
+        letter-spacing: 0.1rem;
+    }
+</style>
