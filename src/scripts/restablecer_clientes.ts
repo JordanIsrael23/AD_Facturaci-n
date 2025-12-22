@@ -1,5 +1,9 @@
 const API_URL = "http://127.0.0.1:5055/api/Clientes";
 let clientesInactivos: any[] = [];
+let paginaActual = 1;
+const registrosPorPagina = 10;
+let clientesFiltrados: any[] = [];
+
 
 declare const bootstrap: any;
 
@@ -28,18 +32,30 @@ export function initRestablecer() {
 async function loadInactiveClients() {
     const tbody = document.querySelector("tbody");
     if (!tbody) return;
+
     tbody.innerHTML = '<tr><td colspan="9" class="text-center p-4">Cargando clientes inactivos...</td></tr>';
 
     try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error("Error al cargar clientes");
+
         const data = await response.json();
         clientesInactivos = (data || []).filter((c: any) => c.cliEstado === false);
-        renderTabla(clientesInactivos);
+
+        clientesFiltrados = [...clientesInactivos];
+        paginaActual = 1;
+
+        renderPagina();
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error al conectar con la API.</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-danger">
+                    Error al conectar con la API.
+                </td>
+            </tr>`;
     }
 }
+
 
 function renderTabla(clientes: any[]) {
     const tbody = document.querySelector("tbody");
@@ -73,12 +89,13 @@ function aplicarFiltros(inputOrigen: "filtroCedula" | "filtroNombre") {
     const cedula = cedulaInput.value.toLowerCase();
     const nombre = nombreInput.value.toLowerCase();
 
-    const filtrados = clientesInactivos.filter((c) =>
+    clientesFiltrados = clientesInactivos.filter((c) =>
         c.cliCedula.toString().includes(cedula) &&
         c.cliNombre.toLowerCase().includes(nombre)
     );
 
-    renderTabla(filtrados);
+    paginaActual = 1;
+    renderPagina();
 
     actualizarIcono("filtroCedula", cedula !== "");
     actualizarIcono("filtroNombre", nombre !== "");
@@ -164,4 +181,42 @@ function limpiarFiltroIndividual(inputId: string) {
 
     input.value = "";
     aplicarFiltros(inputId as any);
+}
+function renderPagina() {
+    const inicio = (paginaActual - 1) * registrosPorPagina;
+    const fin = inicio + registrosPorPagina;
+
+    const clientesPagina = clientesFiltrados.slice(inicio, fin);
+    renderTabla(clientesPagina);
+    renderPaginacion();
+}
+
+function renderPaginacion() {
+    const totalPaginas = Math.ceil(clientesFiltrados.length / registrosPorPagina);
+    const contenedor = document.getElementById("paginacion");
+    if (!contenedor) return;
+
+    contenedor.innerHTML = `
+        <button class="btn btn-sm btn-outline-secondary me-2"
+            ${paginaActual === 1 ? "disabled" : ""} id="btnAnterior">
+            Anterior
+        </button>
+
+        <span>Página ${paginaActual} de ${totalPaginas}</span>
+
+        <button class="btn btn-sm btn-outline-secondary ms-2"
+            ${paginaActual === totalPaginas ? "disabled" : ""} id="btnSiguiente">
+            Siguiente
+        </button>
+    `;
+
+    document.getElementById("btnAnterior")?.addEventListener("click", () => {
+        paginaActual--;
+        renderPagina();
+    });
+
+    document.getElementById("btnSiguiente")?.addEventListener("click", () => {
+        paginaActual++;
+        renderPagina();
+    });
 }

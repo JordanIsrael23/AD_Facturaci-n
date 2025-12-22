@@ -5,6 +5,10 @@ const API_URL = "http://127.0.0.1:5055/api/Clientes";
 let clienteIdToDelete: string | null = null;
 let clientesData: any[] = [];
 let hayFiltros = false;
+let paginaActual = 1;
+const registrosPorPagina = 10;
+let clientesFiltrados: any[] = [];
+
 
 
 // Declaramos bootstrap para evitar errores de TS
@@ -35,15 +39,17 @@ function limpiarFiltros() {
     (document.getElementById("filtroCedula") as HTMLInputElement).value = "";
     (document.getElementById("filtroNombre") as HTMLInputElement).value = "";
 
-    hayFiltros = false;
+    clientesFiltrados = [...clientesData];
+    paginaActual = 1;
 
-    renderClientes(clientesData);
+    renderPagina();
 
     document.querySelectorAll(".iconoFiltro").forEach((icono) => {
         icono.classList.remove("bi-funnel-fill");
         icono.classList.add("bi-funnel");
     });
 }
+
 
 
 async function loadClientes() {
@@ -59,12 +65,21 @@ async function loadClientes() {
         const data = await response.json();
         clientesData = data.data || [];
 
-        renderClientes(clientesData);
+        clientesFiltrados = [...clientesData];
+        paginaActual = 1;
+
+        renderPagina();
     } catch (error) {
         console.error("Error:", error);
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error de conexión.</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-danger">
+                    Error de conexión.
+                </td>
+            </tr>`;
     }
 }
+
 
 function renderClientes(clientes: any[]) {
     const tbody = document.querySelector("tbody");
@@ -111,17 +126,20 @@ function aplicarFiltros(inputOrigen: "filtroCedula" | "filtroNombre") {
     const cedula = cedulaInput.value.toLowerCase();
     const nombre = nombreInput.value.toLowerCase();
 
-    const filtrados = clientesData.filter((c) =>
+    clientesFiltrados = clientesData.filter((c) =>
         c.cliCedula.toString().includes(cedula) &&
         c.cliNombre.toLowerCase().includes(nombre)
     );
 
-    renderClientes(filtrados);
+    paginaActual = 1;
 
-    
+    renderPagina();
+
     actualizarIcono("filtroCedula", cedula !== "");
     actualizarIcono("filtroNombre", nombre !== "");
 }
+
+
 function actualizarIcono(inputId: string, activo: boolean) {
     const btn = document.querySelector(
         `.btnFiltro[data-for="${inputId}"]`
@@ -186,5 +204,44 @@ function attachDeleteListeners() {
             const modal = new bootstrap.Modal(document.getElementById("confirmDeleteModal"));
             modal.show();
         });
+    });
+}
+
+function renderPagina() {
+    const inicio = (paginaActual - 1) * registrosPorPagina;
+    const fin = inicio + registrosPorPagina;
+
+    const clientesPagina = clientesFiltrados.slice(inicio, fin);
+    renderClientes(clientesPagina);
+    renderPaginacion();
+}
+
+function renderPaginacion() {
+    const totalPaginas = Math.ceil(clientesFiltrados.length / registrosPorPagina);
+    const contenedor = document.getElementById("paginacion");
+    if (!contenedor) return;
+
+    contenedor.innerHTML = `
+        <button class="btn btn-sm btn-outline-secondary me-2"
+            ${paginaActual === 1 ? "disabled" : ""} id="btnAnterior">
+            Anterior
+        </button>
+
+        <span>Página ${paginaActual} de ${totalPaginas}</span>
+
+        <button class="btn btn-sm btn-outline-secondary ms-2"
+            ${paginaActual === totalPaginas ? "disabled" : ""} id="btnSiguiente">
+            Siguiente
+        </button>
+    `;
+
+    document.getElementById("btnAnterior")?.addEventListener("click", () => {
+        paginaActual--;
+        renderPagina();
+    });
+
+    document.getElementById("btnSiguiente")?.addEventListener("click", () => {
+        paginaActual++;
+        renderPagina();
     });
 }
