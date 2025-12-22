@@ -8,9 +8,22 @@ export function initRestablecer() {
     setupSelectAll();
     setupRestoreAction();
 
-    document.getElementById("filtroCedula")?.addEventListener("input", aplicarFiltros);
-    document.getElementById("filtroNombre")?.addEventListener("input", aplicarFiltros);
+    document
+        .getElementById("filtroCedula")
+        ?.addEventListener("input", () => aplicarFiltros("filtroCedula"));
+
+    document
+        .getElementById("filtroNombre")
+        ?.addEventListener("input", () => aplicarFiltros("filtroNombre"));
+
+    document.querySelectorAll(".btnFiltro").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const inputId = btn.getAttribute("data-for");
+            if (inputId) limpiarFiltroIndividual(inputId);
+        });
+    });
 }
+
 
 async function loadInactiveClients() {
     const tbody = document.querySelector("tbody");
@@ -53,14 +66,24 @@ function renderTabla(clientes: any[]) {
     `).join("");
 }
 
-function aplicarFiltros() {
-    const cedula = (document.getElementById("filtroCedula") as HTMLInputElement).value.toLowerCase();
-    const nombre = (document.getElementById("filtroNombre") as HTMLInputElement).value.toLowerCase();
-    const filtrados = clientesInactivos.filter((c) => 
-        c.cliCedula.toString().includes(cedula) && c.cliNombre.toLowerCase().includes(nombre)
+function aplicarFiltros(inputOrigen: "filtroCedula" | "filtroNombre") {
+    const cedulaInput = document.getElementById("filtroCedula") as HTMLInputElement;
+    const nombreInput = document.getElementById("filtroNombre") as HTMLInputElement;
+
+    const cedula = cedulaInput.value.toLowerCase();
+    const nombre = nombreInput.value.toLowerCase();
+
+    const filtrados = clientesInactivos.filter((c) =>
+        c.cliCedula.toString().includes(cedula) &&
+        c.cliNombre.toLowerCase().includes(nombre)
     );
+
     renderTabla(filtrados);
+
+    actualizarIcono("filtroCedula", cedula !== "");
+    actualizarIcono("filtroNombre", nombre !== "");
 }
+
 
 function setupSelectAll() {
     const selectAll = document.getElementById("selectAll") as HTMLInputElement;
@@ -122,4 +145,23 @@ function setupRestoreAction() {
             console.error("Error al restablecer:", error);
         }
     });
+}
+function actualizarIcono(inputId: string, activo: boolean) {
+    const btn = document.querySelector(
+        `.btnFiltro[data-for="${inputId}"]`
+    ) as HTMLElement | null;
+
+    const icono = btn?.querySelector(".iconoFiltro");
+    if (!icono) return;
+
+    icono.classList.remove("bi-funnel", "bi-funnel-fill");
+    icono.classList.add(activo ? "bi-funnel-fill" : "bi-funnel");
+}
+
+function limpiarFiltroIndividual(inputId: string) {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (!input) return;
+
+    input.value = "";
+    aplicarFiltros(inputId as any);
 }

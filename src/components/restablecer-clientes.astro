@@ -4,20 +4,39 @@ import background from "../assets/background.svg";
 
 <div class="container pt-3">
     <a href="/clientes" class="btn btn-outline-secondary btn-sm mb-3">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-1" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"></path>
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            class="bi bi-arrow-left me-1"
+            viewBox="0 0 16 16"
+        >
+            <path
+                fill-rule="evenodd"
+                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+            ></path>
         </svg>
         Volver a Clientes
     </a>
 </div>
 
-<div style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}></div>
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
 
-<main class="container-fluid d-flex flex-column align-items-center p-0 min-vh-100">
+<main
+    class="container-fluid d-flex flex-column align-items-center p-0 min-vh-100"
+>
     <section class="container mt-5 p-3">
-        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+        <div
+            class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2"
+        >
             <div class="d-flex align-items-center">
-                <h1 class="h2 text-primary fw-bold me-2 mb-0">Restablecer Clientes</h1>
+                <h1 class="h2 text-primary fw-bold me-2 mb-0">
+                    Restablecer Clientes
+                </h1>
                 <i class="bi bi-people-fill text-secondary fs-2"></i>
             </div>
         </div>
@@ -25,24 +44,53 @@ import background from "../assets/background.svg";
         <div class="row mb-3 justify-content-center">
             <div class="col-md-4">
                 <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-funnel"></i></span>
-                    <input type="text" id="filtroCedula" class="form-control" placeholder="Filtrar por cédula" />
+                    <button
+                        type="button"
+                        class="input-group-text btn btn-outline-secondary btnFiltro"
+                        data-for="filtroCedula"
+                    >
+                        <i class="bi bi-funnel iconoFiltro"></i>
+                    </button>
+
+                    <input
+                        type="text"
+                        id="filtroCedula"
+                        class="form-control"
+                        placeholder="Filtrar por cédula"
+                    />
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-funnel"></i></span>
-                    <input type="text" id="filtroNombre" class="form-control" placeholder="Filtrar por nombre" />
+                    <button
+                        type="button"
+                        class="input-group-text btn btn-outline-secondary btnFiltro"
+                        data-for="filtroNombre"
+                    >
+                        <i class="bi bi-funnel iconoFiltro"></i>
+                    </button>
+                    <input
+                        type="text"
+                        id="filtroNombre"
+                        class="form-control"
+                        placeholder="Filtrar por nombre"
+                    />
                 </div>
             </div>
         </div>
 
         <div class="table-responsive shadow-sm rounded-3 bg-white">
-            <table class="table table-striped table-hover align-middle table-bordered mb-0">
+            <table
+                class="table table-striped table-hover align-middle table-bordered mb-0"
+            >
                 <thead class="table-dark">
                     <tr>
                         <th scope="col" class="text-center">
-                            <input type="checkbox" id="selectAll" class="form-check-input" />
+                            <input
+                                type="checkbox"
+                                id="selectAll"
+                                class="form-check-input"
+                            />
                         </th>
                         <th scope="col">Cédula</th>
                         <th scope="col">Nombre</th>
@@ -54,8 +102,7 @@ import background from "../assets/background.svg";
                         <th scope="col">Estado</th>
                     </tr>
                 </thead>
-                <tbody>
-                    </tbody>
+                <tbody> </tbody>
             </table>
         </div>
 
@@ -67,30 +114,58 @@ import background from "../assets/background.svg";
     </section>
 </main>
 
-<div class="modal fade" id="confirmRestoreModal" tabindex="-1" aria-hidden="true">
+<div
+    class="modal fade"
+    id="confirmRestoreModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-success border-3">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title d-flex align-items-center">
-                    <i class="bi bi-arrow-counterclockwise me-2 fs-4"></i> Confirmar Restablecimiento
+                    <i class="bi bi-arrow-counterclockwise me-2 fs-4"></i> Confirmar
+                    Restablecimiento
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center p-4">
-                <p class="lead text-dark">¿Estás seguro que deseas restablecer los clientes seleccionados?</p>
-                <p class="text-muted small">Estos clientes volverán a estar activos en el sistema.</p>
+                <p class="lead text-dark">
+                    ¿Estás seguro que deseas restablecer los clientes
+                    seleccionados?
+                </p>
+                <p class="text-muted small">
+                    Estos clientes volverán a estar activos en el sistema.
+                </p>
             </div>
             <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-success d-inline-flex align-items-center" id="confirmRestoreBtn">
+                <button
+                    type="button"
+                    class="btn btn-success d-inline-flex align-items-center"
+                    id="confirmRestoreBtn"
+                >
                     <i class="bi bi-check-circle-fill me-1"></i> Confirmar y Restablecer
                 </button>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    data-bs-dismiss="modal">Cancelar</button
+                >
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="warningSelectModal" tabindex="-1" aria-hidden="true">
+<div
+    class="modal fade"
+    id="warningSelectModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-warning border-3">
             <div class="modal-header bg-warning text-dark">
@@ -99,28 +174,46 @@ import background from "../assets/background.svg";
                 </h5>
             </div>
             <div class="modal-body text-center p-4">
-                <p class="lead text-dark">Por favor, selecciona al menos un cliente de la lista.</p>
+                <p class="lead text-dark">
+                    Por favor, selecciona al menos un cliente de la lista.
+                </p>
             </div>
             <div class="modal-footer justify-content-center border-0">
-                <button type="button" class="btn btn-warning px-5 fw-bold" data-bs-dismiss="modal">Entendido</button>
+                <button
+                    type="button"
+                    class="btn btn-warning px-5 fw-bold"
+                    data-bs-dismiss="modal">Entendido</button
+                >
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="successRestoreModal" tabindex="-1" aria-hidden="true">
+<div
+    class="modal fade"
+    id="successRestoreModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-success border-3">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title d-flex align-items-center">
-                    <i class="bi bi-check-circle-fill me-2 fs-4"></i> Restablecimiento Exitoso
+                    <i class="bi bi-check-circle-fill me-2 fs-4"></i> Restablecimiento
+                    Exitoso
                 </h5>
             </div>
             <div class="modal-body text-center p-4">
-                <p class="lead text-dark fw-bold">¡Los clientes han sido activados correctamente!</p>
+                <p class="lead text-dark fw-bold">
+                    ¡Los clientes han sido activados correctamente!
+                </p>
             </div>
             <div class="modal-footer justify-content-center border-0">
-                <button type="button" class="btn btn-success px-5" data-bs-dismiss="modal">Aceptar</button>
+                <button
+                    type="button"
+                    class="btn btn-success px-5"
+                    data-bs-dismiss="modal">Aceptar</button
+                >
             </div>
         </div>
     </div>
