@@ -105,6 +105,30 @@ import background from "../assets/background.svg";
     </div>
 </div>
 
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-danger border-3">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title d-flex align-items-center">
+                    <i class="bi bi-exclamation-octagon-fill me-2 fs-4"></i>
+                    Error de Validación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-3">
+                    <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <p class="text-dark fw-bold text-center">No se pudo completar el registro:</p>
+                <p id="errorModalMsg" class="text-muted small bg-light p-3 rounded border"></p>
+            </div>
+            <div class="modal-footer justify-content-center border-0">
+                <button type="button" class="btn btn-danger px-5" data-bs-dismiss="modal">Corregir Datos</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     import { initCrearCliente } from "../scripts/crear_clientes";
     document.addEventListener("DOMContentLoaded", initCrearCliente);

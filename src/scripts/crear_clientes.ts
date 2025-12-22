@@ -38,20 +38,54 @@ export function initCrearCliente() {
             if (response.ok) {
                 // MOSTRAR MODAL DE ÉXITO
                 const modalEl = document.getElementById('successModal');
-                const successModal = new bootstrap.Modal(modalEl);
-                successModal.show();
+                if (modalEl) {
+                    const successModal = new bootstrap.Modal(modalEl);
+                    successModal.show();
 
-                // Configurar el botón del modal para redirigir
-                document.getElementById('btnOkSuccess')?.addEventListener('click', () => {
-                    window.location.href = "/clientes";
-                });
+                    // Configurar el botón del modal para redirigir
+                    document.getElementById('btnOkSuccess')?.addEventListener('click', () => {
+                        window.location.href = "/clientes";
+                    });
+                }
             } else {
-                const errorText = await response.text();
-                alert("Error al crear cliente: " + errorText);
+                // MANEJO INTELIGENTE DE ERRORES (JSON O TEXTO)
+                let mensajeParaMostrar = "Ocurrió un error al procesar la solicitud.";
+
+                // Intentamos determinar si la respuesta es JSON por el encabezado
+                const contentType = response.headers.get("content-type");
+                
+                if (contentType && contentType.includes("application/json")) {
+                    const errorData = await response.json();
+                    // Extraemos el mensaje según el formato estándar de .NET (Problem Details)
+                    mensajeParaMostrar = errorData.detail || errorData.title || errorData.message || JSON.stringify(errorData);
+                } else {
+                    // Si es texto plano (como los errores directos de SQL/Triggers)
+                    const errorRaw = await response.text();
+                    mensajeParaMostrar = errorRaw.includes("Error:") 
+                        ? errorRaw.split("Error:")[1].split("at ")[0] 
+                        : errorRaw;
+                }
+
+                mostrarErrorEnModal(mensajeParaMostrar);
             }
         } catch (error) {
-            console.error(error);
-            alert("Error de conexión con la API");
+            console.error("Error de red:", error);
+            mostrarErrorEnModal("No se pudo establecer conexión con el servidor. Verifique si la API está en ejecución.");
         }
     });
+
+    // FUNCIÓN AUXILIAR PARA MOSTRAR EL MODAL DE ERROR
+    function mostrarErrorEnModal(mensaje: string) {
+        const msgElement = document.getElementById("errorModalMsg");
+        if (msgElement) {
+            msgElement.innerText = mensaje; 
+        }
+
+        const errorModalEl = document.getElementById("errorModal");
+        if (errorModalEl) {
+            // @ts-ignore
+            const modalError = new bootstrap.Modal(errorModalEl);
+            modalError.show();
+        }
+    }
 }
