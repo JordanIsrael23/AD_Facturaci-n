@@ -1,8 +1,8 @@
 // src/scripts/clientes.ts
 
 // Definimos la URL de la API
-//const API_URL = "http://127.0.0.1:5055/api/Clientes"; URL para pruebas locales 
-const API_URL = "http://100.52.136.213:5000/api/Clientes";  // URL de AWS Cuenta DM 
+const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
+
 let clienteIdToDelete: string | null = null;
 let clientesData: any[] = [];
 let hayFiltros = false;
