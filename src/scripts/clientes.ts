@@ -4,6 +4,7 @@
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
 let clienteIdToDelete: string | null = null;
+let clienteNuevoEstado: boolean = false;
 let clientesData: any[] = [];
 let hayFiltros = false;
 let paginaActual = 1;
@@ -60,11 +61,11 @@ async function loadClientes() {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
 
     try {
-        const response = await fetch(`${API_URL}/activos`);
+        const response = await fetch(`${API_URL}`);
         if (!response.ok) throw new Error("Error");
 
         const data = await response.json();
-        clientesData = data.data || [];
+        clientesData = Array.isArray(data) ? data : (data.data || []);
 
         clientesFiltrados = [...clientesData];
         paginaActual = 1;
@@ -91,8 +92,7 @@ function renderClientes(clientes: any[]) {
         return;
     }
 
- 
-    // para actualizaciones dinámicas rápidas sin frameworks pesados.
+
     tbody.innerHTML = clientes.map((c: any) => `
         <tr>
             <td>
@@ -100,9 +100,9 @@ function renderClientes(clientes: any[]) {
                     <a href="editar_clientes?id=${c.cliCedula}" class="btn btn-sm btn-warning d-inline-flex align-items-center">
                         <i class="bi bi-pencil-square me-1"></i> Editar
                     </a>
-                    <button type="button" class="btn btn-sm btn-danger d-inline-flex align-items-center btn-delete" 
-                        data-cedula="${c.cliCedula}" data-nombre="${c.cliNombre}">
-                        <i class="bi bi-trash me-1"></i> Eliminar
+                    <button type="button" class="btn btn-sm ${c.cliEstado ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
+                        data-cedula="${c.cliCedula}" data-nombre="${c.cliNombre}" data-estado="${c.cliEstado}">
+                        <i class="bi ${c.cliEstado ? "bi-trash" : "bi-check-circle"} me-1"></i> ${c.cliEstado ? "Desactivar" : "Activar"}
                     </button>
                 </div>
             </td>
@@ -113,7 +113,10 @@ function renderClientes(clientes: any[]) {
             <td>${c.cliDireccion || ""}</td>
             <td>${c.cliTelefono || ""}</td>
             <td>${c.cliEmail || ""}</td>
-            <td><span class="badge text-bg-success">Activo</span></td>
+            <td><span class="badge ${c.cliEstado ? "text-bg-success" : "text-bg-danger"}">
+                    ${c.cliEstado ? "Activo" : "Inactivo"}
+                </span>
+            </td>
         </tr>
     `).join("");
 
@@ -173,12 +176,12 @@ function setupDeleteModal() {
             const response = await fetch(`${API_URL}/${clienteIdToDelete}/estado`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ estado: false }),
+                body: JSON.stringify({ estado: clienteNuevoEstado }),
             });
 
             if (response.ok) {
                 const modalEl = document.getElementById("confirmDeleteModal");
-                const modal = bootstrap.Modal.getInstance(modalEl);
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
                 loadClientes();
             }
@@ -193,16 +196,42 @@ function attachDeleteListeners() {
         btn.addEventListener("click", (e) => {
             const target = (e.target as HTMLElement).closest(".btn-delete");
             if (!target) return;
-            
+
             const cedula = target.getAttribute("data-cedula");
             const nombre = target.getAttribute("data-nombre");
+            const estadoActual = target.getAttribute("data-estado") === "true";
 
             clienteIdToDelete = cedula;
+            clienteNuevoEstado = !estadoActual;
+
+            const accion = clienteNuevoEstado ? "Activar" : "Desactivar";
+            const colorClass = clienteNuevoEstado ? "success" : "danger";
+            const prevColorClass = clienteNuevoEstado ? "danger" : "success";
+
+            // Update Modal Styling
+            const modalContent = document.querySelector("#confirmDeleteModal .modal-content");
+            modalContent?.classList.remove(`border-${prevColorClass}`);
+            modalContent?.classList.add(`border-${colorClass}`);
+
+            const modalHeader = document.querySelector("#confirmDeleteModal .modal-header");
+            modalHeader?.classList.remove(`bg-${prevColorClass}`);
+            modalHeader?.classList.add(`bg-${colorClass}`);
+
+            const modalTitle = document.getElementById("confirmDeleteModalLabel");
+            if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${clienteNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
+
+            const confirmBtn = document.getElementById("confirmDeleteBtn");
+            confirmBtn?.classList.remove(`btn-${prevColorClass}`);
+            confirmBtn?.classList.add(`btn-${colorClass}`);
+            if (confirmBtn) confirmBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
 
             const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
-            if (modalBody) modalBody.innerHTML = `¿Eliminar a <strong>${nombre}</strong>?`;
+            if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} al cliente <strong>${nombre}</strong>?`;
 
-            const modal = new bootstrap.Modal(document.getElementById("confirmDeleteModal"));
+            const modalBodySub = document.querySelector("#confirmDeleteModal .modal-body p.text-muted");
+            if (modalBodySub) modalBodySub.innerHTML = `Este cliente será ${clienteNuevoEstado ? "activado" : "desactivado"}.`;
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("confirmDeleteModal"));
             modal.show();
         });
     });

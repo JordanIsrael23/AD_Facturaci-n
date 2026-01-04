@@ -1,0 +1,286 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div class="container pt-3">
+    <a href="/facturas" class="btn btn-outline-secondary btn-sm mb-3">
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            class="bi bi-arrow-left me-1"
+            viewBox="0 0 16 16"
+        >
+            <path
+                fill-rule="evenodd"
+                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+            ></path>
+        </svg>
+        Volver a Facturas
+    </a>
+</div>
+
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm mt-2 mb-5">
+                <div class="card-body p-4">
+                    <form id="formCrearFactura" autocomplete="off">
+                        <h2 class="text-center text-primary mb-4 fw-bold">
+                            <i class="bi bi-receipt-cutoff me-2"></i>Nueva
+                            Factura
+                        </h2>
+
+                        <!-- Cabecera -->
+                        <div class="card bg-light border-0 mb-4">
+                            <div class="card-body">
+                                <h5
+                                    class="card-title text-secondary border-bottom pb-2 mb-3"
+                                >
+                                    Datos Generales
+                                </h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label
+                                            for="pemId"
+                                            class="form-label fw-medium"
+                                            <div
+                                            class="col-md-4"
+                                        >
+                                            <label
+                                                for="estRuc"
+                                                class="form-label fw-medium"
+                                                >Establecimiento</label
+                                            >
+                                            <select
+                                                class="form-select"
+                                                id="estRuc"
+                                                required
+                                            >
+                                                <option value=""
+                                                    >Seleccione...</option
+                                                >
+                                                <!-- JS -->
+                                            </select>
+                                        </label>
+                                        <div class="col-md-4">
+                                            <label
+                                                for="pemId"
+                                                class="form-label fw-medium"
+                                                >Punto de Emisión</label
+                                            >
+                                            <select
+                                                class="form-select"
+                                                id="pemId"
+                                                required
+                                                disabled
+                                            >
+                                                <option value=""
+                                                    >Seleccione
+                                                    establecimiento...</option
+                                                >
+                                                <!-- JS -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label
+                                                for="tipIdTipop"
+                                                class="form-label fw-medium"
+                                                >Tipo de Pago</label
+                                            >
+                                            <select
+                                                class="form-select"
+                                                id="tipIdTipop"
+                                                required
+                                            >
+                                                <option value=""
+                                                    >Seleccione tipo pago...</option
+                                                >
+                                                <!-- JS -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label
+                                                for="cliCedula"
+                                                class="form-label fw-medium"
+                                                >Cliente</label
+                                            >
+                                            <select
+                                                class="form-select"
+                                                id="cliCedula"
+                                                required
+                                            >
+                                                <option value=""
+                                                    >Seleccione un cliente...</option
+                                                >
+                                                <!-- JS -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detalle Productos -->
+                            <div class="mb-4">
+                                <div
+                                    class="d-flex justify-content-between align-items-center mb-2"
+                                >
+                                    <h5 class="text-secondary mb-0">
+                                        Detalle de Productos
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary btn-sm"
+                                        id="btnAddDetalle"
+                                    >
+                                        <i class="bi bi-plus-lg me-1"></i> Agregar
+                                        Producto
+                                    </button>
+                                </div>
+
+                                <div
+                                    class="alert alert-info d-flex align-items-center py-2 mb-3"
+                                    role="alert"
+                                >
+                                    <i class="bi bi-info-circle-fill me-2 fs-5"
+                                    ></i>
+                                    <div class="small">
+                                        La descripción, precios e impuestos se
+                                        completarán automáticamente desde el
+                                        inventario.
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="table-responsive bg-white border rounded"
+                                >
+                                    <table
+                                        class="table table-bordered mb-0 align-middle"
+                                    >
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 35%;"
+                                                    >Código Producto</th
+                                                >
+                                                <th
+                                                    style="width: 20%;"
+                                                    class="text-center"
+                                                    >Cantidad</th
+                                                >
+                                                <th class="text-center"
+                                                    >Info. Precio</th
+                                                >
+                                                <th
+                                                    style="width: 10%;"
+                                                    class="text-center"
+                                                    >Acción</th
+                                                >
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyDetalles">
+                                            <!-- Filas generadas por JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Acciones -->
+                            <div
+                                class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 pt-3 border-top"
+                            >
+                                <a
+                                    href="/facturas"
+                                    class="btn btn-outline-secondary px-4 fw-medium"
+                                    >Cancelar</a
+                                >
+                                <button
+                                    type="submit"
+                                    class="btn btn-success px-5 fw-bold d-flex align-items-center justify-content-center"
+                                >
+                                    <i class="bi bi-save me-2"></i> Emitir Factura
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-success border-3">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                        Factura Emitida
+                    </h5>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p class="lead text-dark">
+                        La factura ha sido creada exitosamente.
+                    </p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button
+                        type="button"
+                        class="btn btn-success px-4"
+                        id="btnOkSuccess">Aceptar</button
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-danger border-3">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="bi bi-exclamation-octagon-fill me-2 fs-4"></i>
+                        Error en Emisión
+                    </h5>
+                    <button
+                        type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <i
+                            class="bi bi-x-circle text-danger"
+                            style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="text-dark fw-bold text-center">
+                        No se pudo emitir la factura:
+                    </p>
+                    <p
+                        id="errorModalMsg"
+                        class="text-muted small bg-light p-3 rounded border text-break"
+                    >
+                    </p>
+                </div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button
+                        type="button"
+                        class="btn btn-danger px-5"
+                        data-bs-dismiss="modal">Corregir</button
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        import { initCrearFactura } from "../scripts/crear_factura";
+        document.addEventListener("DOMContentLoaded", initCrearFactura);
+    </script>
+</main>
