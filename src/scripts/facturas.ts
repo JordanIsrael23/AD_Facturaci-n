@@ -49,6 +49,11 @@ function limpiarFiltros() {
     });
 }
 
+const TIPOS_PAGO_URL = BASE_URL + "TipoPagoes";
+
+let allEstablecimientos: any[] = [];
+let allTiposPago: any[] = [];
+
 async function loadFacturas() {
     const tbody = document.querySelector("tbody");
     if (!tbody) return;
@@ -56,11 +61,30 @@ async function loadFacturas() {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center">Cargando...</td></tr>';
 
     try {
-        const response = await fetch(`${API_URL}`);
-        if (!response.ok) throw new Error("Error");
+        // Cargar Facturas, Establecimientos y Tipos de Pago en paralelo
+        const [resFacturas, resEstab, resTipos] = await Promise.all([
+            fetch(API_URL),
+            fetch(ESTABLECIMIENTOS_URL),
+            fetch(TIPOS_PAGO_URL)
+        ]);
 
-        const data = await response.json();
-        facturasData = Array.isArray(data) ? data : (data.data || []);
+        if (!resFacturas.ok) throw new Error("Error cargando facturas");
+
+        // Procesar Facturas
+        const dataFacturas = await resFacturas.json();
+        facturasData = Array.isArray(dataFacturas) ? dataFacturas : (dataFacturas.data || []);
+
+        // Procesar Establecimientos
+        if (resEstab.ok) {
+            const dataEstab = await resEstab.json();
+            allEstablecimientos = Array.isArray(dataEstab) ? dataEstab : (dataEstab.data || []);
+        }
+
+        // Procesar Tipos de Pago
+        if (resTipos.ok) {
+            const dataTipos = await resTipos.json();
+            allTiposPago = Array.isArray(dataTipos) ? dataTipos : (dataTipos.data || []);
+        }
 
         facturasFiltradas = [...facturasData];
         paginaActual = 1;
@@ -75,6 +99,58 @@ async function loadFacturas() {
                 </td>
             </tr>`;
     }
+}
+
+function formatInvoiceNumber(num: string | null | undefined): string {
+    if (!num) return "N/A";
+
+    // Eliminar cualquier caracter que no sea número
+    const digits = num.replace(/\D/g, "");
+
+    // Si no tiene la longitud esperada (15), devolver original o intentar formatear lo que hay
+    // Formato: 3 - 3 - 9  (XXX-XXX-XXXXXXXXX)
+    if (digits.length === 15) {
+        return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+
+    // Fallback: si ya viene con guiones y parece correcto
+    if (num.includes("-")) return num;
+
+    return num;
+}
+
+function getEstablecimientoInfo(f: any): string {
+    // Buscar el establecimiento
+    // 1. Intentar por estRuc directo en factura
+    // 2. Intentar por puntoEmision.estRuc
+    const ruc = f.estRuc || f.puntoEmision?.estRuc;
+
+    if (!ruc) return "N/A";
+
+    const est = allEstablecimientos.find((e: any) => e.estRuc === ruc);
+    if (est) {
+        return `${est.estNombre} (${est.estRuc})`;
+    }
+
+    // Si no encontramos el establecimiento en la lista, mostramos el RUC al menos
+    return ruc;
+}
+
+function getTipoPagoInfo(f: any): string {
+    // Prioridad 1: Objeto anidado
+    if (f.tipoPago && f.tipoPago.tipDescripcion) {
+        return f.tipoPago.tipDescripcion;
+    }
+
+    // Prioridad 2: Buscar en la lista cargada por ID
+    if (f.tipIdTipop) {
+        const tipo = allTiposPago.find((t: any) => t.tipIdTipop === f.tipIdTipop || t.id === f.tipIdTipop);
+        if (tipo) {
+            return tipo.tipDescripcion || tipo.descripcion || "N/A";
+        }
+    }
+
+    return "N/A";
 }
 
 function renderFacturas(facturas: any[]) {
@@ -94,21 +170,18 @@ function renderFacturas(facturas: any[]) {
                         data-numero="${f.facNumeroFactura}">
                         <i class="bi bi-eye-fill me-1"></i> Ver
                     </button>
-                    <a href="/editar-factura?id=${f.facNumeroFactura}" class="btn btn-sm btn-warning d-inline-flex align-items-center">
-                        <i class="bi bi-pencil-square me-1"></i> Editar
-                    </a>
                     <button type="button" class="btn btn-sm ${f.facEstadoFactura ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
                         data-numero="${f.facNumeroFactura}" data-estado="${f.facEstadoFactura}">
                         <i class="bi ${f.facEstadoFactura ? "bi-trash" : "bi-check-circle"} me-1"></i> ${f.facEstadoFactura ? "Anular" : "Activar"}
                     </button>
                 </div>
             </td>
-            <td>${f.facNumeroFactura}</td>
+            <td class="text-nowrap font-monospace text-center">${formatInvoiceNumber(f.facNumeroFactura)}</td>
             <td>${f.cliente?.cliNombre || f.cliCedula}</td>
             <td>${f.facFechaEmision ? String(f.facFechaEmision).split("T")[0] : "N/A"}</td>
             <td>$${f.facTotal.toFixed(2)}</td>
-            <td>${f.tipoPago?.tipDescripcion || "N/A"}</td>
-            <td>${f.puntoEmision?.pemDescripcion || "N/A"}</td>
+            <td>${getTipoPagoInfo(f)}</td>
+            <td>${getEstablecimientoInfo(f)}</td>
             <td><span class="badge ${f.facEstadoFactura ? "text-bg-success" : "text-bg-danger"}">
                     ${f.facEstadoFactura ? "Activa" : "Anulada"}
                 </span>

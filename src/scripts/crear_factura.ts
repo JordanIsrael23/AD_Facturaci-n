@@ -2,12 +2,13 @@
 // src/scripts/crear_factura.ts
 
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
+const API_URL_INVENTORY = import.meta.env.EXTERNAL_URL;
 const CLIENTES_URL = API_URL + "Clientes";
 const ESTABLECIMIENTOS_URL = API_URL + "Establecimientoes";
 const PUNTOS_URL = API_URL + "PuntoEmisions";
 const FACTURAS_URL = API_URL + "Facturas";
 const TIPOS_PAGO_URL = API_URL + "TipoPagoes";
-const PRODUCTOS_EXTERNAL_URL = "https://api-inventario.up.railway.app/api/products";
+const PRODUCTOS_EXTERNAL_URL = API_URL_INVENTORY + "products";
 
 declare const bootstrap: any;
 
