@@ -2,13 +2,13 @@
 // src/scripts/crear_factura.ts
 
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
-const API_URL_INVENTORY = import.meta.env.EXTERNAL_URL;
+const API_URL_INVENTORY = import.meta.env.PUBLIC_EXTERNAL_INVENTORY_URL;
 const CLIENTES_URL = API_URL + "Clientes";
 const ESTABLECIMIENTOS_URL = API_URL + "Establecimientoes";
 const PUNTOS_URL = API_URL + "PuntoEmisions";
 const FACTURAS_URL = API_URL + "Facturas";
 const TIPOS_PAGO_URL = API_URL + "TipoPagoes";
-const PRODUCTOS_EXTERNAL_URL = API_URL_INVENTORY + "products";
+const PRODUCTOS_EXTERNAL_URL = API_URL_INVENTORY;
 
 declare const bootstrap: any;
 
@@ -18,15 +18,20 @@ interface Detalle {
     cantidad: number;
 }
 
-// Estructura de producto externo
+// Estructura de producto externo adaptada a la respuesta JSON actual
 interface ProductoExterno {
     id: number;
     codigo: string;
     nombre: string;
-    pvp: string; // viene en string
+    descripcion: string;
+    costo: string; // "39.00"
+    pvp: string;   // "84.00" (Precio Venta Público)
+    stock: number;
     impuesto: {
-        porcentaje: string;
-    }
+        id: number;
+        nombre: string;     // "IVA 15%"
+        porcentaje: string; // "15.00"
+    } | null;
 }
 
 let contadorDetalle = 0;
@@ -34,9 +39,8 @@ let allPuntosEmision: any[] = [];
 let allProductos: ProductoExterno[] = [];
 
 export async function initCrearFactura() {
-    
     console.log("Iniciando carga de datos...");
-    await loadSelects(); 
+    await loadSelects();
     setupDetalles();
 
     const form = document.getElementById("formCrearFactura") as HTMLFormElement;
@@ -49,6 +53,7 @@ export async function initCrearFactura() {
 }
 
 async function loadSelects() {
+
     console.log("--- Iniciando carga de selectores ---");
 
     // 1. CARGAR CLIENTES
@@ -61,7 +66,6 @@ async function loadSelects() {
             if (select) {
                 select.innerHTML = '<option value="">Seleccione cliente...</option>';
                 lista.forEach((c: any) => {
-                    // Validamos explícitamente que no sea false (por si viene null o true)
                     if (c.cliEstado !== false) {
                         const option = document.createElement("option");
                         option.value = c.cliCedula;
@@ -100,39 +104,24 @@ async function loadSelects() {
         if (res.ok) {
             const data = await res.json();
             allPuntosEmision = Array.isArray(data) ? data : (data.data || []);
-            console.log(`Puntos cargados: ${allPuntosEmision.length}`);
         }
     } catch (e) { console.error("Error cargando puntos:", e); }
 
-    // 4. CARGAR TIPOS DE PAGO (CORREGIDO Y CON LOGS)
+    // 4. CARGAR TIPOS DE PAGO
     try {
-        console.log("Intentando cargar tipos de pago desde:", TIPOS_PAGO_URL);
-        
         const select = document.getElementById("tipIdTipop") as HTMLSelectElement;
-        
-        if (!select) {
-            console.error("ERROR CRÍTICO: No se encontró el elemento <select id='tipIdTipop'> en el HTML.");
-        } else {
+        if (select) {
             const res = await fetch(TIPOS_PAGO_URL);
-            
             if (res.ok) {
                 const data = await res.json();
                 const lista = Array.isArray(data) ? data : (data.data || []);
-                
-                console.log(`Tipos de pago recibidos: ${lista.length}`, lista);
-
-                // Limpiamos el select antes de llenar
                 select.innerHTML = '<option value="">Seleccione tipo de pago...</option>';
-
                 lista.forEach((t: any) => {
                     const option = document.createElement("option");
-                    // Intentamos varias combinaciones de nombres por si la API cambió
                     option.value = t.tipIdTipop || t.id;
                     option.text = t.tipDescripcion || t.descripcion || t.nombre || "Sin descripción";
                     select.appendChild(option);
                 });
-            } else {
-                console.error(`Error API TiposPago: ${res.status} ${res.statusText}`);
             }
         }
     } catch (e) { console.error("Excepción cargando tipos pago:", e); }
@@ -144,7 +133,8 @@ async function loadSelects() {
         if (res.ok) {
             const data = await res.json();
             allProductos = Array.isArray(data) ? data : (data.data || []);
-            
+
+            // Si ya hay filas (ej: recarga), actualizar sus selects
             actualizarSelectsProductos();
             console.log(`Productos externos cargados: ${allProductos.length}`);
         }
@@ -153,25 +143,20 @@ async function loadSelects() {
 
 function actualizarSelectsProductos() {
     const selects = document.querySelectorAll(".input-producto") as NodeListOf<HTMLSelectElement>;
-    
+
     selects.forEach(select => {
-        // Guardamos el valor actual por si el usuario ya seleccionó algo (raro en carga inicial, pero buena práctica)
         const valorActual = select.value;
-        
-        // Limpiamos excepto la opción por defecto
         select.innerHTML = '<option value="">Seleccione producto...</option>';
-        
         allProductos.forEach(p => {
             const option = document.createElement("option");
-            option.value = p.codigo;
-            option.text = `${p.codigo} - ${p.nombre} ($${parseFloat(p.pvp).toFixed(2)})`;
+            option.value = p.codigo; // Usamos CODIGO como valor clave
+            option.text = p.nombre;  // Mostramos NOMBRE en la lista
             select.appendChild(option);
         });
-
-        // Restauramos valor si existía
         if (valorActual) select.value = valorActual;
     });
 }
+
 function filtrarPuntosEmision(estRuc: string) {
     const select = document.getElementById("pemId") as HTMLSelectElement;
     if (!select) return;
@@ -204,8 +189,7 @@ function setupDetalles() {
     btnAdd?.addEventListener("click", () => {
         agregarFilaDetalle();
     });
-
-    // Agregar una fila inicial
+    // Agregar fila inicial
     agregarFilaDetalle();
 }
 
@@ -216,43 +200,63 @@ function agregarFilaDetalle() {
 
     const tr = document.createElement("tr");
     tr.id = `fila-${contadorDetalle}`;
+
+    // Columnas según requerimiento:
+    // 1. Producto (Select)
+    // 2. Codigo (Auto)
+    // 3. Descripcion (Auto)
+    // 4. Stock (Auto)
+    // 5. Costo (Auto)
+    // 6. Cantidad (Input)
+    // 7. Nombre Impuesto (Auto)
+    // 8. Precio Sin IVA (Auto) -> PVP
+    // 9. Precio Total (Auto)
+    // 10. Accion
+
     tr.innerHTML = `
-        <td>
-             <select class="form-select input-producto" required>
-                <option value="">Seleccione producto...</option>
-             </select>
-        </td>
-        <td>
-            <input type="number" class="form-control input-cantidad text-center" value="1" min="1" required>
-        </td>
-        <td class="text-center align-middle fw-bold row-total">
-            $0.00
-        </td>
         <td class="text-center align-middle">
             <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row">
                 <i class="bi bi-trash"></i>
             </button>
         </td>
+        <td>
+             <select class="form-select input-producto" style="min-width: 200px;" required>
+                <option value="">Cargando...</option>
+             </select>
+        </td>
+        <td class="align-middle"><input type="text" class="form-control-plaintext form-control-sm input-codigo" readonly></td>
+        <td class="align-middle"><input type="text" class="form-control-plaintext form-control-sm input-descripcion" readonly></td>
+        <td class="align-middle text-center"><input type="text" class="form-control-plaintext form-control-sm text-center input-stock" readonly></td>
+        <td class="align-middle text-end"><input type="text" class="form-control-plaintext form-control-sm text-end input-costo" readonly></td>
+        
+        <td>
+            <input type="number" class="form-control input-cantidad text-center" value="1" min="1" required>
+        </td>
+
+        <td class="align-middle text-center"><input type="text" class="form-control-plaintext form-control-sm text-center input-impuesto-nombre" readonly></td>
+        <td class="align-middle text-end"><input type="text" class="form-control-plaintext form-control-sm text-end input-precio" readonly></td>
+        <td class="align-middle text-end fw-bold row-total">$0.00</td>
     `;
     tbody.appendChild(tr);
 
-    // Populate Select
+    // Llenar Select
     const select = tr.querySelector(".input-producto") as HTMLSelectElement;
+    select.innerHTML = '<option value="">Seleccione producto...</option>';
     allProductos.forEach(p => {
         const option = document.createElement("option");
-        option.value = p.codigo; // Use Code as value for lookup
-        option.text = `${p.codigo} - ${p.nombre} ($${parseFloat(p.pvp).toFixed(2)})`;
+        option.value = p.codigo;
+        option.text = p.nombre;
         select.appendChild(option);
     });
 
-    // Listeners for calculation
+    // Listeners
     const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
     const updateRow = () => calcularFila(tr);
 
     select.addEventListener("change", updateRow);
     qtyInput.addEventListener("input", updateRow);
 
-    // Evento borrar
+    // Borrar
     tr.querySelector(".btn-remove-row")?.addEventListener("click", () => {
         tr.remove();
         if (tbody.children.length === 0) agregarFilaDetalle();
@@ -262,25 +266,62 @@ function agregarFilaDetalle() {
 function calcularFila(tr: HTMLElement) {
     const select = tr.querySelector(".input-producto") as HTMLSelectElement;
     const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
+
+    // Inputs de solo lectura
+    const inputCodigo = tr.querySelector(".input-codigo") as HTMLInputElement;
+    const inputDesc = tr.querySelector(".input-descripcion") as HTMLInputElement;
+    const inputStock = tr.querySelector(".input-stock") as HTMLInputElement;
+    const inputCosto = tr.querySelector(".input-costo") as HTMLInputElement;
+    const inputImpuesto = tr.querySelector(".input-impuesto-nombre") as HTMLInputElement;
+    const inputPrecio = tr.querySelector(".input-precio") as HTMLInputElement;
     const totalCell = tr.querySelector(".row-total") as HTMLElement;
 
     const codigo = select.value;
-    const cantidad = parseInt(qtyInput.value) || 0;
+    let cantidad = parseInt(qtyInput.value) || 0;
 
-    if (!codigo || cantidad <= 0) {
+    // Limpiar si no hay seleccion
+    if (!codigo) {
+        inputCodigo.value = "";
+        inputDesc.value = "";
+        inputStock.value = "";
+        inputCosto.value = "";
+        inputImpuesto.value = "";
+        inputPrecio.value = "";
         totalCell.innerText = "$0.00";
         return;
     }
 
     const prod = allProductos.find(p => p.codigo === codigo);
     if (prod) {
-        const precio = parseFloat(prod.pvp);
-        const impuesto = parseFloat(prod.impuesto.porcentaje); // e.g. 15.00
-        const subtotal = precio * cantidad;
-        const valorIva = subtotal * (impuesto / 100);
-        const total = subtotal + valorIva;
+        if (cantidad > prod.stock) {
+            cantidad = prod.stock;
+            qtyInput.value = String(cantidad);
+        }
+        // Llenar datos informativos
+        inputCodigo.value = prod.codigo;
+        inputDesc.value = prod.descripcion || "";
+        inputStock.value = String(prod.stock);
+        inputCosto.value = `$${parseFloat(prod.costo).toFixed(2)}`;
 
-        totalCell.innerText = `$${total.toFixed(2)}`;
+        const nombreImpuesto = prod.impuesto ? prod.impuesto.nombre : "Sin Impuesto";
+        const porcentajeImpuesto = prod.impuesto ? parseFloat(prod.impuesto.porcentaje) : 0;
+
+        inputImpuesto.value = nombreImpuesto;
+        inputPrecio.value = `$${parseFloat(prod.pvp).toFixed(2)}`;
+
+        if (cantidad > 0) {
+            // Calculo de total de linea
+            // Precio Sin IVA (PVP) * Cantidad
+            // + IVA
+            const precioUnit = parseFloat(prod.pvp);
+            const subtotal = precioUnit * cantidad;
+            const valorIva = subtotal * (porcentajeImpuesto / 100);
+            const total = subtotal + valorIva;
+
+            totalCell.innerText = `$${total.toFixed(2)}`;
+        } else {
+            totalCell.innerText = "$0.00";
+        }
     }
 }
 
@@ -319,7 +360,7 @@ async function handleSubmit(e: Event) {
                 // Estos cálculos son REFERENCIALES para el frontend.
                 // El backend hará sus propios cálculos oficiales.
                 const precio = parseFloat(prod.pvp);
-                const porcentajeIva = parseFloat(prod.impuesto.porcentaje);
+                const porcentajeIva = prod.impuesto ? parseFloat(prod.impuesto.porcentaje) : 0;
                 const subtotal = precio * cantidad;
                 const valorIva = subtotal * (porcentajeIva / 100);
                 const total = subtotal + valorIva;
@@ -327,7 +368,7 @@ async function handleSubmit(e: Event) {
                 detallesPayload.push({
                     detIdDetalle: 0,
                     // Enviamos cadena vacía o null, el Backend asignará el ID generado por el SP
-                    facNumeroFactura: "", 
+                    facNumeroFactura: "",
                     detIdProductoExterno: prod.id,
                     detCodigoProducto: prod.codigo, // VITAL: Esto es lo que usa el backend para buscar
                     detNombreProducto: prod.nombre,
@@ -359,8 +400,8 @@ async function handleSubmit(e: Event) {
     const factura = {
         // CAMBIO CLAVE: Enviamos string vacío. 
         // El Backend detecta esto, llama al SP, genera el ID (ej: 001-001-0005) y se lo asigna.
-        facNumeroFactura: "", 
-        
+        facNumeroFactura: "",
+
         estRuc: estRuc,
         cliCedula: cliCedula,
         pemId: parseInt(pemId),
@@ -394,7 +435,7 @@ async function handleSubmit(e: Event) {
             if (modalEl) {
                 // Opcional: Mostrar el ID real en el modal de éxito si tienes un elemento para ello
                 const msgExito = document.getElementById('mensajeExitoId');
-                if(msgExito) msgExito.innerText = `Factura ${facturaCreada.facNumeroFactura} generada correctamente.`;
+                if (msgExito) msgExito.innerText = `Factura ${facturaCreada.facNumeroFactura} generada correctamente.`;
 
                 const successModal = new bootstrap.Modal(modalEl);
                 successModal.show();
@@ -405,17 +446,17 @@ async function handleSubmit(e: Event) {
             }
         } else {
             let msg = "Error al crear factura";
-            
+
             // 1. Leemos el cuerpo UNA sola vez como texto plano
-            const rawText = await response.text(); 
+            const rawText = await response.text();
 
             try {
                 // 2. Intentamos convertir ese texto a JSON manualmente
                 const errData = JSON.parse(rawText);
-                
+
                 // 3. Si funcionó, extraemos el mensaje bonito
                 msg = errData.detail || errData.message || JSON.stringify(errData);
-                
+
                 if (errData.errors) {
                     // Para errores de validación de .NET (ej: campos requeridos)
                     msg += ": " + JSON.stringify(errData.errors);
@@ -425,7 +466,7 @@ async function handleSubmit(e: Event) {
                 // Usamos el texto crudo que leímos al principio (si no está vacío)
                 if (rawText) msg = rawText;
             }
-            
+
             mostrarErrorEnModal(msg);
         }
     } catch (error) {
