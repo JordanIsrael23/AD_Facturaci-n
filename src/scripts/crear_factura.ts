@@ -6,7 +6,8 @@ const CLIENTES_URL = API_URL + "Clientes";
 const ESTABLECIMIENTOS_URL = API_URL + "Establecimientoes";
 const PUNTOS_URL = API_URL + "PuntoEmisions";
 const FACTURAS_URL = API_URL + "Facturas";
-const TIPOS_PAGO_URL = API_URL + "TipoPagoes"; // Según instrucción explícita podría ser TipoClientes, pero usando TipoPagos por semántica correcta
+const TIPOS_PAGO_URL = API_URL + "TipoPagoes";
+const PRODUCTOS_EXTERNAL_URL = "https://api-inventario.up.railway.app/api/products";
 
 declare const bootstrap: any;
 
@@ -16,18 +17,30 @@ interface Detalle {
     cantidad: number;
 }
 
-let detalles: Detalle[] = [];
+// Estructura de producto externo
+interface ProductoExterno {
+    id: number;
+    codigo: string;
+    nombre: string;
+    pvp: string; // viene en string
+    impuesto: {
+        porcentaje: string;
+    }
+}
+
 let contadorDetalle = 0;
 let allPuntosEmision: any[] = [];
+let allProductos: ProductoExterno[] = [];
 
-export function initCrearFactura() {
-    loadSelects();
+export async function initCrearFactura() {
+    
+    console.log("Iniciando carga de datos...");
+    await loadSelects(); 
     setupDetalles();
 
     const form = document.getElementById("formCrearFactura") as HTMLFormElement;
     form?.addEventListener("submit", handleSubmit);
 
-    // Listener para establecimiento
     document.getElementById("estRuc")?.addEventListener("change", (e) => {
         const estRuc = (e.target as HTMLSelectElement).value;
         filtrarPuntosEmision(estRuc);
@@ -35,7 +48,9 @@ export function initCrearFactura() {
 }
 
 async function loadSelects() {
-    // 1. Clientes
+    console.log("--- Iniciando carga de selectores ---");
+
+    // 1. CARGAR CLIENTES
     try {
         const res = await fetch(CLIENTES_URL);
         if (res.ok) {
@@ -43,8 +58,10 @@ async function loadSelects() {
             const lista = Array.isArray(data) ? data : (data.data || []);
             const select = document.getElementById("cliCedula") as HTMLSelectElement;
             if (select) {
+                select.innerHTML = '<option value="">Seleccione cliente...</option>';
                 lista.forEach((c: any) => {
-                    if (c.cliEstado) {
+                    // Validamos explícitamente que no sea false (por si viene null o true)
+                    if (c.cliEstado !== false) {
                         const option = document.createElement("option");
                         option.value = c.cliCedula;
                         option.text = `${c.cliNombre} (${c.cliCedula})`;
@@ -53,9 +70,9 @@ async function loadSelects() {
                 });
             }
         }
-    } catch (e) { console.error("Error cargando clientes", e); }
+    } catch (e) { console.error("Error cargando clientes:", e); }
 
-    // 2. Establecimientos
+    // 2. CARGAR ESTABLECIMIENTOS
     try {
         const res = await fetch(ESTABLECIMIENTOS_URL);
         if (res.ok) {
@@ -63,8 +80,9 @@ async function loadSelects() {
             const lista = Array.isArray(data) ? data : (data.data || []);
             const select = document.getElementById("estRuc") as HTMLSelectElement;
             if (select) {
+                select.innerHTML = '<option value="">Seleccione establecimiento...</option>';
                 lista.forEach((e: any) => {
-                    if (e.estEstado) {
+                    if (e.estEstado !== false) {
                         const option = document.createElement("option");
                         option.value = e.estRuc;
                         option.text = `${e.estNombre} (${e.estRuc})`;
@@ -73,35 +91,86 @@ async function loadSelects() {
                 });
             }
         }
-    } catch (e) { console.error("Error cargando establecimientos", e); }
+    } catch (e) { console.error("Error cargando establecimientos:", e); }
 
-    // 3. Puntos Emision (Cargar todos en memoria)
+    // 3. CARGAR PUNTOS DE EMISIÓN
     try {
         const res = await fetch(PUNTOS_URL);
         if (res.ok) {
             const data = await res.json();
             allPuntosEmision = Array.isArray(data) ? data : (data.data || []);
+            console.log(`Puntos cargados: ${allPuntosEmision.length}`);
         }
-    } catch (e) { console.error("Error cargando puntos", e); }
+    } catch (e) { console.error("Error cargando puntos:", e); }
 
-    // 4. Tipos Pago (Desde API)
+    // 4. CARGAR TIPOS DE PAGO (CORREGIDO Y CON LOGS)
     try {
+        console.log("Intentando cargar tipos de pago desde:", TIPOS_PAGO_URL);
+        
         const select = document.getElementById("tipIdTipop") as HTMLSelectElement;
-        const res = await fetch(TIPOS_PAGO_URL);
-        if (res.ok && select) {
-            const data = await res.json();
-            const lista = Array.isArray(data) ? data : (data.data || []);
-            lista.forEach((t: any) => {
-                const option = document.createElement("option");
-                // Mapeo flexible
-                option.value = t.tipIdTipop || t.id;
-                option.text = t.tipDescripcion || t.descripcion;
-                select.appendChild(option);
-            });
+        
+        if (!select) {
+            console.error("ERROR CRÍTICO: No se encontró el elemento <select id='tipIdTipop'> en el HTML.");
+        } else {
+            const res = await fetch(TIPOS_PAGO_URL);
+            
+            if (res.ok) {
+                const data = await res.json();
+                const lista = Array.isArray(data) ? data : (data.data || []);
+                
+                console.log(`Tipos de pago recibidos: ${lista.length}`, lista);
+
+                // Limpiamos el select antes de llenar
+                select.innerHTML = '<option value="">Seleccione tipo de pago...</option>';
+
+                lista.forEach((t: any) => {
+                    const option = document.createElement("option");
+                    // Intentamos varias combinaciones de nombres por si la API cambió
+                    option.value = t.tipIdTipop || t.id;
+                    option.text = t.tipDescripcion || t.descripcion || t.nombre || "Sin descripción";
+                    select.appendChild(option);
+                });
+            } else {
+                console.error(`Error API TiposPago: ${res.status} ${res.statusText}`);
+            }
         }
-    } catch (e) { console.error("Error tipos pago", e); }
+    } catch (e) { console.error("Excepción cargando tipos pago:", e); }
+
+    // 5. CARGAR PRODUCTOS EXTERNOS
+    try {
+        console.log("Cargando productos externos...");
+        const res = await fetch(PRODUCTOS_EXTERNAL_URL);
+        if (res.ok) {
+            const data = await res.json();
+            allProductos = Array.isArray(data) ? data : (data.data || []);
+            
+            actualizarSelectsProductos();
+            console.log(`Productos externos cargados: ${allProductos.length}`);
+        }
+    } catch (e) { console.error("Error cargando productos externos:", e); }
 }
 
+function actualizarSelectsProductos() {
+    const selects = document.querySelectorAll(".input-producto") as NodeListOf<HTMLSelectElement>;
+    
+    selects.forEach(select => {
+        // Guardamos el valor actual por si el usuario ya seleccionó algo (raro en carga inicial, pero buena práctica)
+        const valorActual = select.value;
+        
+        // Limpiamos excepto la opción por defecto
+        select.innerHTML = '<option value="">Seleccione producto...</option>';
+        
+        allProductos.forEach(p => {
+            const option = document.createElement("option");
+            option.value = p.codigo;
+            option.text = `${p.codigo} - ${p.nombre} ($${parseFloat(p.pvp).toFixed(2)})`;
+            select.appendChild(option);
+        });
+
+        // Restauramos valor si existía
+        if (valorActual) select.value = valorActual;
+    });
+}
 function filtrarPuntosEmision(estRuc: string) {
     const select = document.getElementById("pemId") as HTMLSelectElement;
     if (!select) return;
@@ -111,7 +180,6 @@ function filtrarPuntosEmision(estRuc: string) {
 
     if (!estRuc) return;
 
-    // Filtrar puntos que pertenezcan al establecimiento seleccionado
     const puntosFiltrados = allPuntosEmision.filter((p: any) =>
         p.pemEstado && p.estRuc === estRuc
     );
@@ -149,13 +217,15 @@ function agregarFilaDetalle() {
     tr.id = `fila-${contadorDetalle}`;
     tr.innerHTML = `
         <td>
-            <input type="text" class="form-control input-codigo" placeholder="Ej. P001" required>
+             <select class="form-select input-producto" required>
+                <option value="">Seleccione producto...</option>
+             </select>
         </td>
         <td>
             <input type="number" class="form-control input-cantidad text-center" value="1" min="1" required>
         </td>
-        <td class="text-muted fst-italic align-middle small">
-            Calculado al guardar
+        <td class="text-center align-middle fw-bold row-total">
+            $0.00
         </td>
         <td class="text-center align-middle">
             <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row">
@@ -165,11 +235,52 @@ function agregarFilaDetalle() {
     `;
     tbody.appendChild(tr);
 
+    // Populate Select
+    const select = tr.querySelector(".input-producto") as HTMLSelectElement;
+    allProductos.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p.codigo; // Use Code as value for lookup
+        option.text = `${p.codigo} - ${p.nombre} ($${parseFloat(p.pvp).toFixed(2)})`;
+        select.appendChild(option);
+    });
+
+    // Listeners for calculation
+    const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
+    const updateRow = () => calcularFila(tr);
+
+    select.addEventListener("change", updateRow);
+    qtyInput.addEventListener("input", updateRow);
+
     // Evento borrar
     tr.querySelector(".btn-remove-row")?.addEventListener("click", () => {
         tr.remove();
-        if (tbody.children.length === 0) agregarFilaDetalle(); // Mantener al menos 1
+        if (tbody.children.length === 0) agregarFilaDetalle();
     });
+}
+
+function calcularFila(tr: HTMLElement) {
+    const select = tr.querySelector(".input-producto") as HTMLSelectElement;
+    const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
+    const totalCell = tr.querySelector(".row-total") as HTMLElement;
+
+    const codigo = select.value;
+    const cantidad = parseInt(qtyInput.value) || 0;
+
+    if (!codigo || cantidad <= 0) {
+        totalCell.innerText = "$0.00";
+        return;
+    }
+
+    const prod = allProductos.find(p => p.codigo === codigo);
+    if (prod) {
+        const precio = parseFloat(prod.pvp);
+        const impuesto = parseFloat(prod.impuesto.porcentaje); // e.g. 15.00
+        const subtotal = precio * cantidad;
+        const valorIva = subtotal * (impuesto / 100);
+        const total = subtotal + valorIva;
+
+        totalCell.innerText = `$${total.toFixed(2)}`;
+    }
 }
 
 async function handleSubmit(e: Event) {
@@ -178,7 +289,7 @@ async function handleSubmit(e: Event) {
     // 1. Recolectar Cabecera
     const cliCedula = (document.getElementById("cliCedula") as HTMLSelectElement).value;
     const pemId = (document.getElementById("pemId") as HTMLSelectElement).value;
-    const estRuc = (document.getElementById("estRuc") as HTMLSelectElement).value; // Solo para validación visual
+    const estRuc = (document.getElementById("estRuc") as HTMLSelectElement).value;
     const tipIdTipop = (document.getElementById("tipIdTipop") as HTMLSelectElement).value;
 
     if (!cliCedula || !pemId || !tipIdTipop) {
@@ -187,47 +298,81 @@ async function handleSubmit(e: Event) {
     }
 
     // 2. Recolectar Detalles
+    // NOTA: Al backend nuevo solo le importa 'codigo' y 'cantidad'.
+    // El resto (precio, nombre, iva) lo recalcula el servidor consultando la API de Inventario.
+    // Sin embargo, enviamos la estructura completa para cumplir con el modelo C# si fuera necesario.
     const filas = document.querySelectorAll("#tbodyDetalles tr");
     const detallesPayload: any[] = [];
 
     filas.forEach((tr) => {
-        const codigo = (tr.querySelector(".input-codigo") as HTMLInputElement).value.trim();
-        const cantidad = parseInt((tr.querySelector(".input-cantidad") as HTMLInputElement).value);
+        const select = tr.querySelector(".input-producto") as HTMLSelectElement;
+        const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
+
+        const codigo = select.value;
+        const cantidad = parseInt(qtyInput.value);
 
         if (codigo && cantidad > 0) {
-            detallesPayload.push({
-                detCodigoProducto: codigo,
-                detCantidad: cantidad,
-                // Resto de campos se calculan en backend
-                detNombreProducto: "Pendiente",
-                detPrecioUnitario: 0
-            });
+            // Busamos datos en memoria solo para llenar el objeto visualmente
+            const prod = allProductos.find(p => p.codigo === codigo);
+            if (prod) {
+                // Estos cálculos son REFERENCIALES para el frontend.
+                // El backend hará sus propios cálculos oficiales.
+                const precio = parseFloat(prod.pvp);
+                const porcentajeIva = parseFloat(prod.impuesto.porcentaje);
+                const subtotal = precio * cantidad;
+                const valorIva = subtotal * (porcentajeIva / 100);
+                const total = subtotal + valorIva;
+
+                detallesPayload.push({
+                    detIdDetalle: 0,
+                    // Enviamos cadena vacía o null, el Backend asignará el ID generado por el SP
+                    facNumeroFactura: "", 
+                    detIdProductoExterno: prod.id,
+                    detCodigoProducto: prod.codigo, // VITAL: Esto es lo que usa el backend para buscar
+                    detNombreProducto: prod.nombre,
+                    detCantidad: cantidad,          // VITAL: Esto es lo que usa el backend para stock
+                    detPrecioUnitario: precio,
+                    detGrabaIva: porcentajeIva > 0,
+                    detSubtotal: subtotal,
+                    detPorcentajeIva: porcentajeIva,
+                    detValorIva: valorIva,
+                    detTotal: total
+                });
+            }
         }
     });
 
     if (detallesPayload.length === 0) {
-        mostrarErrorEnModal("Debes agregar al menos un producto con código y cantidad válida.");
+        mostrarErrorEnModal("Debes agregar al menos un producto válido.");
         return;
     }
 
-    // 3. Generar ID temporal (Timestamp)
-    const numeroFactura = `FAC-${Date.now()}`;
+    // 3. Totales (Referenciales)
+    // Se envían para pasar la validación del modelo, pero el Backend los sobrescribirá
+    const totalSubtotalSinIva = detallesPayload.reduce((acc, d) => !d.detGrabaIva ? acc + d.detSubtotal : acc, 0);
+    const totalSubtotalConIva = detallesPayload.reduce((acc, d) => d.detGrabaIva ? acc + d.detSubtotal : acc, 0);
+    const totalIva = detallesPayload.reduce((acc, d) => acc + d.detValorIva, 0);
+    const totalFactura = detallesPayload.reduce((acc, d) => acc + d.detTotal, 0);
 
     // 4. Armar Objeto Factura
     const factura = {
-        facNumeroFactura: numeroFactura,
-        estRuc: estRuc, // Incluimos RUC aunque el backend lo deduzca del punto, por completitud
+        // CAMBIO CLAVE: Enviamos string vacío. 
+        // El Backend detecta esto, llama al SP, genera el ID (ej: 001-001-0005) y se lo asigna.
+        facNumeroFactura: "", 
+        
+        estRuc: estRuc,
         cliCedula: cliCedula,
         pemId: parseInt(pemId),
         tipIdTipop: parseInt(tipIdTipop),
-        // Fechas se marcan en backend usualmente o aqui
         facFechaEmision: new Date().toISOString(),
         facEstadoFactura: true,
-        // Iniciales en 0
-        facSubtotalSinIva: 0,
-        facSubtotalConIva: 0,
-        facIva: 0,
-        facTotal: 0,
+        facUsuarioCreacion: "Admin", // Usuario obligatorio
+
+        // Totales calculados en front (backend validará los suyos)
+        facSubtotalSinIva: totalSubtotalSinIva,
+        facSubtotalConIva: totalSubtotalConIva,
+        facIva: totalIva,
+        facTotal: totalFactura,
         detallesFactura: detallesPayload
     };
 
@@ -240,8 +385,16 @@ async function handleSubmit(e: Event) {
         });
 
         if (response.ok) {
+            // El backend devuelve el objeto creado con el ID real
+            const facturaCreada = await response.json();
+            console.log("Factura creada con ID:", facturaCreada.facNumeroFactura);
+
             const modalEl = document.getElementById('successModal');
             if (modalEl) {
+                // Opcional: Mostrar el ID real en el modal de éxito si tienes un elemento para ello
+                const msgExito = document.getElementById('mensajeExitoId');
+                if(msgExito) msgExito.innerText = `Factura ${facturaCreada.facNumeroFactura} generada correctamente.`;
+
                 const successModal = new bootstrap.Modal(modalEl);
                 successModal.show();
 
@@ -251,15 +404,31 @@ async function handleSubmit(e: Event) {
             }
         } else {
             let msg = "Error al crear factura";
+            
+            // 1. Leemos el cuerpo UNA sola vez como texto plano
+            const rawText = await response.text(); 
+
             try {
-                const errData = await response.json();
+                // 2. Intentamos convertir ese texto a JSON manualmente
+                const errData = JSON.parse(rawText);
+                
+                // 3. Si funcionó, extraemos el mensaje bonito
                 msg = errData.detail || errData.message || JSON.stringify(errData);
-            } catch {
-                msg = await response.text();
+                
+                if (errData.errors) {
+                    // Para errores de validación de .NET (ej: campos requeridos)
+                    msg += ": " + JSON.stringify(errData.errors);
+                }
+            } catch (e) {
+                // 4. Si falló el JSON.parse, significa que el error era texto plano o HTML
+                // Usamos el texto crudo que leímos al principio (si no está vacío)
+                if (rawText) msg = rawText;
             }
+            
             mostrarErrorEnModal(msg);
         }
     } catch (error) {
+        console.error("Error de red:", error);
         mostrarErrorEnModal("Error de conexión con el servidor.");
     }
 }
