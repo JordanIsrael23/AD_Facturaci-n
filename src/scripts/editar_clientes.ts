@@ -61,15 +61,31 @@ export async function initEditarCliente() {
 
             if (response.ok || response.status === 204) {
                 mostrarModal("successEditModal");
-                
+
                 document.getElementById('btnOkEditSuccess')?.addEventListener('click', () => {
                     window.location.href = "/clientes";
                 });
             } else {
-                throw new Error("Error en la actualización");
+                // MANEJO INTELIGENTE DE ERRORES (IGUAL QUE EN CREAR CLIENTE)
+                let mensajeParaMostrar = "Ocurrió un error al actualizar el cliente.";
+
+                const contentType = response.headers.get("content-type");
+
+                if (contentType && contentType.includes("application/json")) {
+                    const errorData = await response.json();
+                    mensajeParaMostrar = errorData.detail || errorData.title || errorData.message || JSON.stringify(errorData);
+                } else {
+                    const errorRaw = await response.text();
+                    mensajeParaMostrar = errorRaw.includes("Error:")
+                        ? errorRaw.split("Error:")[1].split("at ")[0]
+                        : errorRaw;
+                }
+
+                mostrarModal("errorModal", mensajeParaMostrar);
             }
-        } catch (e) {
-            mostrarModal("errorModal", "No se pudo actualizar el cliente. Intente más tarde.");
+        } catch (e: any) { // Type 'any' to safely access .message
+            console.error("Error de red:", e);
+            mostrarModal("errorModal", "No se pudo establecer conexión con el servidor o ocurrió un error inesperado.");
         }
     });
 }
