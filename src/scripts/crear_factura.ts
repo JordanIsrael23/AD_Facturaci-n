@@ -1,156 +1,213 @@
-
 // src/scripts/crear_factura.ts
 
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const API_URL_INVENTORY = import.meta.env.PUBLIC_EXTERNAL_INVENTORY_URL;
+
+// URLs Locales
 const CLIENTES_URL = API_URL + "Clientes";
 const ESTABLECIMIENTOS_URL = API_URL + "Establecimientoes";
 const PUNTOS_URL = API_URL + "PuntoEmisions";
 const FACTURAS_URL = API_URL + "Facturas";
 const TIPOS_PAGO_URL = API_URL + "TipoPagoes";
+
+// URL de Productos
 const PRODUCTOS_EXTERNAL_URL = API_URL_INVENTORY;
 
 declare const bootstrap: any;
 
+// Interfaces
 interface Detalle {
     id: number;
     codigo: string;
     cantidad: number;
 }
 
-// Estructura de producto externo adaptada a la respuesta JSON actual
 interface ProductoExterno {
     id: number;
     codigo: string;
     nombre: string;
     descripcion: string;
-    costo: string; // "39.00"
-    pvp: string;   // "84.00" (Precio Venta Público)
+    costo: string;
+    pvp: string;
     stock: number;
     impuesto: {
         id: number;
-        nombre: string;     // "IVA 15%"
-        porcentaje: string; // "15.00"
+        nombre: string;
+        porcentaje: string;
     } | null;
 }
 
+// Variables Globales
 let contadorDetalle = 0;
 let allPuntosEmision: any[] = [];
 let allProductos: ProductoExterno[] = [];
+let allClientes: any[] = [];
 
 export async function initCrearFactura() {
-    console.log("Iniciando carga de datos...");
-    await loadSelects();
+    console.log("Iniciando sistema de facturación...");
+
+    // 1. CONFIGURACIÓN INICIAL (FECHA LOCAL)
+    const dateInput = document.getElementById("facFechaVisual") as HTMLInputElement;
+    if (dateInput) {
+        // Obtenemos fecha local del sistema
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
+    }
+
+    // 2. ACTIVAR LISTENERS
+    setupListeners(); 
     setupDetalles();
 
+    // 3. CARGAR DATOS
+    await loadSelects();
+}
+
+function setupListeners() {
     const form = document.getElementById("formCrearFactura") as HTMLFormElement;
     form?.addEventListener("submit", handleSubmit);
 
-    document.getElementById("estRuc")?.addEventListener("change", (e) => {
+    const estSelect = document.getElementById("estRuc");
+    estSelect?.addEventListener("change", (e) => {
         const estRuc = (e.target as HTMLSelectElement).value;
         filtrarPuntosEmision(estRuc);
     });
+
+    const cliSelect = document.getElementById("cliCedula");
+    cliSelect?.addEventListener("change", (e) => {
+        const cedula = (e.target as HTMLSelectElement).value;
+        llenarDatosCliente(cedula);
+    });
+}
+
+function llenarDatosCliente(cedula: string) {
+    const nombreIn = document.getElementById("cliNombreVisual") as HTMLInputElement;
+    const tipoIn = document.getElementById("cliTipoVisual") as HTMLInputElement;
+    const dirIn = document.getElementById("cliDireccionVisual") as HTMLInputElement;
+    const telIn = document.getElementById("cliTelefonoVisual") as HTMLInputElement;
+    const emailIn = document.getElementById("cliEmailVisual") as HTMLInputElement;
+
+    if (!cedula || allClientes.length === 0) {
+        [nombreIn, tipoIn, dirIn, telIn, emailIn].forEach(i => { if(i) i.value = ""; });
+        return;
+    }
+
+    const cliente = allClientes.find((c: any) => c.cliCedula === cedula);
+    
+    if (cliente) {
+        if(nombreIn) nombreIn.value = cliente.cliNombre || "";
+        if(tipoIn) tipoIn.value = cliente.ticIdTipoc === 1 ? "Contado" : (cliente.ticIdTipoc === 2 ? "Crédito" : "Otro");
+        if(dirIn) dirIn.value = cliente.cliDireccion || "";
+        if(telIn) telIn.value = cliente.cliTelefono || "";
+        if(emailIn) emailIn.value = cliente.cliEmail || "";
+    }
 }
 
 async function loadSelects() {
+    console.log("--- Descargando datos del servidor ---");
 
-    console.log("--- Iniciando carga de selectores ---");
-
-    // 1. CARGAR CLIENTES
-    try {
-        const res = await fetch(CLIENTES_URL);
-        if (res.ok) {
-            const data = await res.json();
-            const lista = Array.isArray(data) ? data : (data.data || []);
-            const select = document.getElementById("cliCedula") as HTMLSelectElement;
-            if (select) {
-                select.innerHTML = '<option value="">Seleccione cliente...</option>';
-                lista.forEach((c: any) => {
-                    if (c.cliEstado !== false) {
-                        const option = document.createElement("option");
-                        option.value = c.cliCedula;
-                        option.text = `${c.cliNombre} (${c.cliCedula})`;
-                        select.appendChild(option);
-                    }
-                });
+    const loadClientes = async () => {
+        try {
+            const res = await fetch(CLIENTES_URL);
+            if (res.ok) {
+                const data = await res.json();
+                allClientes = Array.isArray(data) ? data : (data.data || []);
+                const select = document.getElementById("cliCedula") as HTMLSelectElement;
+                if (select) {
+                    const valActual = select.value;
+                    select.innerHTML = '<option value="">Seleccione cliente...</option>';
+                    allClientes.forEach((c: any) => {
+                        if (c.cliEstado !== false) {
+                            const option = document.createElement("option");
+                            option.value = c.cliCedula;
+                            option.text = `${c.cliNombre} (${c.cliCedula})`;
+                            select.appendChild(option);
+                        }
+                    });
+                    if(valActual) select.value = valActual;
+                }
             }
-        }
-    } catch (e) { console.error("Error cargando clientes:", e); }
+        } catch (e) { console.error("Error clientes:", e); }
+    };
 
-    // 2. CARGAR ESTABLECIMIENTOS
-    try {
-        const res = await fetch(ESTABLECIMIENTOS_URL);
-        if (res.ok) {
-            const data = await res.json();
-            const lista = Array.isArray(data) ? data : (data.data || []);
-            const select = document.getElementById("estRuc") as HTMLSelectElement;
-            if (select) {
-                select.innerHTML = '<option value="">Seleccione establecimiento...</option>';
-                lista.forEach((e: any) => {
-                    if (e.estEstado !== false) {
-                        const option = document.createElement("option");
-                        option.value = e.estRuc;
-                        option.text = `${e.estNombre} (${e.estRuc})`;
-                        select.appendChild(option);
-                    }
-                });
+    const loadEstablecimientos = async () => {
+        try {
+            const res = await fetch(ESTABLECIMIENTOS_URL);
+            if (res.ok) {
+                const data = await res.json();
+                const lista = Array.isArray(data) ? data : (data.data || []);
+                const select = document.getElementById("estRuc") as HTMLSelectElement;
+                if (select) {
+                    select.innerHTML = '<option value="">Seleccione...</option>';
+                    lista.forEach((e: any) => {
+                        if (e.estEstado !== false) {
+                            const option = document.createElement("option");
+                            option.value = e.estRuc;
+                            option.text = `${e.estNombre} (${e.estRuc})`;
+                            select.appendChild(option);
+                        }
+                    });
+                }
             }
-        }
-    } catch (e) { console.error("Error cargando establecimientos:", e); }
+        } catch (e) { console.error("Error establecimientos:", e); }
+    };
 
-    // 3. CARGAR PUNTOS DE EMISIÓN
-    try {
-        const res = await fetch(PUNTOS_URL);
-        if (res.ok) {
-            const data = await res.json();
-            allPuntosEmision = Array.isArray(data) ? data : (data.data || []);
-        }
-    } catch (e) { console.error("Error cargando puntos:", e); }
+    const loadPuntos = async () => {
+        try {
+            const res = await fetch(PUNTOS_URL);
+            if (res.ok) {
+                const data = await res.json();
+                allPuntosEmision = Array.isArray(data) ? data : (data.data || []);
+            }
+        } catch (e) { console.error("Error puntos:", e); }
+    };
 
-    // 4. CARGAR TIPOS DE PAGO
-    try {
-        const select = document.getElementById("tipIdTipop") as HTMLSelectElement;
-        if (select) {
+    const loadTiposPago = async () => {
+        try {
             const res = await fetch(TIPOS_PAGO_URL);
             if (res.ok) {
                 const data = await res.json();
                 const lista = Array.isArray(data) ? data : (data.data || []);
-                select.innerHTML = '<option value="">Seleccione tipo de pago...</option>';
-                lista.forEach((t: any) => {
-                    const option = document.createElement("option");
-                    option.value = t.tipIdTipop || t.id;
-                    option.text = t.tipDescripcion || t.descripcion || t.nombre || "Sin descripción";
-                    select.appendChild(option);
-                });
+                const select = document.getElementById("tipIdTipop") as HTMLSelectElement;
+                if (select) {
+                    select.innerHTML = '<option value="">Seleccione tipo pago...</option>';
+                    lista.forEach((t: any) => {
+                        const option = document.createElement("option");
+                        option.value = t.tipIdTipop || t.id;
+                        option.text = t.tipDescripcion || t.nombre || "Sin descripción";
+                        select.appendChild(option);
+                    });
+                }
             }
-        }
-    } catch (e) { console.error("Excepción cargando tipos pago:", e); }
+        } catch (e) { console.error("Error tipos pago:", e); }
+    };
 
-    // 5. CARGAR PRODUCTOS EXTERNOS
-    try {
-        console.log("Cargando productos externos...");
-        const res = await fetch(PRODUCTOS_EXTERNAL_URL);
-        if (res.ok) {
-            const data = await res.json();
-            allProductos = Array.isArray(data) ? data : (data.data || []);
+    const loadProductos = async () => {
+        try {
+            const res = await fetch(PRODUCTOS_EXTERNAL_URL);
+            if (res.ok) {
+                const data = await res.json();
+                allProductos = Array.isArray(data) ? data : (data.data || []);
+                actualizarSelectsProductos();
+            }
+        } catch (e) { console.error("Error productos:", e); }
+    };
 
-            // Si ya hay filas (ej: recarga), actualizar sus selects
-            actualizarSelectsProductos();
-            console.log(`Productos externos cargados: ${allProductos.length}`);
-        }
-    } catch (e) { console.error("Error cargando productos externos:", e); }
+    await Promise.all([loadClientes(), loadEstablecimientos(), loadPuntos(), loadTiposPago(), loadProductos()]);
+    console.log("Carga de datos finalizada.");
 }
 
 function actualizarSelectsProductos() {
     const selects = document.querySelectorAll(".input-producto") as NodeListOf<HTMLSelectElement>;
-
     selects.forEach(select => {
         const valorActual = select.value;
         select.innerHTML = '<option value="">Seleccione producto...</option>';
         allProductos.forEach(p => {
             const option = document.createElement("option");
-            option.value = p.codigo; // Usamos CODIGO como valor clave
-            option.text = p.nombre;  // Mostramos NOMBRE en la lista
+            option.value = p.codigo;
+            option.text = p.nombre;
             select.appendChild(option);
         });
         if (valorActual) select.value = valorActual;
@@ -177,7 +234,7 @@ function filtrarPuntosEmision(estRuc: string) {
         select.appendChild(option);
     });
 
-    if (puntosFiltrados.length === 0) {
+    if (puntosFiltrados.length === 0 && allPuntosEmision.length > 0) {
         const option = document.createElement("option");
         option.text = "No hay puntos activos";
         select.appendChild(option);
@@ -189,7 +246,6 @@ function setupDetalles() {
     btnAdd?.addEventListener("click", () => {
         agregarFilaDetalle();
     });
-    // Agregar fila inicial
     agregarFilaDetalle();
 }
 
@@ -200,18 +256,6 @@ function agregarFilaDetalle() {
 
     const tr = document.createElement("tr");
     tr.id = `fila-${contadorDetalle}`;
-
-    // Columnas según requerimiento:
-    // 1. Producto (Select)
-    // 2. Codigo (Auto)
-    // 3. Descripcion (Auto)
-    // 4. Stock (Auto)
-    // 5. Costo (Auto)
-    // 6. Cantidad (Input)
-    // 7. Nombre Impuesto (Auto)
-    // 8. Precio Sin IVA (Auto) -> PVP
-    // 9. Precio Total (Auto)
-    // 10. Accion
 
     tr.innerHTML = `
         <td class="text-center align-middle">
@@ -239,24 +283,23 @@ function agregarFilaDetalle() {
     `;
     tbody.appendChild(tr);
 
-    // Llenar Select
     const select = tr.querySelector(".input-producto") as HTMLSelectElement;
-    select.innerHTML = '<option value="">Seleccione producto...</option>';
-    allProductos.forEach(p => {
-        const option = document.createElement("option");
-        option.value = p.codigo;
-        option.text = p.nombre;
-        select.appendChild(option);
-    });
+    if (allProductos.length > 0) {
+        select.innerHTML = '<option value="">Seleccione producto...</option>';
+        allProductos.forEach(p => {
+            const option = document.createElement("option");
+            option.value = p.codigo;
+            option.text = p.nombre;
+            select.appendChild(option);
+        });
+    }
 
-    // Listeners
     const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
     const updateRow = () => calcularFila(tr);
 
     select.addEventListener("change", updateRow);
     qtyInput.addEventListener("input", updateRow);
 
-    // Borrar
     tr.querySelector(".btn-remove-row")?.addEventListener("click", () => {
         tr.remove();
         if (tbody.children.length === 0) agregarFilaDetalle();
@@ -267,7 +310,6 @@ function calcularFila(tr: HTMLElement) {
     const select = tr.querySelector(".input-producto") as HTMLSelectElement;
     const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
 
-    // Inputs de solo lectura
     const inputCodigo = tr.querySelector(".input-codigo") as HTMLInputElement;
     const inputDesc = tr.querySelector(".input-descripcion") as HTMLInputElement;
     const inputStock = tr.querySelector(".input-stock") as HTMLInputElement;
@@ -279,7 +321,6 @@ function calcularFila(tr: HTMLElement) {
     const codigo = select.value;
     let cantidad = parseInt(qtyInput.value) || 0;
 
-    // Limpiar si no hay seleccion
     if (!codigo) {
         inputCodigo.value = "";
         inputDesc.value = "";
@@ -293,11 +334,27 @@ function calcularFila(tr: HTMLElement) {
 
     const prod = allProductos.find(p => p.codigo === codigo);
     if (prod) {
+        // CONTROL 1: STOCK CERO
+        if (prod.stock <= 0) {
+            mostrarErrorEnModal(`El producto "${prod.nombre}" está AGOTADO (Stock: 0).`);
+            select.value = ""; 
+            inputCodigo.value = "";
+            inputDesc.value = "";
+            inputStock.value = "";
+            inputCosto.value = "";
+            inputImpuesto.value = "";
+            inputPrecio.value = "";
+            totalCell.innerText = "$0.00";
+            return;
+        }
+
+        // CONTROL 2: CANTIDAD > STOCK
         if (cantidad > prod.stock) {
+            mostrarErrorEnModal(`Inventario insuficiente. Stock disponible: ${prod.stock}`);
             cantidad = prod.stock;
             qtyInput.value = String(cantidad);
         }
-        // Llenar datos informativos
+
         inputCodigo.value = prod.codigo;
         inputDesc.value = prod.descripcion || "";
         inputStock.value = String(prod.stock);
@@ -310,14 +367,10 @@ function calcularFila(tr: HTMLElement) {
         inputPrecio.value = `$${parseFloat(prod.pvp).toFixed(2)}`;
 
         if (cantidad > 0) {
-            // Calculo de total de linea
-            // Precio Sin IVA (PVP) * Cantidad
-            // + IVA
             const precioUnit = parseFloat(prod.pvp);
             const subtotal = precioUnit * cantidad;
             const valorIva = subtotal * (porcentajeImpuesto / 100);
             const total = subtotal + valorIva;
-
             totalCell.innerText = `$${total.toFixed(2)}`;
         } else {
             totalCell.innerText = "$0.00";
@@ -328,21 +381,21 @@ function calcularFila(tr: HTMLElement) {
 async function handleSubmit(e: Event) {
     e.preventDefault();
 
-    // 1. Recolectar Cabecera
+    // 1. Cabecera
     const cliCedula = (document.getElementById("cliCedula") as HTMLSelectElement).value;
     const pemId = (document.getElementById("pemId") as HTMLSelectElement).value;
     const estRuc = (document.getElementById("estRuc") as HTMLSelectElement).value;
     const tipIdTipop = (document.getElementById("tipIdTipop") as HTMLSelectElement).value;
+    
+    // CORRECCIÓN: Obtenemos el valor visual de la fecha (YYYY-MM-DD)
+    const fechaVisual = (document.getElementById("facFechaVisual") as HTMLInputElement).value;
 
     if (!cliCedula || !pemId || !tipIdTipop) {
         mostrarErrorEnModal("Completa todos los campos de la cabecera.");
         return;
     }
 
-    // 2. Recolectar Detalles
-    // NOTA: Al backend nuevo solo le importa 'codigo' y 'cantidad'.
-    // El resto (precio, nombre, iva) lo recalcula el servidor consultando la API de Inventario.
-    // Sin embargo, enviamos la estructura completa para cumplir con el modelo C# si fuera necesario.
+    // 2. Detalles
     const filas = document.querySelectorAll("#tbodyDetalles tr");
     const detallesPayload: any[] = [];
 
@@ -354,11 +407,8 @@ async function handleSubmit(e: Event) {
         const cantidad = parseInt(qtyInput.value);
 
         if (codigo && cantidad > 0) {
-            // Busamos datos en memoria solo para llenar el objeto visualmente
             const prod = allProductos.find(p => p.codigo === codigo);
             if (prod) {
-                // Estos cálculos son REFERENCIALES para el frontend.
-                // El backend hará sus propios cálculos oficiales.
                 const precio = parseFloat(prod.pvp);
                 const porcentajeIva = prod.impuesto ? parseFloat(prod.impuesto.porcentaje) : 0;
                 const subtotal = precio * cantidad;
@@ -367,12 +417,11 @@ async function handleSubmit(e: Event) {
 
                 detallesPayload.push({
                     detIdDetalle: 0,
-                    // Enviamos cadena vacía o null, el Backend asignará el ID generado por el SP
                     facNumeroFactura: "",
                     detIdProductoExterno: prod.id,
-                    detCodigoProducto: prod.codigo, // VITAL: Esto es lo que usa el backend para buscar
+                    detCodigoProducto: prod.codigo,
                     detNombreProducto: prod.nombre,
-                    detCantidad: cantidad,          // VITAL: Esto es lo que usa el backend para stock
+                    detCantidad: cantidad,
                     detPrecioUnitario: precio,
                     detGrabaIva: porcentajeIva > 0,
                     detSubtotal: subtotal,
@@ -389,28 +438,24 @@ async function handleSubmit(e: Event) {
         return;
     }
 
-    // 3. Totales (Referenciales)
-    // Se envían para pasar la validación del modelo, pero el Backend los sobrescribirá
+    // 3. Totales
     const totalSubtotalSinIva = detallesPayload.reduce((acc, d) => !d.detGrabaIva ? acc + d.detSubtotal : acc, 0);
     const totalSubtotalConIva = detallesPayload.reduce((acc, d) => d.detGrabaIva ? acc + d.detSubtotal : acc, 0);
     const totalIva = detallesPayload.reduce((acc, d) => acc + d.detValorIva, 0);
     const totalFactura = detallesPayload.reduce((acc, d) => acc + d.detTotal, 0);
 
-    // 4. Armar Objeto Factura
+    // 4. Objeto Factura
     const factura = {
-        // CAMBIO CLAVE: Enviamos string vacío. 
-        // El Backend detecta esto, llama al SP, genera el ID (ej: 001-001-0005) y se lo asigna.
         facNumeroFactura: "",
-
         estRuc: estRuc,
         cliCedula: cliCedula,
         pemId: parseInt(pemId),
         tipIdTipop: parseInt(tipIdTipop),
-        facFechaEmision: new Date().toISOString(),
+        
+        facFechaEmision: fechaVisual ? new Date(`${fechaVisual}T00:00:00`).toISOString() : new Date().toISOString(),
+        
         facEstadoFactura: true,
-        facUsuarioCreacion: "Admin", // Usuario obligatorio
-
-        // Totales calculados en front (backend validará los suyos)
+        facUsuarioCreacion: "Admin", 
         facSubtotalSinIva: totalSubtotalSinIva,
         facSubtotalConIva: totalSubtotalConIva,
         facIva: totalIva,
@@ -418,7 +463,7 @@ async function handleSubmit(e: Event) {
         detallesFactura: detallesPayload
     };
 
-    // 5. Enviar
+    // 5. Enviar POST Factura
     try {
         const response = await fetch(FACTURAS_URL, {
             method: "POST",
@@ -427,15 +472,12 @@ async function handleSubmit(e: Event) {
         });
 
         if (response.ok) {
-            // El backend devuelve el objeto creado con el ID real
             const facturaCreada = await response.json();
-            console.log("Factura creada con ID:", facturaCreada.facNumeroFactura);
-
+            
             const modalEl = document.getElementById('successModal');
             if (modalEl) {
-                // Opcional: Mostrar el ID real en el modal de éxito si tienes un elemento para ello
                 const msgExito = document.getElementById('mensajeExitoId');
-                if (msgExito) msgExito.innerText = `Factura ${facturaCreada.facNumeroFactura} generada correctamente.`;
+                if (msgExito) msgExito.innerText = `Factura ${facturaCreada.facNumeroFactura || ""} generada correctamente.`;
 
                 const successModal = new bootstrap.Modal(modalEl);
                 successModal.show();
@@ -446,27 +488,14 @@ async function handleSubmit(e: Event) {
             }
         } else {
             let msg = "Error al crear factura";
-
-            // 1. Leemos el cuerpo UNA sola vez como texto plano
             const rawText = await response.text();
-
             try {
-                // 2. Intentamos convertir ese texto a JSON manualmente
                 const errData = JSON.parse(rawText);
-
-                // 3. Si funcionó, extraemos el mensaje bonito
                 msg = errData.detail || errData.message || JSON.stringify(errData);
-
-                if (errData.errors) {
-                    // Para errores de validación de .NET (ej: campos requeridos)
-                    msg += ": " + JSON.stringify(errData.errors);
-                }
+                if (errData.errors) msg += ": " + JSON.stringify(errData.errors);
             } catch (e) {
-                // 4. Si falló el JSON.parse, significa que el error era texto plano o HTML
-                // Usamos el texto crudo que leímos al principio (si no está vacío)
                 if (rawText) msg = rawText;
             }
-
             mostrarErrorEnModal(msg);
         }
     } catch (error) {

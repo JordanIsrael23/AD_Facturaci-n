@@ -20,15 +20,12 @@ import background from "../assets/background.svg";
                             <h2 class="text-primary fw-bold mb-0">
                                 <i class="bi bi-receipt-cutoff me-2"></i>Nueva Factura
                             </h2>
-                            <a href="/crear-cliente" class="btn btn-primary d-flex align-items-center btn-sm">
-                                <i class="bi bi-person-plus-fill me-1"></i> Nuevo Cliente
-                            </a>
                         </div>
 
-                        <div class="card bg-light border-0 mb-4">
+                       <div class="card bg-light border-0 mb-4">
                             <div class="card-body">
                                 <h5 class="card-title text-secondary border-bottom pb-2 mb-3">
-                                    <i class="bi bi-info-circle me-2"></i>Datos Generales
+                                    <i class="bi bi-receipt me-2"></i>Datos de Facturación
                                 </h5>
                                 
                                 <div class="row g-3">
@@ -40,6 +37,7 @@ import background from "../assets/background.svg";
                                             <option value="">Seleccione...</option>
                                         </select>
                                     </div>
+                                    
                                     <div class="col-md-6">
                                         <label for="pemId" class="form-label fw-medium">
                                             <i class="bi bi-geo-alt me-1"></i>Punto de Emisión
@@ -58,13 +56,62 @@ import background from "../assets/background.svg";
                                         </select>
                                     </div>
 
-                                    <div class="col-md-12">
+                                    <div class="col-md-6">
+                                        <label for="facFechaVisual" class="form-label fw-medium">
+                                            <i class="bi bi-calendar-event-fill me-1"></i>Fecha de Emisión
+                                        </label>
+                                        <input type="date" class="form-control bg-white" id="facFechaVisual" readonly />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card bg-light border-0 mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title text-secondary border-bottom pb-2 mb-3">
+                                    <i class="bi bi-person-vcard me-2"></i>Datos del Cliente
+                                </h5>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
                                         <label for="cliCedula" class="form-label fw-medium">
-                                            <i class="bi bi-person-badge me-1"></i>Cliente
+                                            <i class="bi bi-search me-1"></i>Buscar Cliente (Cédula)
                                         </label>
                                         <select class="form-select" id="cliCedula" required>
                                             <option value="">Seleccione un cliente...</option>
                                         </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cliNombreVisual" class="form-label fw-medium">
+                                            <i class="bi bi-person-fill me-1"></i>Nombre 
+                                        </label>
+                                        <input type="text" class="form-control bg-white" id="cliNombreVisual" readonly placeholder="Se completará autom." />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="cliTipoVisual" class="form-label fw-medium">
+                                            <i class="bi bi-tags-fill me-1"></i>Tipo de Cliente
+                                        </label>
+                                        <input type="text" class="form-control bg-white" id="cliTipoVisual" readonly placeholder="--" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cliDireccionVisual" class="form-label fw-medium">
+                                            <i class="bi bi-geo-alt-fill me-1"></i>Dirección
+                                        </label>
+                                        <input type="text" class="form-control bg-white" id="cliDireccionVisual" readonly placeholder="--" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="cliTelefonoVisual" class="form-label fw-medium">
+                                            <i class="bi bi-telephone-fill me-1"></i>Teléfono
+                                        </label>
+                                        <input type="text" class="form-control bg-white" id="cliTelefonoVisual" readonly placeholder="--" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cliEmailVisual" class="form-label fw-medium">
+                                            <i class="bi bi-envelope-at-fill me-1"></i>Correo Electrónico
+                                        </label>
+                                        <input type="text" class="form-control bg-white" id="cliEmailVisual" readonly placeholder="--" />
                                     </div>
                                 </div>
                             </div>
@@ -116,6 +163,53 @@ import background from "../assets/background.svg";
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-danger border-3">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Advertencia</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p id="errorModalMsg" class="lead fw-medium">
+                        </p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-success border-3">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                        Factura Emitida
+                    </h5>
+                </div>
+                <div class="modal-body text-center p-5">
+                    <div class="mb-3">
+                        <i class="bi bi-receipt text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="fw-bold text-success mb-3">¡Operación Exitosa!</h4>
+                    <p class="lead text-dark mb-0">La factura ha sido generada y guardada correctamente.</p>
+                    <p id="mensajeExitoId" class="text-muted mt-2 small"></p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pb-4">
+                    <button 
+                        type="button" 
+                        class="btn btn-success px-5 py-2 fw-bold shadow-sm" 
+                        id="btnOkSuccess">
+                        <i class="bi bi-arrow-return-left me-2"></i>Aceptar y Volver
+                    </button>
                 </div>
             </div>
         </div>
