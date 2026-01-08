@@ -407,6 +407,7 @@ async function showFacturaDetails(numeroFactura: string) {
     // Info Factura
     setText("modalFacNumero", factura.facNumeroFactura);
     setText("modalFacFecha", factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A");
+    setText("modalFacTipoPago", getTipoPagoInfo(factura));
     setText("modalFacPuntoEmision", factura?.puntoEmision?.pemDescripcion || "N/A");
 
     // Establecimiento
