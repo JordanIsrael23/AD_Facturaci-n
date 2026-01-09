@@ -168,11 +168,7 @@ function renderFacturas(facturas: any[]) {
                 <div class="d-flex gap-2">
                      <button type="button" class="btn btn-sm btn-info text-white d-inline-flex align-items-center btn-view-factura" 
                         data-numero="${f.facNumeroFactura}">
-                        <i class="bi bi-eye-fill me-1"></i> Ver
-                    </button>
-                    <button type="button" class="btn btn-sm ${f.facEstadoFactura ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
-                        data-numero="${f.facNumeroFactura}" data-estado="${f.facEstadoFactura}">
-                        <i class="bi ${f.facEstadoFactura ? "bi-trash" : "bi-check-circle"} me-1"></i> ${f.facEstadoFactura ? "Anular" : "Activar"}
+                        <i class="bi bi-eye-fill me-3"></i> Ver
                     </button>
                 </div>
             </td>
@@ -182,10 +178,6 @@ function renderFacturas(facturas: any[]) {
             <td>$${f.facTotal.toFixed(2)}</td>
             <td>${getTipoPagoInfo(f)}</td>
             <td>${getEstablecimientoInfo(f)}</td>
-            <td><span class="badge ${f.facEstadoFactura ? "text-bg-success" : "text-bg-danger"}">
-                    ${f.facEstadoFactura ? "Activa" : "Anulada"}
-                </span>
-            </td>
         </tr>
     `).join("");
 

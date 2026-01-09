@@ -22,7 +22,7 @@ import background from "../assets/background.svg";
                             </h2>
                         </div>
 
-                       <div class="card bg-light border-0 mb-4">
+                        <div class="card bg-light border-0 mb-4">
                             <div class="card-body">
                                 <h5 class="card-title text-secondary border-bottom pb-2 mb-3">
                                     <i class="bi bi-receipt me-2"></i>Datos de Facturación
@@ -30,34 +30,31 @@ import background from "../assets/background.svg";
                                 
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label for="estRuc" class="form-label fw-medium">
+                                        <label for="estRuc" class="form-label fw-medium small">
                                             <i class="bi bi-building me-1"></i>Establecimiento
                                         </label>
                                         <select class="form-select" id="estRuc" required>
                                             <option value="">Seleccione...</option>
                                         </select>
                                     </div>
-                                    
                                     <div class="col-md-6">
-                                        <label for="pemId" class="form-label fw-medium">
+                                        <label for="pemId" class="form-label fw-medium small">
                                             <i class="bi bi-geo-alt me-1"></i>Punto de Emisión
                                         </label>
                                         <select class="form-select" id="pemId" required disabled>
-                                            <option value="">Seleccione establecimiento...</option>
+                                            <option value="">Seleccione...</option>
                                         </select>
                                     </div>
-
                                     <div class="col-md-6">
-                                        <label for="tipIdTipop" class="form-label fw-medium">
+                                        <label for="tipIdTipop" class="form-label fw-medium small">
                                             <i class="bi bi-wallet2 me-1"></i>Tipo de Pago
                                         </label>
                                         <select class="form-select" id="tipIdTipop" required>
-                                            <option value="">Seleccione tipo pago...</option>
+                                            <option value="">Seleccione...</option>
                                         </select>
                                     </div>
-
                                     <div class="col-md-6">
-                                        <label for="facFechaVisual" class="form-label fw-medium">
+                                        <label for="facFechaVisual" class="form-label fw-medium small">
                                             <i class="bi bi-calendar-event-fill me-1"></i>Fecha de Emisión
                                         </label>
                                         <input type="date" class="form-control bg-white" id="facFechaVisual" readonly />
@@ -74,44 +71,49 @@ import background from "../assets/background.svg";
 
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label for="cliCedula" class="form-label fw-medium">
-                                            <i class="bi bi-search me-1"></i>Buscar Cliente (Cédula)
+                                        <label class="form-label fw-medium small">
+                                            <i class="bi bi-search me-1"></i>Buscar Cliente
                                         </label>
-                                        <select class="form-select" id="cliCedula" required>
-                                            <option value="">Seleccione un cliente...</option>
-                                        </select>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-white" id="cliCedulaVisual" 
+                                                   placeholder="Clic para buscar..." readonly required 
+                                                   style="cursor: pointer;" 
+                                                   onclick="document.getElementById('btnBuscarCliente').click()">
+                                            <input type="hidden" id="cliCedula" name="cliCedula">
+                                            <button class="btn btn-primary" type="button" id="btnBuscarCliente">
+                                                <i class="bi bi-search"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="cliNombreVisual" class="form-label fw-medium">
-                                            <i class="bi bi-person-fill me-1"></i>Nombre 
+                                        <label class="form-label fw-medium small">
+                                            <i class="bi bi-person-fill me-1"></i>Nombre
                                         </label>
-                                        <input type="text" class="form-control bg-white" id="cliNombreVisual" readonly placeholder="Se completará autom." />
+                                        <input type="text" class="form-control bg-white" id="cliNombreVisual" readonly />
                                     </div>
-
-                                    <div class="col-md-6">
-                                        <label for="cliTipoVisual" class="form-label fw-medium">
-                                            <i class="bi bi-tags-fill me-1"></i>Tipo de Cliente
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium small">
+                                            <i class="bi bi-tags-fill me-1"></i>Tipo
                                         </label>
-                                        <input type="text" class="form-control bg-white" id="cliTipoVisual" readonly placeholder="--" />
+                                        <input type="text" class="form-control bg-white" id="cliTipoVisual" readonly />
                                     </div>
-                                    <div class="col-md-6">
-                                        <label for="cliDireccionVisual" class="form-label fw-medium">
-                                            <i class="bi bi-geo-alt-fill me-1"></i>Dirección
-                                        </label>
-                                        <input type="text" class="form-control bg-white" id="cliDireccionVisual" readonly placeholder="--" />
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label for="cliTelefonoVisual" class="form-label fw-medium">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium small">
                                             <i class="bi bi-telephone-fill me-1"></i>Teléfono
                                         </label>
-                                        <input type="text" class="form-control bg-white" id="cliTelefonoVisual" readonly placeholder="--" />
+                                        <input type="text" class="form-control bg-white" id="cliTelefonoVisual" readonly />
                                     </div>
-                                    <div class="col-md-6">
-                                        <label for="cliEmailVisual" class="form-label fw-medium">
-                                            <i class="bi bi-envelope-at-fill me-1"></i>Correo Electrónico
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium small">
+                                            <i class="bi bi-envelope-at-fill me-1"></i>Email
                                         </label>
-                                        <input type="text" class="form-control bg-white" id="cliEmailVisual" readonly placeholder="--" />
+                                        <input type="text" class="form-control bg-white" id="cliEmailVisual" readonly />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-medium small">
+                                            <i class="bi bi-geo-alt-fill me-1"></i>Dirección
+                                        </label>
+                                        <input type="text" class="form-control bg-white" id="cliDireccionVisual" readonly />
                                     </div>
                                 </div>
                             </div>
@@ -127,32 +129,34 @@ import background from "../assets/background.svg";
                                 </button>
                             </div>
 
-                            <div class="alert alert-info d-flex align-items-center py-2 mb-3" role="alert">
+                            <div class="alert alert-info d-flex align-items-center py-2 mb-3 small" role="alert">
                                 <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-                                <div class="small">
+                                <div>
                                     La descripción, precios e impuestos se completarán automáticamente desde el inventario.
                                 </div>
                             </div>
 
                             <div class="table-responsive bg-white border rounded">
-                                <table class="table table-bordered mb-0 align-middle">
+                                <table class="table table-bordered mb-0 align-middle table-sm">
                                     <thead class="table-light">
-                                        <tr>
-                                            <th class="text-center" style="width: 80px;">Acción</th>
-                                            <th style="min-width: 200px;">Producto (Nombre)</th>
+                                        <tr class="text-center small">
+                                            <th style="width: 40px;"><i class="bi bi-trash"></i></th>
+                                            <th>Producto</th>
                                             <th>Código</th>
-                                            <th>Descripción</th>
-                                            <th class="text-center">Stock</th>
-                                            <th class="text-end">Costo</th>
-                                            <th class="text-center" style="width: 100px;">Cantidad</th>
-                                            <th class="text-center">Impuesto</th>
-                                            <th class="text-end">Precio (Sin IVA)</th>
-                                            <th class="text-end">Precio Total</th>
+                                            <th>Stock</th>
+                                            <th>Costo</th>
+                                            <th style="width: 70px;">Cant.</th>
+                                            <th>Impuesto</th>
+                                            <th>P. Unit</th>
+                                            <th>Total</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbodyDetalles">
                                         </tbody>
                                 </table>
+                                <div id="emptyMessage" class="text-center text-muted p-3 small">
+                                    No hay productos agregados. Haz clic en "Agregar Producto".
+                                </div>
                             </div>
                         </div>
 
@@ -168,52 +172,114 @@ import background from "../assets/background.svg";
         </div>
     </div>
 
-    <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-danger border-3">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Advertencia</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+    <div class="modal fade" id="modalBuscarCliente" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Buscar Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center p-4">
-                    <p id="errorModalMsg" class="lead fw-medium">
-                        </p>
+                <div class="modal-body p-4">
+                    <div class="row mb-3 g-2">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary btnFiltroModal" type="button" data-for="filtroModalCedula"><i class="bi bi-funnel"></i></button>
+                                <input type="text" id="filtroModalCedula" class="form-control" placeholder="Filtrar por Cédula">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary btnFiltroModal" type="button" data-for="filtroModalNombre"><i class="bi bi-funnel"></i></button>
+                                <input type="text" id="filtroModalNombre" class="form-control" placeholder="Filtrar por Nombre">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive border rounded" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-hover table-striped mb-0 align-middle small">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Sel.</th>
+                                    <th>Cédula</th>
+                                    <th>Nombre</th>
+                                    <th>Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyModalClientes"></tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted" id="infoPaginacionModal">0 resultados</small>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-1" id="btnModalAnt">Anterior</button>
+                            <button class="btn btn-sm btn-outline-secondary" id="btnModalSig">Siguiente</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary fw-bold" id="btnModalAceptar" disabled>Aceptar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-success border-3">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title d-flex align-items-center">
-                        <i class="bi bi-check-circle-fill me-2 fs-4"></i>
-                        Factura Emitida
-                    </h5>
+    <div class="modal fade" id="modalBuscarProducto" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Seleccionar Producto a Agregar</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center p-5">
-                    <div class="mb-3">
-                        <i class="bi bi-receipt text-success" style="font-size: 4rem;"></i>
+                <div class="modal-body p-4">
+                    <div class="row mb-3 g-2">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary btnFiltroModal" type="button" data-for="filtroProdCodigo"><i class="bi bi-funnel"></i></button>
+                                <input type="text" id="filtroProdCodigo" class="form-control" placeholder="Filtrar por Código">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary btnFiltroModal" type="button" data-for="filtroProdNombre"><i class="bi bi-funnel"></i></button>
+                                <input type="text" id="filtroProdNombre" class="form-control" placeholder="Filtrar por Nombre">
+                            </div>
+                        </div>
                     </div>
-                    <h4 class="fw-bold text-success mb-3">¡Operación Exitosa!</h4>
-                    <p class="lead text-dark mb-0">La factura ha sido generada y guardada correctamente.</p>
-                    <p id="mensajeExitoId" class="text-muted mt-2 small"></p>
+                    <div class="table-responsive border rounded" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-striped mb-0 align-middle small">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width: 50px;">Sel.</th>
+                                    <th>Código</th>
+                                    <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Stock</th>
+                                    <th class="text-end">Precio (PVP)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyModalProductos"></tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted" id="infoPaginacionProd">0 resultados</small>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-1" id="btnProdAnt">Anterior</button>
+                            <button class="btn btn-sm btn-outline-secondary" id="btnProdSig">Siguiente</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer justify-content-center border-0 pb-4">
-                    <button 
-                        type="button" 
-                        class="btn btn-success px-5 py-2 fw-bold shadow-sm" 
-                        id="btnOkSuccess">
-                        <i class="bi bi-arrow-return-left me-2"></i>Aceptar y Volver
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info text-white fw-bold" id="btnProdAceptar" disabled>
+                        <i class="bi bi-plus-circle me-1"></i> Agregar a Factura
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="errorModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-body text-center p-4"><p id="errorModalMsg" class="lead fw-bold text-danger"></p><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button></div></div></div></div>
+    <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-success"><div class="modal-body text-center p-5"><i class="bi bi-check-circle text-success display-1"></i><h4 class="mt-3">¡Factura Creada!</h4><p id="mensajeExitoId"></p><button id="btnOkSuccess" class="btn btn-success mt-3">Aceptar</button></div></div></div></div>
 
     <script>
         import { initCrearFactura } from "../scripts/crear_factura";
