@@ -1,10 +1,14 @@
+
 // src/scripts/editar_punto_emision.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "PuntoEmisions";
 const ESTABLECIMIENTOS_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
 
 declare const bootstrap: any;
 
 export async function initEditarPuntoEmision() {
+    checkAuth();
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id"); // ID numérico 'pemId'
     const form = document.querySelector("form") as HTMLFormElement;
@@ -19,8 +23,16 @@ export async function initEditarPuntoEmision() {
         await loadEstablecimientosCombo();
 
         // 2. Cargar datos del punto
-        const response = await fetch(`${API_URL}/${id}`);
-        if (!response.ok) throw new Error("Punto de emisión no encontrado");
+        const response = await fetch(`${API_URL}/${id}`, {
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Punto de emisión no encontrado");
+        }
 
         const data = await response.json();
 
@@ -32,9 +44,6 @@ export async function initEditarPuntoEmision() {
         (document.getElementById("estRuc") as HTMLSelectElement).value = data.estRuc || "";
         (document.getElementById("pemDescripcion") as HTMLInputElement).value = data.pemDescripcion || "";
 
-        // Estado (asumiendo que viene en la data). 
-        // Si tienes un checkbox para estado en el edit, descomentar:
-        // (document.getElementById("pemEstado") as HTMLInputElement).checked = data.pemEstado;
 
     } catch (error) {
         console.error(error);
@@ -49,13 +58,13 @@ export async function initEditarPuntoEmision() {
             pemIdPuntoEmision: (document.getElementById("pemCodigo") as HTMLInputElement).value,
             estRuc: (document.getElementById("estRuc") as HTMLSelectElement).value,
             pemDescripcion: (document.getElementById("pemDescripcion") as HTMLInputElement).value,
-            pemEstado: true // Se mantiene activo al editar, o leer de un checkbox si existiera
+            pemEstado: true // Se mantiene activo al editar
         };
 
         try {
             const response = await fetch(`${API_URL}/${id}`, {
-                method: "PUT", // O POST según API, standard es PUT para update completo
-                headers: { "Content-Type": "application/json" },
+                method: "PUT",
+                headers: getAuthHeaders(),
                 body: JSON.stringify(punto),
             });
 
@@ -65,6 +74,10 @@ export async function initEditarPuntoEmision() {
                     window.location.href = "/puntos-emision";
                 });
             } else {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
                 throw new Error("Error en la actualización");
             }
         } catch (e) {
@@ -90,7 +103,9 @@ async function loadEstablecimientosCombo() {
     if (!select) return;
 
     try {
-        const response = await fetch(ESTABLECIMIENTOS_URL);
+        const response = await fetch(ESTABLECIMIENTOS_URL, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const data = await response.json();
             const lista = Array.isArray(data) ? data : (data.data || []);
@@ -100,6 +115,8 @@ async function loadEstablecimientosCombo() {
                 options += `<option value="${est.estRuc}">${est.estNombre} (${est.estRuc})</option>`;
             });
             select.innerHTML = options;
+        } else if (response.status === 401) {
+            window.location.href = '/login';
         }
     } catch (err) {
         console.error("Error cargando establecimientos", err);

@@ -1,5 +1,6 @@
 
 // src/scripts/crear_factura.ts
+import { getAuthHeaders, checkAuth } from "./auth";
 
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const PRODUCTOS_EXTERNAL_URL = import.meta.env.PUBLIC_EXTERNAL_INVENTORY_URL;
@@ -38,6 +39,7 @@ let allPuntosEmision: any[] = [];
 let allProductos: ProductoExterno[] = [];
 
 export async function initCrearFactura() {
+    checkAuth();
     console.log("Iniciando carga de datos...");
     await loadSelects();
     setupDetalles();
@@ -57,7 +59,7 @@ async function loadSelects() {
 
     // 1. CARGAR CLIENTES
     try {
-        const res = await fetch(CLIENTES_URL);
+        const res = await fetch(CLIENTES_URL, { headers: getAuthHeaders() });
         if (res.ok) {
             const data = await res.json();
             const lista = Array.isArray(data) ? data : (data.data || []);
@@ -78,7 +80,7 @@ async function loadSelects() {
 
     // 2. CARGAR ESTABLECIMIENTOS
     try {
-        const res = await fetch(ESTABLECIMIENTOS_URL);
+        const res = await fetch(ESTABLECIMIENTOS_URL, { headers: getAuthHeaders() });
         if (res.ok) {
             const data = await res.json();
             const lista = Array.isArray(data) ? data : (data.data || []);
@@ -99,7 +101,7 @@ async function loadSelects() {
 
     // 3. CARGAR PUNTOS DE EMISIÓN
     try {
-        const res = await fetch(PUNTOS_URL);
+        const res = await fetch(PUNTOS_URL, { headers: getAuthHeaders() });
         if (res.ok) {
             const data = await res.json();
             allPuntosEmision = Array.isArray(data) ? data : (data.data || []);
@@ -110,7 +112,7 @@ async function loadSelects() {
     try {
         const select = document.getElementById("tipIdTipop") as HTMLSelectElement;
         if (select) {
-            const res = await fetch(TIPOS_PAGO_URL);
+            const res = await fetch(TIPOS_PAGO_URL, { headers: getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const lista = Array.isArray(data) ? data : (data.data || []);
@@ -125,7 +127,7 @@ async function loadSelects() {
         }
     } catch (e) { console.error("Excepción cargando tipos pago:", e); }
 
-    // 5. CARGAR PRODUCTOS EXTERNOS
+    // 5. CARGAR PRODUCTOS EXTERNOS (API PUBLICA/EXTERNA - SIN TOKEN UTN)
     try {
         console.log("Cargando productos externos...");
         const res = await fetch(PRODUCTOS_EXTERNAL_URL);
@@ -338,9 +340,6 @@ async function handleSubmit(e: Event) {
     }
 
     // 2. Recolectar Detalles
-    // NOTA: Al backend nuevo solo le importa 'codigo' y 'cantidad'.
-    // El resto (precio, nombre, iva) lo recalcula el servidor consultando la API de Inventario.
-    // Sin embargo, enviamos la estructura completa para cumplir con el modelo C# si fuera necesario.
     const filas = document.querySelectorAll("#tbodyDetalles tr");
     const detallesPayload: any[] = [];
 
@@ -352,11 +351,8 @@ async function handleSubmit(e: Event) {
         const cantidad = parseInt(qtyInput.value);
 
         if (codigo && cantidad > 0) {
-            // Busamos datos en memoria solo para llenar el objeto visualmente
             const prod = allProductos.find(p => p.codigo === codigo);
             if (prod) {
-                // Estos cálculos son REFERENCIALES para el frontend.
-                // El backend hará sus propios cálculos oficiales.
                 const precio = parseFloat(prod.pvp);
                 const porcentajeIva = prod.impuesto ? parseFloat(prod.impuesto.porcentaje) : 0;
                 const subtotal = precio * cantidad;
@@ -365,12 +361,11 @@ async function handleSubmit(e: Event) {
 
                 detallesPayload.push({
                     detIdDetalle: 0,
-                    // Enviamos cadena vacía o null, el Backend asignará el ID generado por el SP
                     facNumeroFactura: "",
                     detIdProductoExterno: prod.id,
-                    detCodigoProducto: prod.codigo, // VITAL: Esto es lo que usa el backend para buscar
+                    detCodigoProducto: prod.codigo,
                     detNombreProducto: prod.nombre,
-                    detCantidad: cantidad,          // VITAL: Esto es lo que usa el backend para stock
+                    detCantidad: cantidad,
                     detPrecioUnitario: precio,
                     detGrabaIva: porcentajeIva > 0,
                     detSubtotal: subtotal,
@@ -388,7 +383,6 @@ async function handleSubmit(e: Event) {
     }
 
     // 3. Totales (Referenciales)
-    // Se envían para pasar la validación del modelo, pero el Backend los sobrescribirá
     const totalSubtotalSinIva = detallesPayload.reduce((acc, d) => !d.detGrabaIva ? acc + d.detSubtotal : acc, 0);
     const totalSubtotalConIva = detallesPayload.reduce((acc, d) => d.detGrabaIva ? acc + d.detSubtotal : acc, 0);
     const totalIva = detallesPayload.reduce((acc, d) => acc + d.detValorIva, 0);
@@ -396,10 +390,7 @@ async function handleSubmit(e: Event) {
 
     // 4. Armar Objeto Factura
     const factura = {
-        // CAMBIO CLAVE: Enviamos string vacío. 
-        // El Backend detecta esto, llama al SP, genera el ID (ej: 001-001-0005) y se lo asigna.
         facNumeroFactura: "",
-
         estRuc: estRuc,
         cliCedula: cliCedula,
         pemId: parseInt(pemId),
@@ -420,18 +411,16 @@ async function handleSubmit(e: Event) {
     try {
         const response = await fetch(FACTURAS_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(factura),
         });
 
         if (response.ok) {
-            // El backend devuelve el objeto creado con el ID real
             const facturaCreada = await response.json();
             console.log("Factura creada con ID:", facturaCreada.facNumeroFactura);
 
             const modalEl = document.getElementById('successModal');
             if (modalEl) {
-                // Opcional: Mostrar el ID real en el modal de éxito si tienes un elemento para ello
                 const msgExito = document.getElementById('mensajeExitoId');
                 if (msgExito) msgExito.innerText = `Factura ${facturaCreada.facNumeroFactura} generada correctamente.`;
 
@@ -443,25 +432,21 @@ async function handleSubmit(e: Event) {
                 });
             }
         } else {
-            let msg = "Error al crear factura";
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
 
-            // 1. Leemos el cuerpo UNA sola vez como texto plano
+            let msg = "Error al crear factura";
             const rawText = await response.text();
 
             try {
-                // 2. Intentamos convertir ese texto a JSON manualmente
                 const errData = JSON.parse(rawText);
-
-                // 3. Si funcionó, extraemos el mensaje bonito
                 msg = errData.detail || errData.message || JSON.stringify(errData);
-
                 if (errData.errors) {
-                    // Para errores de validación de .NET (ej: campos requeridos)
                     msg += ": " + JSON.stringify(errData.errors);
                 }
             } catch (e) {
-                // 4. Si falló el JSON.parse, significa que el error era texto plano o HTML
-                // Usamos el texto crudo que leímos al principio (si no está vacío)
                 if (rawText) msg = rawText;
             }
 

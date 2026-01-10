@@ -1,5 +1,6 @@
 
 // src/scripts/facturas.ts
+import { getAuthHeaders, checkAuth } from "./auth";
 
 // Definimos la URL de la API
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
@@ -7,6 +8,7 @@ const API_URL = BASE_URL + "Facturas";
 const CLIENTES_URL = BASE_URL + "Clientes";
 const PUNTOS_URL = BASE_URL + "PuntoEmisions";
 const ESTABLECIMIENTOS_URL = BASE_URL + "Establecimientoes";
+const TIPOS_PAGO_URL = BASE_URL + "TipoPagoes";
 
 let facturaIdToDelete: string | null = null;
 let facturaNuevoEstado: boolean = false;
@@ -20,6 +22,7 @@ let facturasFiltradas: any[] = [];
 declare const bootstrap: any;
 
 export function initFacturas() {
+    checkAuth();
     loadFacturas();
     setupDeleteModal();
 
@@ -49,7 +52,6 @@ function limpiarFiltros() {
     });
 }
 
-const TIPOS_PAGO_URL = BASE_URL + "TipoPagoes";
 
 let allEstablecimientos: any[] = [];
 let allTiposPago: any[] = [];
@@ -62,13 +64,21 @@ async function loadFacturas() {
 
     try {
         // Cargar Facturas, Establecimientos y Tipos de Pago en paralelo
+        const headers = { headers: getAuthHeaders() };
+
         const [resFacturas, resEstab, resTipos] = await Promise.all([
-            fetch(API_URL),
-            fetch(ESTABLECIMIENTOS_URL),
-            fetch(TIPOS_PAGO_URL)
+            fetch(API_URL, headers),
+            fetch(ESTABLECIMIENTOS_URL, headers),
+            fetch(TIPOS_PAGO_URL, headers)
         ]);
 
-        if (!resFacturas.ok) throw new Error("Error cargando facturas");
+        if (!resFacturas.ok) {
+            if (resFacturas.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error cargando facturas");
+        }
 
         // Procesar Facturas
         const dataFacturas = await resFacturas.json();
@@ -238,7 +248,7 @@ function setupDeleteModal() {
         try {
             const response = await fetch(`${API_URL}/${facturaIdToDelete}/estado`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ estado: facturaNuevoEstado }),
             });
 
@@ -247,6 +257,8 @@ function setupDeleteModal() {
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
                 loadFacturas();
+            } else if (response.status === 401) {
+                window.location.href = '/login';
             }
         } catch (error) {
             alert("Error de conexión");
@@ -282,10 +294,15 @@ function attachDeleteListeners() {
             const modalTitle = document.getElementById("confirmDeleteModalLabel");
             if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${facturaNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
 
-            const confirmBtn = document.getElementById("confirmDeleteBtn");
-            confirmBtn?.classList.remove(`btn-${prevColorClass}`);
-            confirmBtn?.classList.add(`btn-${colorClass}`);
-            if (confirmBtn) confirmBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
+            const confirmBtn = document.getElementById("confirmDeleteModal .btn-danger");
+            // Nota: Aquí había un error en el script original seleccionando el botón.
+            // Arreglamos seleccionando por ID
+            const confirmBtnFixed = document.getElementById("confirmDeleteBtn");
+
+            if (confirmBtnFixed) {
+                confirmBtnFixed.className = `btn btn-${colorClass} d-inline-flex align-items-center`;
+                confirmBtnFixed.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
+            }
 
             const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
             if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} la factura <strong>${numero}</strong>?`;
@@ -358,7 +375,7 @@ async function showFacturaDetails(numeroFactura: string) {
     // 1. Obtener factura base si no tiene detalles
     if (!factura || !factura.detallesFactura) {
         try {
-            const response = await fetch(`${API_URL}/${numeroFactura}`);
+            const response = await fetch(`${API_URL}/${numeroFactura}`, { headers: getAuthHeaders() });
             if (response.ok) {
                 factura = await response.json();
             }
@@ -375,7 +392,7 @@ async function showFacturaDetails(numeroFactura: string) {
     // 2. Cargar Cliente si falta
     if (!factura.cliente && factura.cliCedula) {
         try {
-            const res = await fetch(`${CLIENTES_URL}/${factura.cliCedula}`);
+            const res = await fetch(`${CLIENTES_URL}/${factura.cliCedula}`, { headers: getAuthHeaders() });
             if (res.ok) factura.cliente = await res.json();
         } catch (e) { console.warn("No se pudo cargar cliente extra", e); }
     }
@@ -383,7 +400,7 @@ async function showFacturaDetails(numeroFactura: string) {
     // 3. Cargar Punto Emision si falta
     if (!factura.puntoEmision && factura.pemId) {
         try {
-            const res = await fetch(`${PUNTOS_URL}/${factura.pemId}`);
+            const res = await fetch(`${PUNTOS_URL}/${factura.pemId}`, { headers: getAuthHeaders() });
             if (res.ok) factura.puntoEmision = await res.json();
         } catch (e) { console.warn("No se pudo cargar punto extra", e); }
     }
@@ -391,7 +408,7 @@ async function showFacturaDetails(numeroFactura: string) {
     // 4. Cargar Establecimiento si falta (desde Punto de Emision)
     if (factura.puntoEmision && !factura.puntoEmision.establecimiento && factura.puntoEmision.estRuc) {
         try {
-            const res = await fetch(`${ESTABLECIMIENTOS_URL}/${factura.puntoEmision.estRuc}`);
+            const res = await fetch(`${ESTABLECIMIENTOS_URL}/${factura.puntoEmision.estRuc}`, { headers: getAuthHeaders() });
             if (res.ok) {
                 factura.puntoEmision.establecimiento = await res.json();
             }

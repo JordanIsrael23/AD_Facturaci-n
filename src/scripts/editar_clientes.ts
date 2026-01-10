@@ -1,9 +1,13 @@
+
 // src/scripts/editar-cliente.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
 declare const bootstrap: any;
 
 export async function initEditarCliente() {
+    checkAuth();
     const params = new URLSearchParams(window.location.search);
     const cedula = params.get("id");
     const form = document.querySelector("form") as HTMLFormElement;
@@ -15,8 +19,16 @@ export async function initEditarCliente() {
 
     // 1. Cargar datos del cliente al iniciar
     try {
-        const response = await fetch(`${API_URL}/${cedula}`);
-        if (!response.ok) throw new Error("Cliente no encontrado");
+        const response = await fetch(`${API_URL}/${cedula}`, {
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Cliente no encontrado");
+        }
 
         const data = await response.json();
 
@@ -55,7 +67,7 @@ export async function initEditarCliente() {
         try {
             const response = await fetch(`${API_URL}/${cedula}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(cliente),
             });
 
@@ -66,6 +78,11 @@ export async function initEditarCliente() {
                     window.location.href = "/clientes";
                 });
             } else {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
                 // MANEJO INTELIGENTE DE ERRORES (IGUAL QUE EN CREAR CLIENTE)
                 let mensajeParaMostrar = "Ocurrió un error al actualizar el cliente.";
 

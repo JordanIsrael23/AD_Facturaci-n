@@ -1,9 +1,13 @@
+
 // src/scripts/crear-cliente.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
 declare const bootstrap: any;
 
 export function initCrearCliente() {
+    checkAuth();
     const form = document.getElementById("formCrearCliente") as HTMLFormElement;
     if (!form) return;
 
@@ -31,7 +35,7 @@ export function initCrearCliente() {
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(cliente),
             });
 
@@ -48,12 +52,17 @@ export function initCrearCliente() {
                     });
                 }
             } else {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
                 // MANEJO INTELIGENTE DE ERRORES (JSON O TEXTO)
                 let mensajeParaMostrar = "Ocurrió un error al procesar la solicitud.";
 
                 // Intentamos determinar si la respuesta es JSON por el encabezado
                 const contentType = response.headers.get("content-type");
-                
+
                 if (contentType && contentType.includes("application/json")) {
                     const errorData = await response.json();
                     // Extraemos el mensaje según el formato estándar de .NET (Problem Details)
@@ -61,8 +70,8 @@ export function initCrearCliente() {
                 } else {
                     // Si es texto plano (como los errores directos de SQL/Triggers)
                     const errorRaw = await response.text();
-                    mensajeParaMostrar = errorRaw.includes("Error:") 
-                        ? errorRaw.split("Error:")[1].split("at ")[0] 
+                    mensajeParaMostrar = errorRaw.includes("Error:")
+                        ? errorRaw.split("Error:")[1].split("at ")[0]
                         : errorRaw;
                 }
 
@@ -78,7 +87,7 @@ export function initCrearCliente() {
     function mostrarErrorEnModal(mensaje: string) {
         const msgElement = document.getElementById("errorModalMsg");
         if (msgElement) {
-            msgElement.innerText = mensaje; 
+            msgElement.innerText = mensaje;
         }
 
         const errorModalEl = document.getElementById("errorModal");

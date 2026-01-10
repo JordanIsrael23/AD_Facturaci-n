@@ -1,4 +1,6 @@
+
 // src/scripts/puntos_emision.ts
+import { getAuthHeaders, checkAuth } from "./auth";
 
 // Definimos la URL de la API
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "PuntoEmisions";
@@ -14,8 +16,9 @@ let puntosFiltrados: any[] = [];
 declare const bootstrap: any;
 
 export function initPuntosEmision() {
+    checkAuth();
     loadPuntos();
-    setupDeleteModal(); // Si se implementa eliminación
+    setupDeleteModal();
 
     document
         .getElementById("filtroCodigo")
@@ -55,8 +58,17 @@ async function loadPuntos() {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando...</td></tr>';
 
     try {
-        const response = await fetch(`${API_URL}`);
-        if (!response.ok) throw new Error("Error");
+        const response = await fetch(`${API_URL}`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error");
+        }
 
         const data = await response.json();
         const lista = Array.isArray(data) ? data : (data.data || []);
@@ -120,7 +132,7 @@ function setupDeleteModal() {
         try {
             const response = await fetch(`${API_URL}/${puntoIdToDelete}/estado`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ estado: puntoNuevoEstado }),
             });
 
@@ -129,6 +141,8 @@ function setupDeleteModal() {
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
                 loadPuntos();
+            } else if (response.status === 401) {
+                window.location.href = '/login';
             }
         } catch (error) {
             alert("Error de conexión");
@@ -207,6 +221,7 @@ function aplicarFiltros(inputOrigen: "filtroCodigo" | "filtroEstablecimiento") {
     actualizarIcono("filtroCodigo", codigo !== "");
     actualizarIcono("filtroEstablecimiento", estBusqueda !== "");
 }
+
 
 function actualizarIcono(inputId: string, activo: boolean) {
     const btn = document.querySelector(

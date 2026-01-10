@@ -1,4 +1,6 @@
+
 // src/scripts/establecimientos.ts
+import { getAuthHeaders, checkAuth } from "./auth";
 
 // Definimos la URL de la API
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
@@ -14,6 +16,7 @@ let establecimientosFiltrados: any[] = [];
 declare const bootstrap: any;
 
 export function initEstablecimientos() {
+    checkAuth();
     loadEstablecimientos();
     setupDeleteModal();
 
@@ -55,22 +58,18 @@ async function loadEstablecimientos() {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
 
     try {
-        const response = await fetch(`${API_URL}`);
-        if (!response.ok) throw new Error("Error");
+        const response = await fetch(`${API_URL}`, {
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error");
+        }
 
         const data = await response.json();
-        // Ajustar según si la API devuelve directamente el array o un objeto { data: [] }
-        // La API de Clientes devolvia { data: [] } aparentemente en el endpoint /activos ?
-        // El usuario dijo "La api tiene la ruta .../api/Establecimientoes". 
-        // Asumiremos que devuelve un array o { data: ... } standard.
-        // Si sigue el patrón de clientes pero sin /activos (que puede ser otro endpoint),
-        // revisaré la respuesta. Por ahora asumiré array directo o data.
-
-        // En clientes.ts: fetch(`${API_URL}/activos`) -> data.data
-        // Aquí intentaré fetch(API_URL). Si es similar, quizás sea data.data o data directa.
-        // Dado que es una API nueva, asumiré que devuelve la lista directamente o en data.
-        // Probaré con data.data primero si sigue el template, si no data.
-
         const lista = Array.isArray(data) ? data : (data.data || []);
         establecimientosData = lista;
 
@@ -170,7 +169,7 @@ function setupDeleteModal() {
         try {
             const response = await fetch(`${API_URL}/${establecimientoRucToDelete}/estado`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ estado: establecimientoNuevoEstado }),
             });
 
@@ -179,6 +178,8 @@ function setupDeleteModal() {
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
                 loadEstablecimientos();
+            } else if (response.status === 401) {
+                window.location.href = '/login';
             }
         } catch (error) {
             alert("Error de conexión");
