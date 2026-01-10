@@ -101,13 +101,13 @@ import background from "../assets/background.svg";
                 </div>
 
                 <div class="col-md-6">
-                    <a href="/login" class="btn-menu-custom">
-                        <div class="icon-wrapper bg-dark-subtle text-dark">
-                            <i class="bi bi-box-arrow-in-right"></i>
+                    <a href="#" id="btnLogout" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-danger-subtle text-danger">
+                            <i class="bi bi-box-arrow-right"></i>
                         </div>
                         <div class="ms-3 text-start">
                             <h5 class="mb-1 fw-bold text-dark">
-                                Iniciar Sesión
+                                Cerrar Sesión
                             </h5>
                         </div>
                     </a>
@@ -116,6 +116,14 @@ import background from "../assets/background.svg";
         </div>
     </div>
 </main>
+
+<script>
+    import { logout } from "../scripts/auth";
+    document.getElementById("btnLogout")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        logout();
+    });
+</script>
 
 <style>
     /* Solo usamos CSS para detalles de comportamiento que Bootstrap no maneja por defecto */
