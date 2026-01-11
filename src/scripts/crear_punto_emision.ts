@@ -1,10 +1,14 @@
+
 // src/scripts/crear_punto_emision.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "PuntoEmisions";
 const ESTABLECIMIENTOS_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
 
 declare const bootstrap: any;
 
 export function initCrearPuntoEmision() {
+    checkAuth();
     loadEstablecimientosCombo();
 
     const form = document.getElementById("formCrearPunto") as HTMLFormElement;
@@ -30,7 +34,7 @@ export function initCrearPuntoEmision() {
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(punto),
             });
 
@@ -45,6 +49,11 @@ export function initCrearPuntoEmision() {
                     });
                 }
             } else {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
                 let mensajeParaMostrar = "Ocurrió un error al procesar la solicitud.";
                 const contentType = response.headers.get("content-type");
 
@@ -83,7 +92,9 @@ async function loadEstablecimientosCombo() {
     if (!select) return;
 
     try {
-        const response = await fetch(ESTABLECIMIENTOS_URL);
+        const response = await fetch(ESTABLECIMIENTOS_URL, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const data = await response.json();
             const lista = Array.isArray(data) ? data : (data.data || []);
@@ -96,6 +107,8 @@ async function loadEstablecimientosCombo() {
                 }
             });
             select.innerHTML = options;
+        } else if (response.status === 401) {
+            window.location.href = '/login';
         }
     } catch (err) {
         console.error("Error cargando establecimientos", err);

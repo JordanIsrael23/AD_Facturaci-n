@@ -1,4 +1,6 @@
+
 // src/scripts/establecimientos.ts
+import { getAuthHeaders, checkAuth } from "./auth";
 
 // Definimos la URL de la API
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
@@ -13,6 +15,7 @@ let establecimientosFiltrados: any[] = [];
 declare const bootstrap: any;
 
 export function initEstablecimientos() {
+    checkAuth();
     loadEstablecimientos();
     setupDeleteModal();
 
@@ -54,22 +57,18 @@ async function loadEstablecimientos() {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
 
     try {
-        const response = await fetch(`${API_URL}`);
-        if (!response.ok) throw new Error("Error");
+        const response = await fetch(`${API_URL}`, {
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error");
+        }
 
         const data = await response.json();
-        // Ajustar según si la API devuelve directamente el array o un objeto { data: [] }
-        // La API de Clientes devolvia { data: [] } aparentemente en el endpoint /activos ?
-        // El usuario dijo "La api tiene la ruta .../api/Establecimientoes". 
-        // Asumiremos que devuelve un array o { data: ... } standard.
-        // Si sigue el patrón de clientes pero sin /activos (que puede ser otro endpoint),
-        // revisaré la respuesta. Por ahora asumiré array directo o data.
-
-        // En clientes.ts: fetch(`${API_URL}/activos`) -> data.data
-        // Aquí intentaré fetch(API_URL). Si es similar, quizás sea data.data o data directa.
-        // Dado que es una API nueva, asumiré que devuelve la lista directamente o en data.
-        // Probaré con data.data primero si sigue el template, si no data.
-
         const lista = Array.isArray(data) ? data : (data.data || []);
         establecimientosData = lista;
 
@@ -165,7 +164,78 @@ function limpiarFiltroIndividual(inputId: string) {
 }
 
 function setupDeleteModal() {
+<<<<<<< HEAD
     // Implementar si existe endpoint para desactivar
+=======
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    confirmBtn?.addEventListener("click", async () => {
+        if (!establecimientoRucToDelete) return;
+        try {
+            const response = await fetch(`${API_URL}/${establecimientoRucToDelete}/estado`, {
+                method: "PATCH",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ estado: establecimientoNuevoEstado }),
+            });
+
+            if (response.ok) {
+                const modalEl = document.getElementById("confirmDeleteModal");
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.hide();
+                loadEstablecimientos();
+            } else if (response.status === 401) {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            alert("Error de conexión");
+        }
+    });
+}
+
+function attachDeleteListeners() {
+    document.querySelectorAll(".btn-delete").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            const target = (e.target as HTMLElement).closest(".btn-delete");
+            if (!target) return;
+
+            const ruc = target.getAttribute("data-ruc");
+            const nombre = target.getAttribute("data-nombre");
+            const estadoActual = target.getAttribute("data-estado") === "true";
+
+            establecimientoRucToDelete = ruc;
+            establecimientoNuevoEstado = !estadoActual;
+
+            const accion = establecimientoNuevoEstado ? "Activar" : "Desactivar";
+            const colorClass = establecimientoNuevoEstado ? "success" : "danger";
+            const prevColorClass = establecimientoNuevoEstado ? "danger" : "success";
+
+            // Update Modal Styling
+            const modalContent = document.querySelector("#confirmDeleteModal .modal-content");
+            modalContent?.classList.remove(`border-${prevColorClass}`);
+            modalContent?.classList.add(`border-${colorClass}`);
+
+            const modalHeader = document.querySelector("#confirmDeleteModal .modal-header");
+            modalHeader?.classList.remove(`bg-${prevColorClass}`);
+            modalHeader?.classList.add(`bg-${colorClass}`);
+
+            const modalTitle = document.getElementById("confirmDeleteModalLabel");
+            if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${establecimientoNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
+
+            const confirmBtn = document.getElementById("confirmDeleteBtn");
+            confirmBtn?.classList.remove(`btn-${prevColorClass}`);
+            confirmBtn?.classList.add(`btn-${colorClass}`);
+            if (confirmBtn) confirmBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
+
+            const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
+            if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} al establecimiento <strong>${nombre}</strong>?`;
+
+            const modalBodySub = document.querySelector("#confirmDeleteModal .modal-body p.text-muted");
+            if (modalBodySub) modalBodySub.innerHTML = `El establecimiento será ${establecimientoNuevoEstado ? "activado" : "desactivado"}.`;
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("confirmDeleteModal"));
+            modal.show();
+        });
+    });
+>>>>>>> origin/dennis
 }
 
 function renderPagina() {

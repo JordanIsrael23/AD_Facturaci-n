@@ -1,9 +1,13 @@
+
 // src/scripts/crear_establecimientos.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
 
 declare const bootstrap: any;
 
 export function initCrearEstablecimiento() {
+    checkAuth();
     const form = document.getElementById("formCrearEstablecimiento") as HTMLFormElement;
     if (!form) return;
 
@@ -27,7 +31,7 @@ export function initCrearEstablecimiento() {
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(establecimiento),
             });
 
@@ -44,6 +48,11 @@ export function initCrearEstablecimiento() {
                     });
                 }
             } else {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
                 let mensajeParaMostrar = "Ocurrió un error al procesar la solicitud.";
                 const contentType = response.headers.get("content-type");
 

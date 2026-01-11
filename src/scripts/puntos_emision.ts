@@ -1,4 +1,6 @@
+
 // src/scripts/puntos_emision.ts
+import { getAuthHeaders, checkAuth } from "./auth";
 
 // Definimos la URL de la API
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "PuntoEmisions";
@@ -12,8 +14,13 @@ let puntosFiltrados: any[] = [];
 declare const bootstrap: any;
 
 export function initPuntosEmision() {
+    checkAuth();
     loadPuntos();
+<<<<<<< HEAD
     // setupDeleteModal(); // Si se implementa eliminación
+=======
+    setupDeleteModal();
+>>>>>>> origin/dennis
 
     document
         .getElementById("filtroCodigo")
@@ -53,8 +60,17 @@ async function loadPuntos() {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando...</td></tr>';
 
     try {
-        const response = await fetch(`${API_URL}`);
-        if (!response.ok) throw new Error("Error");
+        const response = await fetch(`${API_URL}`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error");
+        }
 
         const data = await response.json();
         const lista = Array.isArray(data) ? data : (data.data || []);
@@ -103,6 +119,84 @@ function renderPuntos(puntos: any[]) {
             <td><span class="badge ${p.pemEstado ? 'text-bg-success' : 'text-bg-danger'}">${p.pemEstado ? 'Activo' : 'Inactivo'}</span></td>
         </tr>
     `).join("");
+<<<<<<< HEAD
+=======
+
+    attachDeleteListeners();
+}
+
+function setupDeleteModal() {
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    confirmBtn?.addEventListener("click", async () => {
+        if (!puntoIdToDelete) return;
+        try {
+            const response = await fetch(`${API_URL}/${puntoIdToDelete}/estado`, {
+                method: "PATCH",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ estado: puntoNuevoEstado }),
+            });
+
+            if (response.ok) {
+                const modalEl = document.getElementById("confirmDeleteModal");
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.hide();
+                loadPuntos();
+            } else if (response.status === 401) {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            alert("Error de conexión");
+        }
+    });
+}
+
+function attachDeleteListeners() {
+    document.querySelectorAll(".btn-delete").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            const target = (e.target as HTMLElement).closest(".btn-delete");
+            if (!target) return;
+
+            const id = target.getAttribute("data-id");
+            const codigo = target.getAttribute("data-codigo");
+            const estadoActual = target.getAttribute("data-estado") === "true";
+
+            puntoIdToDelete = id;
+            puntoNuevoEstado = !estadoActual;
+
+            const accion = puntoNuevoEstado ? "Activar" : "Desactivar";
+            const colorClass = puntoNuevoEstado ? "success" : "danger";
+            const prevColorClass = puntoNuevoEstado ? "danger" : "success";
+
+            // Update Modal Styling
+            const modalContent = document.querySelector("#confirmDeleteModal .modal-content");
+            modalContent?.classList.remove(`border-${prevColorClass}`);
+            modalContent?.classList.add(`border-${colorClass}`);
+
+            const modalHeader = document.querySelector("#confirmDeleteModal .modal-header");
+            modalHeader?.classList.remove(`bg-${prevColorClass}`);
+            modalHeader?.classList.add(`bg-${colorClass}`);
+
+            const modalTitle = document.getElementById("confirmDeleteModalLabel");
+            if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${puntoNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
+
+            const confirmBtn = document.getElementById("confirmDeleteBtn");
+            if (confirmBtn) {
+                confirmBtn.classList.remove(`btn-${prevColorClass}`);
+                confirmBtn.classList.add(`btn-${colorClass}`);
+                confirmBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
+            }
+
+            const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
+            if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} al punto de emisión <strong>${codigo}</strong>?`;
+
+            const modalBodySub = document.querySelector("#confirmDeleteModal .modal-body p.text-muted");
+            if (modalBodySub) modalBodySub.innerHTML = `El punto de emisión será ${puntoNuevoEstado ? "activado" : "desactivado"}.`;
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("confirmDeleteModal"));
+            modal.show();
+        });
+    });
+>>>>>>> origin/dennis
 }
 
 function aplicarFiltros(inputOrigen: "filtroCodigo" | "filtroEstablecimiento") {
@@ -128,6 +222,7 @@ function aplicarFiltros(inputOrigen: "filtroCodigo" | "filtroEstablecimiento") {
     actualizarIcono("filtroCodigo", codigo !== "");
     actualizarIcono("filtroEstablecimiento", estBusqueda !== "");
 }
+
 
 function actualizarIcono(inputId: string, activo: boolean) {
     const btn = document.querySelector(

@@ -1,9 +1,13 @@
+
 // src/scripts/editar_establecimientos.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
 
 declare const bootstrap: any;
 
 export async function initEditarEstablecimiento() {
+    checkAuth();
     const params = new URLSearchParams(window.location.search);
     const ruc = params.get("id");
     const form = document.querySelector("form") as HTMLFormElement;
@@ -15,8 +19,17 @@ export async function initEditarEstablecimiento() {
 
     // 1. Cargar datos del establecimiento al iniciar
     try {
-        const response = await fetch(`${API_URL}/${ruc}`);
-        if (!response.ok) throw new Error("Establecimiento no encontrado");
+        const response = await fetch(`${API_URL}/${ruc}`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Establecimiento no encontrado");
+        }
 
         const data = await response.json();
 
@@ -28,10 +41,6 @@ export async function initEditarEstablecimiento() {
         (document.getElementById("nombre") as HTMLInputElement).value = data.estNombre || "";
         (document.getElementById("direccion") as HTMLInputElement).value = data.estDireccion || "";
         (document.getElementById("telefono") as HTMLInputElement).value = data.estTelefono || "";
-
-        // Estado
-        // Si la API no devuelve estEstado (o es null), asumimos activo si no se dice lo contrario
-        // pero idealmente viene en la data.
 
     } catch (error) {
         console.error(error);
@@ -47,13 +56,13 @@ export async function initEditarEstablecimiento() {
             estNombre: (document.getElementById("nombre") as HTMLInputElement).value,
             estDireccion: (document.getElementById("direccion") as HTMLInputElement).value || null,
             estTelefono: (document.getElementById("telefono") as HTMLInputElement).value || null,
-            estEstado: true // Asumo que editar mantiene activo, o debería haber un checkbox si se permite desactivar desde aquí
+            estEstado: true
         };
 
         try {
             const response = await fetch(`${API_URL}/${ruc}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(establecimiento),
             });
 
@@ -64,6 +73,10 @@ export async function initEditarEstablecimiento() {
                     window.location.href = "/establecimientos";
                 });
             } else {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
                 throw new Error("Error en la actualización");
             }
         } catch (e) {
