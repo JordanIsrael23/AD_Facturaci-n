@@ -125,60 +125,6 @@ import background from "../assets/background.svg";
     </section>
 </main>
 
-<div
-    class="modal fade"
-    id="confirmDeleteModal"
-    tabindex="-1"
-    aria-labelledby="confirmDeleteModalLabel"
-    aria-hidden="true"
->
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-danger border-3">
-            <div class="modal-header bg-danger text-white">
-                <h5
-                    class="modal-title d-flex align-items-center"
-                    id="confirmDeleteModalLabel"
-                >
-                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
-                    Confirmar desactivación
-                </h5>
-                <button
-                    type="button"
-                    class="btn-close btn-close-white"
-                    data-bs-dismiss="modal"
-                    aria-label="Cerrar"></button>
-            </div>
-
-            <div class="modal-body text-center p-4">
-                <p class="lead text-dark">
-                    ¿Estás seguro que deseas desactivar el establecimiento?
-                </p>
-                <p class="text-muted small">
-                    Esta acción cambiará el estado del establecimiento.
-                </p>
-            </div>
-
-            <div class="modal-footer justify-content-center">
-                <button
-                    type="button"
-                    class="btn btn-danger d-inline-flex align-items-center"
-                    id="confirmDeleteBtn"
-                >
-                    <i class="bi bi-check-circle-fill me-1"></i> Aceptar
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary d-inline-flex align-items-center"
-                    data-bs-dismiss="modal"
-                >
-                    <i class="bi bi-x-circle-fill me-1"></i> Cancelar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
     import { initEstablecimientos } from "../scripts/establecimientos";
 

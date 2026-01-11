@@ -1,3 +1,4 @@
+// src/scripts/editar-cliente.ts
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
 declare const bootstrap: any;
@@ -20,49 +21,35 @@ export async function initEditarCliente() {
         const data = await response.json();
 
         // Mapear datos a los inputs
-        const setVal = (id: string, val: any) => {
-            const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
-            if (el) el.value = val || "";
-        };
+        const inputCedula = document.getElementById("cedula") as HTMLInputElement;
+        inputCedula.value = data.cliCedula || "";
+        inputCedula.readOnly = true; // La cédula no se edita por ser PK
 
-        setVal("cedula", data.cliCedula);
-        (document.getElementById("cedula") as HTMLInputElement).readOnly = true; 
-
-        setVal("cliNombre", data.cliNombre);
-        // Formatear fecha para input date (YYYY-MM-DD)
-        const fecha = data.cliFechaNacimiento ? data.cliFechaNacimiento.split("T")[0] : "";
-        setVal("fechaNacimiento", fecha);
-        
-        setVal("tipoCliente", data.ticIdTipoc);
-        setVal("cliTelefono", data.cliTelefono);
-        setVal("email", data.cliEmail); // Aseguramos que se cargue el email
-        setVal("cliDireccion", data.cliDireccion);
+        (document.getElementById("cliNombre") as HTMLInputElement).value = data.cliNombre || "";
+        (document.getElementById("fechaNacimiento") as HTMLInputElement).value = data.cliFechaNacimiento ? data.cliFechaNacimiento.split("T")[0] : "";
+        (document.getElementById("tipoCliente") as HTMLSelectElement).value = data.ticIdTipoc?.toString() || "";
+        (document.getElementById("cliTelefono") as HTMLInputElement).value = data.cliTelefono || "";
+        (document.getElementById("email") as HTMLInputElement).value = data.cliEmail || "";
+        (document.getElementById("cliDireccion") as HTMLInputElement).value = data.cliDireccion || "";
 
     } catch (error) {
         console.error(error);
-        mostrarErrorEnModal("Error al cargar los datos del cliente. Verifique la conexión.");
+        mostrarModal("errorModal", "Error al cargar los datos del cliente.");
     }
 
-    // 2. Manejar el envío del formulario (Guardar Cambios)
+    // 2. Manejar el envío del formulario (Guardar)
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        // Función auxiliar para obtener valor o null (igual que en crear)
-        const getValue = (id: string) => {
-            const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
-            const val = el?.value.trim();
-            return val === "" ? null : val;
-        };
-
         const cliente = {
             cliCedula: cedula,
-            cliNombre: getValue("cliNombre"),
-            cliFechaNacimiento: getValue("fechaNacimiento"),
-            ticIdTipoc: parseInt(getValue("tipoCliente") || "0"),
-            cliDireccion: getValue("cliDireccion"),
-            cliTelefono: getValue("cliTelefono"),
-            cliEmail: getValue("email"), // Aquí enviamos el email igual que en crear
-            cliEstado: true // Asumimos que al editar se mantiene activo, o podrías agregar un checkbox si quisieras
+            cliNombre: (document.getElementById("cliNombre") as HTMLInputElement).value,
+            cliFechaNacimiento: (document.getElementById("fechaNacimiento") as HTMLInputElement).value || null,
+            ticIdTipoc: parseInt((document.getElementById("tipoCliente") as HTMLSelectElement).value || "0"),
+            cliDireccion: (document.getElementById("cliDireccion") as HTMLInputElement).value || null,
+            cliTelefono: (document.getElementById("cliTelefono") as HTMLInputElement).value || null,
+            cliEmail: (document.getElementById("email") as HTMLInputElement).value || null,
+            cliEstado: true
         };
 
         try {
@@ -73,54 +60,28 @@ export async function initEditarCliente() {
             });
 
             if (response.ok || response.status === 204) {
-                // ÉXITO
-                const modalEl = document.getElementById('successEditModal');
-                if (modalEl) {
-                    const successModal = new bootstrap.Modal(modalEl);
-                    successModal.show();
-                    
-                    document.getElementById('btnOkEditSuccess')?.addEventListener('click', () => {
-                        window.location.href = "/clientes";
-                    });
-                }
-            } else {
-                // ERROR DETALLADO (Lógica copiada de crear-cliente.ts)
-                let mensajeParaMostrar = "Ocurrió un error al actualizar el cliente.";
-
-                // Intentamos determinar si la respuesta es JSON
-                const contentType = response.headers.get("content-type");
+                mostrarModal("successEditModal");
                 
-                if (contentType && contentType.includes("application/json")) {
-                    const errorData = await response.json();
-                    // Extraemos el mensaje según formato estándar .NET
-                    mensajeParaMostrar = errorData.detail || errorData.title || errorData.message || JSON.stringify(errorData);
-                } else {
-                    // Si es texto plano (ej. errores de SQL directos)
-                    const errorRaw = await response.text();
-                    mensajeParaMostrar = errorRaw.includes("Error:") 
-                        ? errorRaw.split("Error:")[1].split("at ")[0] 
-                        : errorRaw;
-                }
-
-                mostrarErrorEnModal(mensajeParaMostrar);
+                document.getElementById('btnOkEditSuccess')?.addEventListener('click', () => {
+                    window.location.href = "/clientes";
+                });
+            } else {
+                throw new Error("Error en la actualización");
             }
-        } catch (error) {
-            console.error("Error de red:", error);
-            mostrarErrorEnModal("No se pudo establecer conexión con el servidor.");
+        } catch (e) {
+            mostrarModal("errorModal", "No se pudo actualizar el cliente. Intente más tarde.");
         }
     });
 }
 
-// Función auxiliar unificada para mostrar el error en el modal
-function mostrarErrorEnModal(mensaje: string) {
-    const msgElement = document.getElementById("errorModalMsg");
-    if (msgElement) {
-        msgElement.innerText = mensaje;
+function mostrarModal(modalId: string, mensaje?: string) {
+    if (mensaje) {
+        const msgElement = document.querySelector(`#${modalId} .modal-body p`);
+        if (msgElement) msgElement.textContent = mensaje;
     }
-
-    const errorModalEl = document.getElementById("errorModal");
-    if (errorModalEl) {
-        const modalError = new bootstrap.Modal(errorModalEl);
-        modalError.show();
+    const modalEl = document.getElementById(modalId);
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
     }
 }

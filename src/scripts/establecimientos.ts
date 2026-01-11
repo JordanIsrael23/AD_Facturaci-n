@@ -4,7 +4,6 @@
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Establecimientoes";
 
 let establecimientoRucToDelete: string | null = null;
-let establecimientoNuevoEstado: boolean = false;
 let establecimientosData: any[] = [];
 let paginaActual = 1;
 const registrosPorPagina = 10;
@@ -105,10 +104,12 @@ function renderEstablecimientos(establecimientos: any[]) {
                     <a href="editar_establecimientos?id=${e.estRuc}" class="btn btn-sm btn-warning d-inline-flex align-items-center">
                         <i class="bi bi-pencil-square me-1"></i> Editar
                     </a>
-                    <button type="button" class="btn btn-sm ${e.estEstado ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
-                        data-ruc="${e.estRuc}" data-nombre="${e.estNombre}" data-estado="${e.estEstado}">
-                        <i class="bi ${e.estEstado ? "bi-trash" : "bi-check-circle"} me-1"></i> ${e.estEstado ? "Desactivar" : "Activar"}
+                    <!--
+                    <button type="button" class="btn btn-sm btn-danger d-inline-flex align-items-center btn-delete" 
+                        data-ruc="${e.estRuc}" data-nombre="${e.estNombre}">
+                        <i class="bi bi-trash me-1"></i> Eliminar
                     </button>
+                    -->
                 </div>
             </td>
             <td>${e.estRuc}</td>
@@ -119,7 +120,7 @@ function renderEstablecimientos(establecimientos: any[]) {
         </tr>
     `).join("");
 
-    attachDeleteListeners();
+    // attachDeleteListeners(); // Comentado si no hay endpoint de delete/estado específico mencionado, pero lo habilitaré similar a clientes
 }
 
 function aplicarFiltros(inputOrigen: "filtroRuc" | "filtroNombre") {
@@ -164,72 +165,7 @@ function limpiarFiltroIndividual(inputId: string) {
 }
 
 function setupDeleteModal() {
-    const confirmBtn = document.getElementById("confirmDeleteBtn");
-    confirmBtn?.addEventListener("click", async () => {
-        if (!establecimientoRucToDelete) return;
-        try {
-            const response = await fetch(`${API_URL}/${establecimientoRucToDelete}/estado`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ estado: establecimientoNuevoEstado }),
-            });
-
-            if (response.ok) {
-                const modalEl = document.getElementById("confirmDeleteModal");
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modal.hide();
-                loadEstablecimientos();
-            }
-        } catch (error) {
-            alert("Error de conexión");
-        }
-    });
-}
-
-function attachDeleteListeners() {
-    document.querySelectorAll(".btn-delete").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-            const target = (e.target as HTMLElement).closest(".btn-delete");
-            if (!target) return;
-
-            const ruc = target.getAttribute("data-ruc");
-            const nombre = target.getAttribute("data-nombre");
-            const estadoActual = target.getAttribute("data-estado") === "true";
-
-            establecimientoRucToDelete = ruc;
-            establecimientoNuevoEstado = !estadoActual;
-
-            const accion = establecimientoNuevoEstado ? "Activar" : "Desactivar";
-            const colorClass = establecimientoNuevoEstado ? "success" : "danger";
-            const prevColorClass = establecimientoNuevoEstado ? "danger" : "success";
-
-            // Update Modal Styling
-            const modalContent = document.querySelector("#confirmDeleteModal .modal-content");
-            modalContent?.classList.remove(`border-${prevColorClass}`);
-            modalContent?.classList.add(`border-${colorClass}`);
-
-            const modalHeader = document.querySelector("#confirmDeleteModal .modal-header");
-            modalHeader?.classList.remove(`bg-${prevColorClass}`);
-            modalHeader?.classList.add(`bg-${colorClass}`);
-
-            const modalTitle = document.getElementById("confirmDeleteModalLabel");
-            if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${establecimientoNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
-
-            const confirmBtn = document.getElementById("confirmDeleteBtn");
-            confirmBtn?.classList.remove(`btn-${prevColorClass}`);
-            confirmBtn?.classList.add(`btn-${colorClass}`);
-            if (confirmBtn) confirmBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
-
-            const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
-            if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} al establecimiento <strong>${nombre}</strong>?`;
-
-            const modalBodySub = document.querySelector("#confirmDeleteModal .modal-body p.text-muted");
-            if (modalBodySub) modalBodySub.innerHTML = `El establecimiento será ${establecimientoNuevoEstado ? "activado" : "desactivado"}.`;
-
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("confirmDeleteModal"));
-            modal.show();
-        });
-    });
+    // Implementar si existe endpoint para desactivar
 }
 
 function renderPagina() {
