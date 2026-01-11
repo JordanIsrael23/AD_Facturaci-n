@@ -1,0 +1,446 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div class="container pt-3">
+    <div>
+        <a href="/" class="btn btn-outline-secondary btn-sm mb-3">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                class="bi bi-arrow-left me-1"
+                viewBox="0 0 16 16"
+            >
+                <path
+                    fill-rule="evenodd"
+                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+                ></path>
+            </svg>
+            Volver a Menu
+        </a>
+    </div>
+</div>
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main
+    class="container-fluid d-flex flex-column align-items-center p-0 min-vh-100"
+>
+    <section class="container mt-5 p-3">
+        <div
+            class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2"
+        >
+            <div class="d-flex align-items-center">
+                <h1 class="h2 text-primary fw-bold me-2 mb-0">Facturas</h1>
+                <i class="bi bi-receipt text-secondary fs-2"></i>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a
+                    href="/crear-factura"
+                    class="btn btn-primary d-flex align-items-center"
+                >
+                    <i class="bi bi-plus-lg me-1"></i> Nueva Factura
+                </a>
+            </div>
+        </div>
+        <!-- FILTROS -->
+        <div class="row mb-3 justify-content-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <button
+                        type="button"
+                        class="input-group-text btn btn-outline-secondary btnFiltro"
+                        data-for="filtroNumero"
+                    >
+                        <i class="bi bi-funnel iconoFiltro"></i>
+                    </button>
+                    <input
+                        type="text"
+                        id="filtroNumero"
+                        class="form-control"
+                        placeholder="Filtrar por número de factura"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive shadow-sm rounded-3">
+            <table
+                class="table table-striped table-hover align-middle table-bordered"
+            >
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col">Acciones</th>
+                        <th scope="col">Número</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">Fecha Emisión</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Tipo Pago</th>
+                        <th scope="col">Establecimiento</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="text-center">Cargando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div
+            id="paginacion"
+            class="d-flex justify-content-center align-items-center mt-3"
+        >
+        </div>
+    </section>
+</main>
+
+<div
+    class="modal fade"
+    id="confirmDeleteModal"
+    tabindex="-1"
+    aria-labelledby="confirmDeleteModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-danger border-3">
+            <div class="modal-header bg-danger text-white">
+                <h5
+                    class="modal-title d-flex align-items-center"
+                    id="confirmDeleteModalLabel"
+                >
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                    Confirmar anulación
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body text-center p-4">
+                <p class="lead text-dark">
+                    ¿Estás seguro que deseas anular esta factura?
+                </p>
+                <p class="text-muted small">
+                    La factura será marcada como anulada.
+                </p>
+            </div>
+
+            <div class="modal-footer justify-content-center">
+                <button
+                    type="button"
+                    class="btn btn-danger d-inline-flex align-items-center"
+                    id="confirmDeleteBtn"
+                >
+                    <i class="bi bi-check-circle-fill me-1"></i> Aceptar y Anular
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary d-inline-flex align-items-center"
+                    data-bs-dismiss="modal"
+                >
+                    <i class="bi bi-x-circle-fill me-1"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div
+    class="modal fade"
+    id="viewFacturaModal"
+    tabindex="-1"
+    aria-labelledby="viewFacturaModalLabel"
+    aria-hidden="true"
+>
+    <div
+        class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
+    >
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5
+                    class="modal-title d-flex align-items-center"
+                    id="viewFacturaModalLabel"
+                >
+                    <i class="bi bi-file-earmark-text-fill me-2 fs-4"></i>
+                    Detalles de Factura
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- Seccion Superior: Info Factura y Cliente -->
+                <div class="row g-4 mb-4">
+                    <!-- Info Factura -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div
+                                class="card-header bg-white border-bottom border-primary border-3"
+                            >
+                                <h6 class="mb-0 text-primary fw-bold">
+                                    Información de Factura
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Nº Factura:</span
+                                        >
+                                        <span
+                                            class="fw-bold text-dark"
+                                            id="modalFacNumero"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Fecha Emisión:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalFacFecha"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Estado:</span
+                                        >
+                                        <span id="modalFacEstado"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Punto Emisión:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalFacPuntoEmision"></span>
+                                    </li>
+                                    <!-- Se usa establecimiento del punto de emision -->
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Establecimiento:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalFacEstablecimiento"></span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info Cliente -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div
+                                class="card-header bg-white border-bottom border-success border-3"
+                            >
+                                <h6 class="mb-0 text-success fw-bold">
+                                    Información del Cliente
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Razón Social / Nombre:</span
+                                        >
+                                        <span
+                                            class="fw-bold text-dark text-end"
+                                            id="modalCliNombre"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Cédula / RUC:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalCliCedula"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Dirección:</span
+                                        >
+                                        <span
+                                            class="text-dark text-end"
+                                            id="modalCliDireccion"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Teléfono:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalCliTelefono"></span>
+                                    </li>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Email:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalCliEmail"></span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalles de Productos -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-dark text-white p-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-cart3 me-2"></i>Detalle de Productos
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table
+                                class="table table-striped table-hover mb-0 align-middle"
+                            >
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th scope="col" class="ps-4">Código</th>
+                                        <th scope="col">Descripción</th>
+                                        <th scope="col" class="text-center"
+                                            >Cant.</th
+                                        >
+                                        <th scope="col" class="text-end"
+                                            >P. Unitario</th
+                                        >
+                                        <th scope="col" class="text-center"
+                                            >IVA?</th
+                                        >
+                                        <th scope="col" class="text-end pe-4"
+                                            >Total</th
+                                        >
+                                    </tr>
+                                </thead>
+                                <tbody id="modalDetallesBody">
+                                    <!-- JS populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totales -->
+                <div class="row justify-content-end">
+                    <div class="col-md-5 col-lg-4">
+                        <div class="card shadow-sm border-0 bg-white">
+                            <div class="card-body p-0">
+                                <table
+                                    class="table table-borderless table-sm mb-0"
+                                >
+                                    <tbody>
+                                        <tr>
+                                            <td
+                                                class="text-end pe-3 fw-medium text-secondary py-2"
+                                                >Subtotal (0%):</td
+                                            >
+                                            <td
+                                                class="text-end pe-4 fw-bold py-2"
+                                                id="modalFacSubtotalSinIva"
+                                                >$0.00</td
+                                            >
+                                        </tr>
+                                        <tr>
+                                            <td
+                                                class="text-end pe-3 fw-medium text-secondary py-2"
+                                                >Subtotal (IVA):</td
+                                            >
+                                            <td
+                                                class="text-end pe-4 fw-bold py-2"
+                                                id="modalFacSubtotalConIva"
+                                                >$0.00</td
+                                            >
+                                        </tr>
+                                        <tr class="border-top">
+                                            <td
+                                                class="text-end pe-3 fw-medium text-secondary py-2"
+                                                >IVA Total:</td
+                                            >
+                                            <td
+                                                class="text-end pe-4 fw-bold py-2"
+                                                id="modalFacIva">$0.00</td
+                                            >
+                                        </tr>
+                                        <tr
+                                            class="bg-primary-subtle border-top border-primary"
+                                        >
+                                            <td
+                                                class="text-end pe-3 fw-bold text-primary py-3 fs-5"
+                                                >TOTAL PAGAR:</td
+                                            >
+                                            <td
+                                                class="text-end pe-4 fw-bold text-primary py-3 fs-5"
+                                                id="modalFacTotal">$0.00</td
+                                            >
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+              <!-- PDF -->
+            <div class="modal-footer bg-light border-top-0">
+                <button
+                    type="button"
+                    class="btn btn-success d-inline-flex align-items-center"
+                    id="downloadPdfBtn"
+                >
+                    <i class="bi bi-download me-1"></i> Generar PDF
+            </div>
+            <div class="modal-footer bg-light border-top-0">
+                <button
+                    type="button"
+                    class="btn btn-secondary px-4"
+                    data-bs-dismiss="modal"
+                >
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    import { initFacturas } from "../scripts/facturas";
+
+    // Astro ejecutará esto en el navegador
+    document.addEventListener("DOMContentLoaded", () => {
+        initFacturas();
+    });
+</script>
