@@ -59,14 +59,14 @@ import background from "../assets/background.svg";
                                 <label for="cliTelefono" class="form-label">Teléfono</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light"><i class="bi bi-phone"></i></span>
-                                    <input type="tel" class="form-control" id="cliTelefono" maxlength="15" required/>
+                                    <input type="tel" class="form-control" id="cliTelefono" maxlength="15" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label for="email" class="form-label">E-mail</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light"><i class="bi bi-envelope-fill"></i></span>
-                                    <input type="email" class="form-control" id="email" required/>
+                                    <input type="email" class="form-control" id="email" />
                                 </div>
                             </div>
                         </div>
@@ -75,7 +75,7 @@ import background from "../assets/background.svg";
                             <label for="cliDireccion" class="form-label">Dirección</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-geo-alt-fill"></i></span>
-                                <input type="text" class="form-control" id="cliDireccion" required />
+                                <input type="text" class="form-control" id="cliDireccion" />
                             </div>
                         </div>
 
@@ -120,24 +120,13 @@ import background from "../assets/background.svg";
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-danger border-3">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title d-flex align-items-center">
-                    <i class="bi bi-exclamation-octagon-fill me-2 fs-4"></i>
-                    Error de Actualización
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i>Atención</h5>
             </div>
-            <div class="modal-body p-4">
-                <div class="text-center mb-3">
-                    <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
-                </div>
-                <p class="text-dark fw-bold text-center">
-                    No se pudo actualizar el cliente:
-                </p>
-                <p id="errorModalMsg" class="text-muted small bg-light p-3 rounded border">
-                </p>
+            <div class="modal-body text-center p-4">
+                <p class="lead">Ocurrió un error inesperado.</p>
             </div>
-            <div class="modal-footer justify-content-center border-0">
-                <button type="button" class="btn btn-danger px-5" data-bs-dismiss="modal">Corregir Datos</button>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

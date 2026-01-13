@@ -82,6 +82,7 @@ import background from "../assets/background.svg";
                         <th scope="col">Total</th>
                         <th scope="col">Tipo Pago</th>
                         <th scope="col">Establecimiento</th>
+                        <th scope="col">Estado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,7 +100,59 @@ import background from "../assets/background.svg";
     </section>
 </main>
 
+<div
+    class="modal fade"
+    id="confirmDeleteModal"
+    tabindex="-1"
+    aria-labelledby="confirmDeleteModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-danger border-3">
+            <div class="modal-header bg-danger text-white">
+                <h5
+                    class="modal-title d-flex align-items-center"
+                    id="confirmDeleteModalLabel"
+                >
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                    Confirmar anulación
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
 
+            <div class="modal-body text-center p-4">
+                <p class="lead text-dark">
+                    ¿Estás seguro que deseas anular esta factura?
+                </p>
+                <p class="text-muted small">
+                    La factura será marcada como anulada.
+                </p>
+            </div>
+
+            <div class="modal-footer justify-content-center">
+                <button
+                    type="button"
+                    class="btn btn-danger d-inline-flex align-items-center"
+                    id="confirmDeleteBtn"
+                >
+                    <i class="bi bi-check-circle-fill me-1"></i> Aceptar y Anular
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary d-inline-flex align-items-center"
+                    data-bs-dismiss="modal"
+                >
+                    <i class="bi bi-x-circle-fill me-1"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div
     class="modal fade"
@@ -132,33 +185,63 @@ import background from "../assets/background.svg";
                     <!-- Info Factura -->
                     <div class="col-md-6">
                         <div class="card h-100 shadow-sm border-0">
-                            <div class="card-header bg-white border-bottom border-primary border-3">
+                            <div
+                                class="card-header bg-white border-bottom border-primary border-3"
+                            >
                                 <h6 class="mb-0 text-primary fw-bold">
                                     Información de Factura
                                 </h6>
                             </div>
                             <div class="card-body">
                                 <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-medium text-secondary">Nº Factura:</span>
-                                        <span class="fw-bold text-dark" id="modalFacNumero"></span>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Nº Factura:</span
+                                        >
+                                        <span
+                                            class="fw-bold text-dark"
+                                            id="modalFacNumero"></span>
                                     </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-medium text-secondary">Fecha Emisión:</span>
-                                        <span class="text-dark" id="modalFacFecha"></span>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Fecha Emisión:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalFacFecha"></span>
                                     </li>
-
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-medium text-secondary">Tipo de Pago:</span>
-                                        <span class="text-dark" id="modalFacTipoPago"></span>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Estado:</span
+                                        >
+                                        <span id="modalFacEstado"></span>
                                     </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-medium text-secondary">Punto Emisión:</span>
-                                        <span class="text-dark" id="modalFacPuntoEmision"></span>
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Punto Emisión:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalFacPuntoEmision"></span>
                                     </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-medium text-secondary">Establecimiento:</span>
-                                        <span class="text-dark" id="modalFacEstablecimiento"></span>
+                                    <!-- Se usa establecimiento del punto de emision -->
+                                    <li
+                                        class="list-group-item d-flex justify-content-between"
+                                    >
+                                        <span class="fw-medium text-secondary"
+                                            >Establecimiento:</span
+                                        >
+                                        <span
+                                            class="text-dark"
+                                            id="modalFacEstablecimiento"></span>
                                     </li>
                                 </ul>
                             </div>
