@@ -40,6 +40,13 @@ import background from "../assets/background.svg";
             </div>
 
             <div class="d-flex gap-2">
+                <button
+                    id="btnReporteGlobal"
+                    class="btn btn-dark d-flex align-items-center"
+                >
+                    <i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reporte
+                    Global
+                </button>
                 <a
                     href="/restablecer-clientes"
                     class="btn btn-outline-primary d-flex align-items-center"
@@ -322,6 +329,87 @@ import background from "../assets/background.svg";
                     id="modalBtnPdf"
                 >
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reporte Global (NUEVO) -->
+<div
+    class="modal fade"
+    id="reporteGlobalModal"
+    tabindex="-1"
+    aria-labelledby="reporteGlobalModalLabel"
+    aria-hidden="true"
+>
+    <div
+        class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
+    >
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-dark text-white">
+                <h5
+                    class="modal-title d-flex align-items-center"
+                    id="reporteGlobalModalLabel"
+                >
+                    <i class="bi bi-file-earmark-bar-graph-fill me-2 fs-4"></i>
+                    Vista Previa: Reporte General de Clientes
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div
+                    class="alert alert-info d-flex align-items-center"
+                    role="alert"
+                >
+                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                    <div>
+                        Este reporte incluye todos los clientes registrados y su
+                        actividad de facturación. Revise la lista antes de
+                        generar el PDF final.
+                    </div>
+                </div>
+
+                <div class="table-responsive rounded border">
+                    <table
+                        class="table table-striped table-hover mb-0 text-center align-middle"
+                    >
+                        <thead
+                            class="table-dark text-white small text-uppercase"
+                        >
+                            <tr>
+                                <th>Cédula</th>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Facturas (Cant.)</th>
+                                <th>Total Facturado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="globalReportBody">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Cerrar
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-success d-flex align-items-center px-4"
+                    id="btnDownloadGlobalPdf"
+                >
+                    <i class="bi bi-download me-2"></i> Descargar Reporte Completo
+                    (PDF)
                 </button>
             </div>
         </div>
