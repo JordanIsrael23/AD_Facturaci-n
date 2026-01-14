@@ -1,5 +1,6 @@
-
-// src/scripts/facturas.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Definimos la URL de la API
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
@@ -7,6 +8,7 @@ const API_URL = BASE_URL + "Facturas";
 const CLIENTES_URL = BASE_URL + "Clientes";
 const PUNTOS_URL = BASE_URL + "PuntoEmisions";
 const ESTABLECIMIENTOS_URL = BASE_URL + "Establecimientoes";
+const TIPOS_PAGO_URL = BASE_URL + "TipoPagoes";
 
 let facturaIdToDelete: string | null = null;
 let facturaNuevoEstado: boolean = false;
@@ -14,12 +16,14 @@ let facturasData: any[] = [];
 let hayFiltros = false;
 let paginaActual = 1;
 const registrosPorPagina = 10;
+let facturaActual: any = null;
 let facturasFiltradas: any[] = [];
 
 // Declaramos bootstrap para evitar errores de TS
 declare const bootstrap: any;
 
 export function initFacturas() {
+    checkAuth();
     loadFacturas();
     setupDeleteModal();
 
@@ -49,7 +53,6 @@ function limpiarFiltros() {
     });
 }
 
-const TIPOS_PAGO_URL = BASE_URL + "TipoPagoes";
 
 let allEstablecimientos: any[] = [];
 let allTiposPago: any[] = [];
@@ -62,13 +65,21 @@ async function loadFacturas() {
 
     try {
         // Cargar Facturas, Establecimientos y Tipos de Pago en paralelo
+        const headers = { headers: getAuthHeaders() };
+
         const [resFacturas, resEstab, resTipos] = await Promise.all([
-            fetch(API_URL),
-            fetch(ESTABLECIMIENTOS_URL),
-            fetch(TIPOS_PAGO_URL)
+            fetch(API_URL, headers),
+            fetch(ESTABLECIMIENTOS_URL, headers),
+            fetch(TIPOS_PAGO_URL, headers)
         ]);
 
-        if (!resFacturas.ok) throw new Error("Error cargando facturas");
+        if (!resFacturas.ok) {
+            if (resFacturas.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error cargando facturas");
+        }
 
         // Procesar Facturas
         const dataFacturas = await resFacturas.json();
@@ -230,7 +241,7 @@ function setupDeleteModal() {
         try {
             const response = await fetch(`${API_URL}/${facturaIdToDelete}/estado`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ estado: facturaNuevoEstado }),
             });
 
@@ -239,6 +250,8 @@ function setupDeleteModal() {
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
                 loadFacturas();
+            } else if (response.status === 401) {
+                window.location.href = '/login';
             }
         } catch (error) {
             alert("Error de conexión");
@@ -274,10 +287,15 @@ function attachDeleteListeners() {
             const modalTitle = document.getElementById("confirmDeleteModalLabel");
             if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${facturaNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
 
-            const confirmBtn = document.getElementById("confirmDeleteBtn");
-            confirmBtn?.classList.remove(`btn-${prevColorClass}`);
-            confirmBtn?.classList.add(`btn-${colorClass}`);
-            if (confirmBtn) confirmBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
+            const confirmBtn = document.getElementById("confirmDeleteModal .btn-danger");
+            // Nota: Aquí había un error en el script original seleccionando el botón.
+            // Arreglamos seleccionando por ID
+            const confirmBtnFixed = document.getElementById("confirmDeleteBtn");
+
+            if (confirmBtnFixed) {
+                confirmBtnFixed.className = `btn btn-${colorClass} d-inline-flex align-items-center`;
+                confirmBtnFixed.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
+            }
 
             const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
             if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} la factura <strong>${numero}</strong>?`;
@@ -344,13 +362,267 @@ function attachViewListeners() {
     });
 }
 
+function generarPDFFactura() {
+    if (!facturaActual) {
+        alert("No hay factura cargada");
+        return;
+    }
+
+    // ====== MOSTRAR MENSAJE DE "GENERANDO PDF..." ======
+    const loadingToast = document.createElement('div');
+    loadingToast.id = 'pdfLoadingToast';
+    loadingToast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
+    loadingToast.style.zIndex = '9999';
+    loadingToast.style.marginTop = '20px';
+    loadingToast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-primary text-white">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                <strong class="me-auto">Generando PDF</strong>
+            </div>
+            <div class="toast-body">
+                Por favor espere, generando documento...
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingToast);
+    
+    // Dar tiempo para que se vea el mensaje
+    setTimeout(() => {
+        const doc = new jsPDF();
+        const factura = facturaActual;
+        
+        const colorPrimario = [0, 123, 255];
+        const colorSecundario = [108, 117, 125];
+        const colorExito = [40, 167, 69];
+        
+        const pageWidth = doc.internal.pageSize.width;
+        const margin = 15;
+        let yPos = 20;
+
+        // ENCABEZADO
+        doc.setFillColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+        doc.rect(0, 0, pageWidth, 30, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('FACTURA', pageWidth / 2, 12, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        doc.text(formatInvoiceNumber(factura.facNumeroFactura), pageWidth / 2, 22, { align: 'center' });
+        
+        yPos = 40;
+
+        // SECCIÓN: INFORMACIÓN DE FACTURA Y CLIENTE (DOS COLUMNAS)
+        doc.setTextColor(0, 0, 0);
+        
+        // Columna Izquierda - Info Factura
+        const col1X = margin;
+        const col2X = pageWidth / 2 + 5;
+        const colWidth = (pageWidth / 2) - margin - 10;
+        
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+        doc.text('Información de Factura', col1X, yPos);
+        
+        yPos += 6;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        
+        const infoFactura = [
+            ['Nº Factura:', formatInvoiceNumber(factura.facNumeroFactura)],
+            ['Fecha:', factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"],
+            ['Estado:', factura.facEstadoFactura ? "Activa" : "Anulada"],
+            ['Punto Emisión:', factura?.puntoEmision?.pemDescripcion || "N/A"],
+            ['Establecimiento:', factura?.puntoEmision?.establecimiento?.estNombre || "N/A"]
+        ];
+        
+        let startYPos = yPos;
+        infoFactura.forEach(([label, value]) => {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+            doc.text(label, col1X, yPos);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0);
+            const textValue = doc.splitTextToSize(value, colWidth - 35);
+            doc.text(textValue, col1X + 32, yPos);
+            yPos += 5;
+        });
+        
+        // Columna Derecha - Info Cliente
+        yPos = startYPos - 6;
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(colorExito[0], colorExito[1], colorExito[2]);
+        doc.text('Información del Cliente', col2X, yPos);
+        
+        yPos += 6;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        
+        const cli = factura.cliente;
+        const infoCliente = [
+            ['Cliente:', cli?.cliNombre || factura.cliCedula],
+            ['Cédula/RUC:', cli?.cliCedula || factura.cliCedula],
+            ['Dirección:', cli?.cliDireccion || "N/A"],
+            ['Teléfono:', cli?.cliTelefono || "N/A"],
+            ['Email:', cli?.cliEmail || "N/A"]
+        ];
+        
+        infoCliente.forEach(([label, value]) => {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+            doc.text(label, col2X, yPos);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0);
+            const textValue = doc.splitTextToSize(value, colWidth - 28);
+            doc.text(textValue, col2X + 26, yPos);
+
+            // Espaciado normal
+            yPos += 5;
+
+            // Salto extra después de Cliente y Dirección
+            if (label === 'Cliente:' || label === 'Dirección:') {
+                yPos += 5;
+            }
+        });
+
+        yPos = Math.max(yPos, startYPos + 25) + 8;
+
+        // TABLA DE PRODUCTOS
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('Detalle de Productos', margin, yPos);
+        yPos += 3;
+
+        const detalles = factura.detallesFactura || [];
+        const tableData = detalles.map((d: any) => [
+            d.detCodigoProducto || "S/C",
+            d.detNombreProducto,
+            d.detCantidad.toString(),
+            `$${d.detPrecioUnitario.toFixed(2)}`,
+            d.detGrabaIva ? "Sí" : "No",
+            `$${d.detTotal.toFixed(2)}`
+        ]);
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Código', 'Descripción', 'Cant.', 'P. Unit.', 'IVA', 'Total']],
+            body: tableData,
+            theme: 'striped',
+            margin: { left: margin, right: margin },
+            headStyles: { 
+                fillColor: [colorSecundario[0], colorSecundario[1], colorSecundario[2]],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9
+            },
+            styles: { 
+                fontSize: 8,
+                cellPadding: 2
+            },
+            columnStyles: {
+                0: { cellWidth: 22 },
+                1: { cellWidth: 'auto' },
+                2: { halign: 'center', cellWidth: 15 },
+                3: { halign: 'right', cellWidth: 23 },
+                4: { halign: 'center', cellWidth: 12 },
+                5: { halign: 'right', cellWidth: 23 }
+            }
+        });
+
+        // TOTALES
+        const finalY = (doc as any).lastAutoTable.finalY + 8;
+        
+        const totales = [
+            ['Subtotal (0%):', `$${factura.facSubtotalSinIva.toFixed(2)}`],
+            ['Subtotal (IVA):', `$${factura.facSubtotalConIva.toFixed(2)}`],
+            ['IVA Total:', `$${factura.facIva.toFixed(2)}`]
+        ];
+
+        let totalY = finalY;
+        doc.setFontSize(9);
+        
+        const totalesX = pageWidth - margin - 50;
+        
+        totales.forEach(([label, value]) => {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+            doc.text(label, totalesX, totalY, { align: 'right' });
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text(value, pageWidth - margin, totalY, { align: 'right' });
+            totalY += 6;
+        });
+
+        // TOTAL GENERAL
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
+        doc.text('TOTAL:', totalesX, totalY, { align: 'right' });
+        doc.text(`$${factura.facTotal.toFixed(2)}`, pageWidth - margin, totalY, { align: 'right' });
+
+        // PIE DE PÁGINA
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(7);
+        doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
+        doc.setFont('helvetica', 'italic');
+        doc.text(
+            `Documento generado el ${new Date().toLocaleDateString('es-ES')}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+        );
+
+        const nombreArchivo = `Factura_${formatInvoiceNumber(factura.facNumeroFactura).replace(/\//g, '-')}.pdf`;
+        doc.save(nombreArchivo);
+
+        // ====== REMOVER MENSAJE DE CARGA ======
+        const toast = document.getElementById('pdfLoadingToast');
+        if (toast) toast.remove();
+        
+        // ====== MOSTRAR MENSAJE DE ÉXITO ======
+        const successToast = document.createElement('div');
+        successToast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
+        successToast.style.zIndex = '9999';
+        successToast.style.marginTop = '20px';
+        successToast.innerHTML = `
+            <div class="toast show" role="alert">
+                <div class="toast-header bg-success text-white">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <strong class="me-auto">PDF Generado</strong>
+                    <button type="button" class="btn-close btn-close-white" onclick="this.closest('.position-fixed').remove()"></button>
+                </div>
+                <div class="toast-body">
+                    El PDF fue generado correctamente. Seleccione dónde desea guardarlo.
+                </div>
+            </div>
+        `;
+        document.body.appendChild(successToast);
+        
+        // Cerrar automáticamente después de 4 segundos
+        setTimeout(() => {
+            if (successToast.parentNode) {
+                successToast.remove();
+            }
+        }, 10000);
+    }, 1000); // Tiempo para que se vea el mensaje de carga
+}
 async function showFacturaDetails(numeroFactura: string) {
     let factura = facturasData.find(f => f.facNumeroFactura === numeroFactura);
 
-    // 1. Obtener factura base si no tiene detalles
     if (!factura || !factura.detallesFactura) {
         try {
-            const response = await fetch(`${API_URL}/${numeroFactura}`);
+            const response = await fetch(`${API_URL}/${numeroFactura}`, { headers: getAuthHeaders() });
             if (response.ok) {
                 factura = await response.json();
             }
@@ -364,45 +636,39 @@ async function showFacturaDetails(numeroFactura: string) {
         return;
     }
 
-    // 2. Cargar Cliente si falta
     if (!factura.cliente && factura.cliCedula) {
         try {
-            const res = await fetch(`${CLIENTES_URL}/${factura.cliCedula}`);
+            const res = await fetch(`${CLIENTES_URL}/${factura.cliCedula}`, { headers: getAuthHeaders() });
             if (res.ok) factura.cliente = await res.json();
         } catch (e) { console.warn("No se pudo cargar cliente extra", e); }
     }
 
-    // 3. Cargar Punto Emision si falta
     if (!factura.puntoEmision && factura.pemId) {
         try {
-            const res = await fetch(`${PUNTOS_URL}/${factura.pemId}`);
+            const res = await fetch(`${PUNTOS_URL}/${factura.pemId}`, { headers: getAuthHeaders() });
             if (res.ok) factura.puntoEmision = await res.json();
         } catch (e) { console.warn("No se pudo cargar punto extra", e); }
     }
 
-    // 4. Cargar Establecimiento si falta (desde Punto de Emision)
     if (factura.puntoEmision && !factura.puntoEmision.establecimiento && factura.puntoEmision.estRuc) {
         try {
-            const res = await fetch(`${ESTABLECIMIENTOS_URL}/${factura.puntoEmision.estRuc}`);
+            const res = await fetch(`${ESTABLECIMIENTOS_URL}/${factura.puntoEmision.estRuc}`, { headers: getAuthHeaders() });
             if (res.ok) {
                 factura.puntoEmision.establecimiento = await res.json();
             }
         } catch (e) { console.warn("No se pudo cargar establecimiento extra", e); }
     }
 
-    // Poblar modal
     const setText = (id: string, text: string) => {
         const el = document.getElementById(id);
         if (el) el.innerText = text;
     }
 
-    // Info Factura
     setText("modalFacNumero", factura.facNumeroFactura);
     setText("modalFacFecha", factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A");
     setText("modalFacTipoPago", getTipoPagoInfo(factura));
     setText("modalFacPuntoEmision", factura?.puntoEmision?.pemDescripcion || "N/A");
 
-    // Establecimiento
     const estNombre = factura?.puntoEmision?.establecimiento?.estNombre || "N/A";
     setText("modalFacEstablecimiento", estNombre);
 
@@ -413,7 +679,6 @@ async function showFacturaDetails(numeroFactura: string) {
         </span>`;
     }
 
-    // Info Cliente
     const cli = factura.cliente;
     setText("modalCliNombre", cli?.cliNombre || factura.cliCedula);
     setText("modalCliCedula", cli?.cliCedula || factura.cliCedula);
@@ -421,7 +686,6 @@ async function showFacturaDetails(numeroFactura: string) {
     setText("modalCliTelefono", cli?.cliTelefono || "N/A");
     setText("modalCliEmail", cli?.cliEmail || "N/A");
 
-    // Detalles
     const tbody = document.getElementById("modalDetallesBody");
     if (tbody) {
         const detalles = factura.detallesFactura || [];
@@ -447,13 +711,22 @@ async function showFacturaDetails(numeroFactura: string) {
         }
     }
 
-    // Totales
     setText("modalFacSubtotalSinIva", `$${factura.facSubtotalSinIva.toFixed(2)}`);
     setText("modalFacSubtotalConIva", `$${factura.facSubtotalConIva.toFixed(2)}`);
     setText("modalFacIva", `$${factura.facIva.toFixed(2)}`);
     setText("modalFacTotal", `$${factura.facTotal.toFixed(2)}`);
 
-    // Mostrar Modal
+    // AGREGAR ESTO NUEVO AQUÍ
+    facturaActual = factura;
+    
+    const downloadBtn = document.getElementById("downloadPdfBtn");
+    if (downloadBtn) {
+        const newBtn = downloadBtn.cloneNode(true) as HTMLElement;
+        downloadBtn.parentNode?.replaceChild(newBtn, downloadBtn);
+        newBtn.addEventListener("click", generarPDFFactura);
+    }
+    // FIN DE LO NUEVO
+
     const modalEl = document.getElementById("viewFacturaModal");
     if (modalEl) {
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);

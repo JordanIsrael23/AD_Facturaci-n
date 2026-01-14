@@ -1,0 +1,214 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout>
+    <div class="login-wrapper">
+        <div
+            class="container d-flex align-items-center justify-content-center min-vh-100"
+        >
+            <div class="card login-card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-5">
+                        <div class="icon-circle mb-3 mx-auto">
+                            <i
+                                class="bi bi-person-lock text-white"
+                                style="font-size: 2rem;"></i>
+                        </div>
+                        <h2 class="fw-bold text-dark">Bienvenido</h2>
+                        <p class="text-muted small">
+                            Sistema de Gestión y Facturación
+                        </p>
+                    </div>
+
+                    <div
+                        id="loginErrorAlert"
+                        class="alert alert-danger d-none p-2 text-center small rounded-3"
+                        role="alert"
+                    >
+                    </div>
+                    <div
+                        id="loginSuccessAlert"
+                        class="alert alert-success d-none p-2 text-center small rounded-3"
+                        role="alert"
+                    >
+                    </div>
+
+                    <form
+                        id="loginForm"
+                        class="mt-4 needs-validation"
+                        novalidate
+                    >
+                        <!-- Email / Username Input -->
+                        <div class="mb-4 position-relative">
+                            <label
+                                for="email"
+                                class="form-label text-secondary small fw-bold ms-1"
+                                >USUARIO / EMAIL</label
+                            >
+                            <div class="input-group">
+                                <span
+                                    class="input-group-text bg-light border-end-0 rounded-start-3 ps-3"
+                                    ><i class="bi bi-envelope text-primary"
+                                    ></i></span
+                                >
+                                <input
+                                    type="text"
+                                    class="form-control bg-light border-start-0 py-2 rounded-end-3"
+                                    id="email"
+                                    placeholder="usuario@utn.edu.ec"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div class="mb-4 position-relative">
+                            <label
+                                for="password"
+                                class="form-label text-secondary small fw-bold ms-1"
+                                >CONTRASEÑA</label
+                            >
+                            <div class="input-group">
+                                <span
+                                    class="input-group-text bg-light border-end-0 rounded-start-3 ps-3"
+                                    ><i class="bi bi-key text-primary"
+                                    ></i></span
+                                >
+                                <input
+                                    type="password"
+                                    class="form-control bg-light border-start-0 py-2 rounded-end-3"
+                                    id="password"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-5">
+                            <button
+                                type="submit"
+                                id="btnSubmit"
+                                class="btn btn-primary py-3 fw-bold text-uppercase shadow-hover rounded-3"
+                            >
+                                Ingresar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-white border-0 text-center py-3">
+                    <small class="text-muted opacity-75"
+                        >Universidad Técnica del Norte &copy; 2026</small
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    import { initLogin } from "../scripts/login";
+    document.addEventListener("DOMContentLoaded", () => {
+        initLogin();
+    });
+</script>
+
+<style>
+    /* Premium Background with Glass effect vibes */
+    .login-wrapper {
+        background: linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #4e54c8);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        min-height: 100vh;
+    }
+
+    @keyframes gradientBG {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 1.5rem;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+    .login-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .icon-circle {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
+    }
+
+    /* Form Controls */
+    .input-group-text {
+        font-size: 1.1rem;
+    }
+
+    .form-control:focus {
+        box-shadow: none;
+        background-color: #fff !important;
+        border-color: #4e54c8;
+    }
+
+    .input-group:focus-within .input-group-text {
+        background-color: #fff !important;
+        border-color: #4e54c8;
+    }
+
+    .input-group:focus-within .form-control {
+        background-color: #fff !important;
+    }
+
+    /* Button Styling */
+    .btn-primary {
+        background: linear-gradient(90deg, #4e54c8 0%, #8f94fb 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(90deg, #3f44a5 0%, #767bd8 100%);
+        box-shadow: 0 8px 20px rgba(78, 84, 200, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 10px rgba(78, 84, 200, 0.3);
+    }
+
+    /* Alerts */
+    .alert {
+        font-weight: 500;
+        border: none;
+    }
+    .alert-danger {
+        background-color: #ffe6e6;
+        color: #d63031;
+    }
+    .alert-success {
+        background-color: #e6fffa;
+        color: #00b894;
+    }
+</style>

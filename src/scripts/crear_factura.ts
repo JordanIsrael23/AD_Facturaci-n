@@ -1,3 +1,8 @@
+// src/scripts/crear_factura.ts
+
+// --- 1. INTEGRACIÓN: Imports de autenticación que faltaban ---
+import { getAuthHeaders, checkAuth } from "./auth"; 
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const API_URL_INVENTORY = import.meta.env.PUBLIC_EXTERNAL_INVENTORY_URL;
 
@@ -44,6 +49,9 @@ const registrosPorPaginaProd = 5;
 let productoSeleccionadoTemp: ProductoExterno | null = null;
 
 export async function initCrearFactura() {
+    // --- 2. INTEGRACIÓN: Chequeo de seguridad al iniciar ---
+    checkAuth(); 
+
     console.log("Iniciando sistema...");
     const dateInput = document.getElementById("facFechaVisual") as HTMLInputElement;
     if (dateInput) {
@@ -70,8 +78,6 @@ function setupListeners() {
         filtrarPuntosEmision((e.target as HTMLSelectElement).value);
     });
 
-    // NUEVO: Listener para Tipo de Pago
-    // Si cambia el tipo de pago, limpiamos el cliente para obligar a re-seleccionar con los nuevos filtros
     const tipoPagoSelect = document.getElementById("tipIdTipop");
     tipoPagoSelect?.addEventListener("change", () => {
         limpiarCamposCliente();
@@ -94,22 +100,14 @@ function setupListeners() {
     });
 }
 
-// =========================================================
-// NUEVA FUNCIÓN PARA LIMPIAR CLIENTE
-// =========================================================
 function limpiarCamposCliente() {
-    // Limpiar input hidden (el importante)
     (document.getElementById("cliCedula") as HTMLInputElement).value = "";
-    
-    // Limpiar visuales
     (document.getElementById("cliCedulaVisual") as HTMLInputElement).value = "";
     (document.getElementById("cliNombreVisual") as HTMLInputElement).value = "";
     (document.getElementById("cliTipoVisual") as HTMLInputElement).value = "";
     (document.getElementById("cliDireccionVisual") as HTMLInputElement).value = "";
     (document.getElementById("cliTelefonoVisual") as HTMLInputElement).value = "";
     (document.getElementById("cliEmailVisual") as HTMLInputElement).value = "";
-
-    // Resetear variables temporales
     clienteSeleccionadoTemp = null;
 }
 
@@ -128,7 +126,7 @@ function verificarEstadoBotonEmitir() {
 }
 
 // =========================================================
-// LÓGICA DEL MODAL DE PRODUCTOS
+// LÓGICA DEL MODAL DE PRODUCTOS (TU LÓGICA CONSERVADA)
 // =========================================================
 
 function setupModalProductos() {
@@ -241,7 +239,7 @@ function renderTablaProductosModal() {
 }
 
 // =========================================================
-// LÓGICA DEL MODAL DE CLIENTES
+// LÓGICA DEL MODAL DE CLIENTES (TU LÓGICA CONSERVADA)
 // =========================================================
 
 function setupModalClientes() {
@@ -256,27 +254,17 @@ function setupModalClientes() {
         const cedula = inputFiltroCedula?.value.toLowerCase() || "";
         const nombre = inputFiltroNombre?.value.toLowerCase() || "";
         
-        // OBTENEMOS EL TIPO DE PAGO SELECCIONADO
         const tipoPagoSelect = document.getElementById("tipIdTipop") as HTMLSelectElement;
         const tipoPagoId = tipoPagoSelect?.value; 
 
         clientesFiltrados = allClientes.filter(c => {
-            // 1. Filtro Básico: Estado Activo
             if (c.cliEstado === false) return false;
-
-            // 2. Filtro de Texto (Cédula y Nombre)
             const coincideTexto = String(c.cliCedula).toLowerCase().includes(cedula) && 
                                   c.cliNombre.toLowerCase().includes(nombre);
-            
             if (!coincideTexto) return false;
-
-            // 3. FILTRO POR TIPO DE PAGO (Lógica Solicitada)
-            // Si el pago es Crédito (ID "2"), el cliente DEBE ser de crédito (ID 2)
-            if (tipoPagoId === "2") { // Asumimos que "2" es el value del select para Crédito
+            if (tipoPagoId === "2") { 
                 return c.ticIdTipoc === 2;
             }
-            
-            // Si es Contado (ID "1") u otro, mostramos TODOS (se retorna true si pasó el filtro de texto)
             return true;
         });
 
@@ -300,17 +288,11 @@ function setupModalClientes() {
     btnBuscar?.addEventListener("click", () => {
         const modalEl = document.getElementById("modalBuscarCliente");
         if (modalEl) {
-            // Al abrir el modal, aplicamos los filtros iniciales
-            // Esto es importante porque si ya está seleccionado "Crédito",
-            // la lista debe nacer filtrada.
             inputFiltroCedula.value = ""; 
             inputFiltroNombre.value = "";
             actualizarIconoModal("filtroModalCedula", false); 
             actualizarIconoModal("filtroModalNombre", false);
-            
-            // Forzamos el filtrado inicial para respetar la regla de pago
             aplicarFiltros(); 
-            
             clienteSeleccionadoTemp = null;
             if (btnAceptar) (btnAceptar as HTMLButtonElement).disabled = true;
             new bootstrap.Modal(modalEl).show();
@@ -372,14 +354,27 @@ function llenarDatosCliente(cliente: any) {
 }
 
 // =========================================================
-// CARGA DE DATOS Y TABLA DETALLES
+// CARGA DE DATOS (CON INTEGRACIÓN DE HEADERS)
 // =========================================================
 
 async function loadSelects() {
-    const fetchApi = async (url: string) => { try { const r = await fetch(url); return r.ok ? await r.json() : []; } catch { return []; } };
+    // --- 3. INTEGRACIÓN: Modifiqué fetchApi para aceptar/usar headers de seguridad ---
+    // Si isInternal es true, añade el token. Si es false (external), no lo añade.
+    const fetchApi = async (url: string, isInternal: boolean) => { 
+        try { 
+            const opts = isInternal ? { headers: getAuthHeaders() } : {};
+            const r = await fetch(url, opts); 
+            return r.ok ? await r.json() : []; 
+        } catch { return []; } 
+    };
     
+    // Aquí marcamos como TRUE las APIs internas y FALSE la externa (Inventory)
     const [clientesData, estData, puntosData, tiposData, prodData] = await Promise.all([
-        fetchApi(CLIENTES_URL), fetchApi(ESTABLECIMIENTOS_URL), fetchApi(PUNTOS_URL), fetchApi(TIPOS_PAGO_URL), fetchApi(PRODUCTOS_EXTERNAL_URL)
+        fetchApi(CLIENTES_URL, true),       // Auth
+        fetchApi(ESTABLECIMIENTOS_URL, true), // Auth
+        fetchApi(PUNTOS_URL, true),         // Auth
+        fetchApi(TIPOS_PAGO_URL, true),     // Auth
+        fetchApi(PRODUCTOS_EXTERNAL_URL, false) // Sin Auth (Pública)
     ]);
 
     allClientes = Array.isArray(clientesData) ? clientesData : (clientesData.data || []);
@@ -542,17 +537,44 @@ async function handleSubmit(e: Event) {
     };
 
     try {
-        const res = await fetch(FACTURAS_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(factura) });
-        if (res.ok) {
-            const data = await res.json();
+        // --- 4. INTEGRACIÓN: Añadido Headers de Auth al envío de Factura ---
+        const response = await fetch(FACTURAS_URL, { 
+            method: "POST", 
+            headers: { 
+                "Content-Type": "application/json",
+                ...getAuthHeaders() // Importante: Token añadido aquí
+            }, 
+            body: JSON.stringify(factura) 
+        });
+
+        if (response.ok) {
+            const data = await response.json();
             const modal = new bootstrap.Modal(document.getElementById('successModal'));
             (document.getElementById('mensajeExitoId') as HTMLElement).innerText = `Factura ${data.facNumeroFactura || ""} generada.`;
             modal.show();
             document.getElementById('btnOkSuccess')?.addEventListener('click', () => window.location.href = "/facturas");
         } else {
-            mostrarErrorEnModal("Error al guardar la factura.");
+            // --- 5. INTEGRACIÓN: Manejo de errores detallado de la otra rama ---
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            let msg = "Error al crear factura";
+            const rawText = await response.text();
+            try {
+                const errData = JSON.parse(rawText);
+                msg = errData.detail || errData.message || JSON.stringify(errData);
+                if (errData.errors) msg += ": " + JSON.stringify(errData.errors);
+            } catch (e) {
+                if (rawText) msg = rawText;
+            }
+            mostrarErrorEnModal(msg);
         }
-    } catch { mostrarErrorEnModal("Error de conexión."); }
+    } catch (error) { 
+        console.error("Error de red:", error);
+        mostrarErrorEnModal("Error de conexión con el servidor."); 
+    }
 }
 
 function mostrarErrorEnModal(msg: string) {

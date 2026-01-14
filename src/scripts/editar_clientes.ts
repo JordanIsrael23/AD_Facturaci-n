@@ -1,8 +1,16 @@
+// src/scripts/editar-cliente.ts
+
+// --- 1. INTEGRACIÓN: Imports de autenticación ---
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
 declare const bootstrap: any;
 
 export async function initEditarCliente() {
+    // --- 2. INTEGRACIÓN: Verificar sesión al entrar ---
+    checkAuth();
+
     const params = new URLSearchParams(window.location.search);
     const cedula = params.get("id");
     const form = document.querySelector("form") as HTMLFormElement;
@@ -14,12 +22,22 @@ export async function initEditarCliente() {
 
     // 1. Cargar datos del cliente al iniciar
     try {
-        const response = await fetch(`${API_URL}/${cedula}`);
+        // --- 3. INTEGRACIÓN: Añadido headers con token ---
+        const response = await fetch(`${API_URL}/${cedula}`, {
+            headers: getAuthHeaders() 
+        });
+
+        // --- 4. INTEGRACIÓN: Manejo de sesión expirada ---
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+
         if (!response.ok) throw new Error("Cliente no encontrado");
 
         const data = await response.json();
 
-        // Mapear datos a los inputs
+        // Mapear datos a los inputs (TU LÓGICA CONSERVADA)
         const setVal = (id: string, val: any) => {
             const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
             if (el) el.value = val || "";
@@ -35,7 +53,7 @@ export async function initEditarCliente() {
         
         setVal("tipoCliente", data.ticIdTipoc);
         setVal("cliTelefono", data.cliTelefono);
-        setVal("email", data.cliEmail); // Aseguramos que se cargue el email
+        setVal("email", data.cliEmail); 
         setVal("cliDireccion", data.cliDireccion);
 
     } catch (error) {
@@ -47,7 +65,7 @@ export async function initEditarCliente() {
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        // Función auxiliar para obtener valor o null (igual que en crear)
+        // TU LÓGICA CONSERVADA
         const getValue = (id: string) => {
             const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
             const val = el?.value.trim();
@@ -61,14 +79,18 @@ export async function initEditarCliente() {
             ticIdTipoc: parseInt(getValue("tipoCliente") || "0"),
             cliDireccion: getValue("cliDireccion"),
             cliTelefono: getValue("cliTelefono"),
-            cliEmail: getValue("email"), // Aquí enviamos el email igual que en crear
-            cliEstado: true // Asumimos que al editar se mantiene activo, o podrías agregar un checkbox si quisieras
+            cliEmail: getValue("email"),
+            cliEstado: true 
         };
 
         try {
             const response = await fetch(`${API_URL}/${cedula}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                // --- 5. INTEGRACIÓN: Headers combinados (JSON + Token) ---
+                headers: { 
+                    "Content-Type": "application/json",
+                    ...getAuthHeaders() 
+                },
                 body: JSON.stringify(cliente),
             });
 
@@ -84,18 +106,21 @@ export async function initEditarCliente() {
                     });
                 }
             } else {
-                // ERROR DETALLADO (Lógica copiada de crear-cliente.ts)
+                // --- 6. INTEGRACIÓN: Manejo de sesión expirada en el submit ---
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                // ERROR DETALLADO (TU LÓGICA CONSERVADA)
                 let mensajeParaMostrar = "Ocurrió un error al actualizar el cliente.";
 
-                // Intentamos determinar si la respuesta es JSON
                 const contentType = response.headers.get("content-type");
                 
                 if (contentType && contentType.includes("application/json")) {
                     const errorData = await response.json();
-                    // Extraemos el mensaje según formato estándar .NET
                     mensajeParaMostrar = errorData.detail || errorData.title || errorData.message || JSON.stringify(errorData);
                 } else {
-                    // Si es texto plano (ej. errores de SQL directos)
                     const errorRaw = await response.text();
                     mensajeParaMostrar = errorRaw.includes("Error:") 
                         ? errorRaw.split("Error:")[1].split("at ")[0] 
@@ -111,7 +136,7 @@ export async function initEditarCliente() {
     });
 }
 
-// Función auxiliar unificada para mostrar el error en el modal
+// TU LÓGICA DE MODAL CONSERVADA
 function mostrarErrorEnModal(mensaje: string) {
     const msgElement = document.getElementById("errorModalMsg");
     if (msgElement) {

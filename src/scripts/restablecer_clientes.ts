@@ -1,3 +1,7 @@
+
+// src/scripts/restablecer_clientes.ts
+import { getAuthHeaders, checkAuth } from "./auth";
+
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
 let clientesInactivos: any[] = [];
@@ -9,6 +13,7 @@ let clientesFiltrados: any[] = [];
 declare const bootstrap: any;
 
 export function initRestablecer() {
+    checkAuth();
     loadInactiveClients();
     setupSelectAll();
     setupRestoreAction();
@@ -37,8 +42,16 @@ async function loadInactiveClients() {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center p-4">Cargando clientes inactivos...</td></tr>';
 
     try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error("Error al cargar clientes");
+        const response = await fetch(API_URL, {
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error("Error al cargar clientes");
+        }
 
         const data = await response.json();
         clientesInactivos = (data || []).filter((c: any) => c.cliEstado === false);
@@ -118,7 +131,7 @@ function setupRestoreAction() {
     // PASO 1: Al hacer click en el botón principal de la página
     btnRestablecerMain?.addEventListener("click", () => {
         const checkboxesChecked = document.querySelectorAll(".client-checkbox:checked");
-        
+
         if (checkboxesChecked.length === 0) {
             // No hay nada seleccionado: Mostrar advertencia directamente
             const warningModal = new bootstrap.Modal(document.getElementById("warningSelectModal"));
@@ -139,7 +152,7 @@ function setupRestoreAction() {
             const promises = ids.map((id) =>
                 fetch(`${API_URL}/${id}/estado`, {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ estado: true }),
                 })
             );
@@ -158,9 +171,12 @@ function setupRestoreAction() {
             // Refrescar tabla
             (document.getElementById("selectAll") as HTMLInputElement).checked = false;
             loadInactiveClients();
-            
+
         } catch (error) {
             console.error("Error al restablecer:", error);
+            if ((error as any).status === 401) {
+                window.location.href = '/login';
+            }
         }
     });
 }
