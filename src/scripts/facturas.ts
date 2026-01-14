@@ -83,7 +83,16 @@ async function loadFacturas() {
 
         // Procesar Facturas
         const dataFacturas = await resFacturas.json();
-        facturasData = Array.isArray(dataFacturas) ? dataFacturas : (dataFacturas.data || []);
+        let datosSinOrdenar = Array.isArray(dataFacturas) ? dataFacturas : (dataFacturas.data || []);
+
+        // Ordenamos descendentemente (la factura con número más alto/reciente va primero)
+        facturasData = datosSinOrdenar.sort((a: any, b: any) => {
+            // Asumimos que facNumeroFactura es un string. localeCompare hace la comparación alfabética/numérica inversa.
+            // Si tuvieras un campo numérico 'id' autoincremental, podrías usar: return b.id - a.id;
+            const numA = a.facNumeroFactura || "";
+            const numB = b.facNumeroFactura || "";
+            return numB.localeCompare(numA); 
+        });
 
         // Procesar Establecimientos
         if (resEstab.ok) {
