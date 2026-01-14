@@ -424,6 +424,12 @@ async function generarPDFCliente(cedula: string) {
 
 let allClientsCache: any[] = [];
 let allInvoicesCache: any[] = [];
+let filteredGlobalClients: any[] = []; // Estado de filtros
+let globalFilters = {
+    showContado: true,
+    showCredito: true,
+    estado: ""
+};
 
 async function openReporteGlobal() {
     // Show Loading in Modal Table
@@ -431,46 +437,165 @@ async function openReporteGlobal() {
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 
+    setupGlobalReportFiltersListeners(); // Ensure listeners are attached
+
     const tbody = document.getElementById("globalReportBody");
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border text-primary" role="status"></div><br>Cargando datos globales...</td></tr>';
 
     try {
-        // Fetch all needed data
-        // 1. Clientes (already loaded in variable `clientesData` but good to ensure freshness or use local)
-        const clients = clientesData.length > 0 ? clientesData : (await (await fetch(API_URL, { headers: getAuthHeaders() })).json());
-        const invoicesRes = await fetch(FACTURAS_URL, { headers: getAuthHeaders() });
-        const invoices = invoicesRes.ok ? await invoicesRes.json() : [];
-        const invoicesList = Array.isArray(invoices) ? invoices : (invoices.data || []);
+        let clients = [];
+        // 1. Fetch Clients if not cached
+        if (clientesData.length > 0) {
+            clients = clientesData;
+        } else {
+            console.log("Fetching clients for global report...");
+            const resClients = await fetch(API_URL, { headers: getAuthHeaders() });
+            if (!resClients.ok) {
+                if (resClients.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                throw new Error(`Error fetching clients: ${resClients.status}`);
+            }
+            const dataClients = await resClients.json();
+            clients = Array.isArray(dataClients) ? dataClients : (dataClients.data || []);
+        }
+
+        // 2. Fetch Invoices
+        console.log("Fetching invoices for global report...");
+        const resInvoices = await fetch(FACTURAS_URL, { headers: getAuthHeaders() });
+        let invoicesList = [];
+
+        if (resInvoices.ok) {
+            const dataInvoices = await resInvoices.json();
+            invoicesList = Array.isArray(dataInvoices) ? dataInvoices : (dataInvoices.data || []);
+        } else {
+            if (resInvoices.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            console.error(`Error fetching invoices: ${resInvoices.status}`);
+        }
 
         allClientsCache = Array.isArray(clients) ? clients : (clients.data || []);
+        // Ordenar alfabéticamente por nombre
+        allClientsCache.sort((a, b) => a.cliNombre.localeCompare(b.cliNombre));
+
         allInvoicesCache = invoicesList;
 
-        // Populate Table Review
-        tbody.innerHTML = allClientsCache.map(client => {
-            const clientInvoices = allInvoicesCache.filter((f: any) => f.cliCedula === client.cliCedula || f.cliente?.cliCedula === client.cliCedula);
-            const total = clientInvoices.filter((f: any) => f.facEstadoFactura).reduce((sum: number, f: any) => sum + f.facTotal, 0);
-
-            return `
-                <tr>
-                    <td class="font-monospace">${client.cliCedula}</td>
-                    <td class="text-start">${client.cliNombre}</td>
-                    <td><span class="badge bg-secondary">${client.tipoCliente?.ticDescripcion || "Estándar"}</span></td>
-                    <td>${clientInvoices.length}</td>
-                    <td class="fw-bold">$${total.toFixed(2)}</td>
-                </tr>
-            `;
-        }).join("");
+        // Reset filtros on open
+        resetGlobalFilters();
+        // Inicialmente filtered using default checkbox state (both checked)
+        applyGlobalFilters();
 
     } catch (e) {
         console.error("Error loading global report data", e);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error cargando datos. Intente nuevamente.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error cargando datos. Ver consola para más detalles.</td></tr>`;
     }
 }
 
+function setupGlobalReportFiltersListeners() {
+    const ids = ["globalFiltroEstado"];
+    const checks = ["checkTipoContado", "checkTipoCredito"];
+
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.listenerAttached) {
+            el.addEventListener("change", applyGlobalFilters);
+            el.dataset.listenerAttached = "true";
+        }
+    });
+
+    checks.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.listenerAttached) {
+            el.addEventListener("change", applyGlobalFilters);
+            el.dataset.listenerAttached = "true";
+        }
+    });
+
+    const btnClear = document.getElementById("btnLimpiarFiltrosGlobal");
+    if (btnClear && !btnClear.dataset.listenerAttached) {
+        btnClear.addEventListener("click", () => {
+            resetGlobalFilters();
+            applyGlobalFilters();
+        });
+        btnClear.dataset.listenerAttached = "true";
+    }
+}
+
+function resetGlobalFilters() {
+    globalFilters = { showContado: true, showCredito: true, estado: "" };
+
+    const checkContado = document.getElementById("checkTipoContado") as HTMLInputElement;
+    if (checkContado) checkContado.checked = true;
+
+    const checkCredito = document.getElementById("checkTipoCredito") as HTMLInputElement;
+    if (checkCredito) checkCredito.checked = true;
+
+    (document.getElementById("globalFiltroEstado") as HTMLSelectElement).value = "";
+
+    // logic will be applied by applyGlobalFilters called after reset
+}
+
+function applyGlobalFilters() {
+    const checkContado = document.getElementById("checkTipoContado") as HTMLInputElement;
+    const checkCredito = document.getElementById("checkTipoCredito") as HTMLInputElement;
+
+    globalFilters.showContado = checkContado ? checkContado.checked : true;
+    globalFilters.showCredito = checkCredito ? checkCredito.checked : true;
+    globalFilters.estado = (document.getElementById("globalFiltroEstado") as HTMLSelectElement).value;
+
+    filteredGlobalClients = allClientsCache.filter(c => {
+        // Filtro Tipo
+        // ticIdTipoc: 1=Contado, 2=Crédito
+        let validTipo = false;
+        if (c.ticIdTipoc === 1 && globalFilters.showContado) validTipo = true;
+        if (c.ticIdTipoc === 2 && globalFilters.showCredito) validTipo = true;
+        // Fallback for null type? Usually assume standards, but let's be strict to checkboxes
+        if (!c.ticIdTipoc && globalFilters.showContado) validTipo = true; // Default behavior if needed
+
+        // Filtro Estado
+        let validEstado = true;
+        if (globalFilters.estado !== "") {
+            validEstado = c.cliEstado.toString() === globalFilters.estado;
+        }
+
+        return validTipo && validEstado;
+    });
+
+    renderGlobalReportTable();
+}
+
+function renderGlobalReportTable() {
+    const tbody = document.getElementById("globalReportBody");
+    if (!tbody) return;
+
+    if (filteredGlobalClients.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay clientes que coincidan con los filtros.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filteredGlobalClients.map(client => {
+        const clientInvoices = allInvoicesCache.filter((f: any) => f.cliCedula === client.cliCedula || f.cliente?.cliCedula === client.cliCedula);
+        const total = clientInvoices.filter((f: any) => f.facEstadoFactura).reduce((sum: number, f: any) => sum + f.facTotal, 0);
+
+        return `
+            <tr>
+                <td class="font-monospace">${client.cliCedula}</td>
+                <td class="text-start">${client.cliNombre}</td>
+                <td><span class="badge bg-secondary">${client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito")}</span></td>
+                <td>${clientInvoices.length}</td>
+                <td class="fw-bold">$${total.toFixed(2)}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
 async function generarReporteGlobalPDF() {
-    if (allClientsCache.length === 0) {
-        alert("No hay datos para generar el reporte.");
+    if (filteredGlobalClients.length === 0) {
+        alert("No hay datos para generar el reporte con los filtros actuales.");
         return;
     }
 
@@ -493,8 +618,8 @@ async function generarReporteGlobalPDF() {
 
     let yPos = 50;
 
-    for (let i = 0; i < allClientsCache.length; i++) {
-        const client = allClientsCache[i];
+    for (let i = 0; i < filteredGlobalClients.length; i++) {
+        const client = filteredGlobalClients[i];
         const clientInvoices = allInvoicesCache.filter((f: any) => f.cliCedula === client.cliCedula || f.cliente?.cliCedula === client.cliCedula);
 
         // Verificar espacio para encabezado de cliente
@@ -532,7 +657,12 @@ function generateClientSection(doc: jsPDF, client: any, invoices: any[], startY:
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 100, 100);
-    doc.text(`C.I/RUC: ${client.cliCedula} | Email: ${client.cliEmail || 'N/A'} | Tel: ${client.cliTelefono || 'N/A'}`, margin, startY + 6);
+    const tipo = client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito");
+    const estado = client.cliEstado ? "Activo" : "Inactivo";
+    doc.text(`C.I/RUC: ${client.cliCedula} | Tipo: ${tipo} | Estado: ${estado}`, margin, startY + 6);
+    doc.text(`Email: ${client.cliEmail || 'N/A'} | Tel: ${client.cliTelefono || 'N/A'}`, margin, startY + 11);
+
+    const tableStartY = startY + 15; // Adjusted for extra line
 
     if (invoices.length > 0) {
         const tableData = invoices.map((f: any) => [
@@ -543,7 +673,7 @@ function generateClientSection(doc: jsPDF, client: any, invoices: any[], startY:
         ]);
 
         autoTable(doc, {
-            startY: startY + 10,
+            startY: tableStartY,
             head: [['Factura', 'Fecha', 'Estado', 'Total']],
             body: tableData,
             theme: 'plain',
@@ -555,9 +685,9 @@ function generateClientSection(doc: jsPDF, client: any, invoices: any[], startY:
     } else {
         doc.setFontSize(9);
         doc.setFont("helvetica", "italic");
-        doc.text("(Sin historial de facturas)", margin + 5, startY + 14);
+        doc.text("(Sin historial de facturas)", margin + 5, tableStartY + 4);
         // Mocking lastAutoTable for spacing if no table
-        (doc as any).lastAutoTable = { finalY: startY + 15 };
+        (doc as any).lastAutoTable = { finalY: tableStartY + 5 };
     }
 }
 
@@ -594,7 +724,8 @@ function generateSingleClientPDF(doc: jsPDF, client: any, invoices: any[]) {
         `Dirección: ${client.cliDireccion || 'N/A'}`,
         `Teléfono: ${client.cliTelefono || 'N/A'}`,
         `Email: ${client.cliEmail || 'N/A'}`,
-        `Tipo: ${client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito")}`
+        `Tipo: ${client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito")}`,
+        `Estado: ${client.cliEstado ? "Activo" : "Inactivo"}`
     ];
     info.forEach(line => { doc.text(line, margin, yPos); yPos += 6; });
     yPos += 10;
