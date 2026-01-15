@@ -101,7 +101,7 @@ async function loadFacturas() {
             // Si tuvieras un campo numérico 'id' autoincremental, podrías usar: return b.id - a.id;
             const numA = a.facNumeroFactura || "";
             const numB = b.facNumeroFactura || "";
-            return numB.localeCompare(numA); 
+            return numB.localeCompare(numA);
         });
 
         // Procesar Establecimientos
@@ -419,16 +419,16 @@ function generarPDFFactura() {
         </div>
     `;
     document.body.appendChild(loadingToast);
-    
+
     // Dar tiempo para que se vea el mensaje
     setTimeout(() => {
         const doc = new jsPDF();
         const factura = facturaActual;
-        
+
         const colorPrimario = [0, 123, 255];
         const colorSecundario = [108, 117, 125];
         const colorExito = [40, 167, 69];
-        
+
         const pageWidth = doc.internal.pageSize.width;
         const margin = 15;
         let yPos = 20;
@@ -436,36 +436,36 @@ function generarPDFFactura() {
         // ENCABEZADO
         doc.setFillColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
         doc.rect(0, 0, pageWidth, 30, 'F');
-        
+
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(20);
         doc.setFont('helvetica', 'bold');
         doc.text('FACTURA', pageWidth / 2, 12, { align: 'center' });
-        
+
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
         doc.text(formatInvoiceNumber(factura.facNumeroFactura), pageWidth / 2, 22, { align: 'center' });
-        
+
         yPos = 40;
 
         // SECCIÓN: INFORMACIÓN DE FACTURA Y CLIENTE (DOS COLUMNAS)
         doc.setTextColor(0, 0, 0);
-        
+
         // Columna Izquierda - Info Factura
         const col1X = margin;
         const col2X = pageWidth / 2 + 5;
         const colWidth = (pageWidth / 2) - margin - 10;
-        
+
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
         doc.text('Información de Factura', col1X, yPos);
-        
+
         yPos += 6;
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        
+
         const infoFactura = [
             ['Nº Factura:', formatInvoiceNumber(factura.facNumeroFactura)],
             ['Fecha:', factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"],
@@ -473,32 +473,32 @@ function generarPDFFactura() {
             ['Punto Emisión:', factura?.puntoEmision?.pemDescripcion || "N/A"],
             ['Establecimiento:', factura?.puntoEmision?.establecimiento?.estNombre || "N/A"]
         ];
-        
+
         let startYPos = yPos;
         infoFactura.forEach(([label, value]) => {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
             doc.text(label, col1X, yPos);
-            
+
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(0, 0, 0);
             const textValue = doc.splitTextToSize(value, colWidth - 35);
             doc.text(textValue, col1X + 32, yPos);
             yPos += 5;
         });
-        
+
         // Columna Derecha - Info Cliente
         yPos = startYPos - 6;
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colorExito[0], colorExito[1], colorExito[2]);
         doc.text('Información del Cliente', col2X, yPos);
-        
+
         yPos += 6;
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        
+
         const cli = factura.cliente;
         const infoCliente = [
             ['Cliente:', cli?.cliNombre || factura.cliCedula],
@@ -507,12 +507,12 @@ function generarPDFFactura() {
             ['Teléfono:', cli?.cliTelefono || "N/A"],
             ['Email:', cli?.cliEmail || "N/A"]
         ];
-        
+
         infoCliente.forEach(([label, value]) => {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
             doc.text(label, col2X, yPos);
-            
+
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(0, 0, 0);
             const textValue = doc.splitTextToSize(value, colWidth - 28);
@@ -552,13 +552,13 @@ function generarPDFFactura() {
             body: tableData,
             theme: 'striped',
             margin: { left: margin, right: margin },
-            headStyles: { 
+            headStyles: {
                 fillColor: [colorSecundario[0], colorSecundario[1], colorSecundario[2]],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
                 fontSize: 9
             },
-            styles: { 
+            styles: {
                 fontSize: 8,
                 cellPadding: 2
             },
@@ -574,7 +574,7 @@ function generarPDFFactura() {
 
         // TOTALES
         const finalY = (doc as any).lastAutoTable.finalY + 8;
-        
+
         const totales = [
             ['Subtotal (0%):', `$${factura.facSubtotalSinIva.toFixed(2)}`],
             ['Subtotal (IVA):', `$${factura.facSubtotalConIva.toFixed(2)}`],
@@ -583,14 +583,14 @@ function generarPDFFactura() {
 
         let totalY = finalY;
         doc.setFontSize(9);
-        
+
         const totalesX = pageWidth - margin - 50;
-        
+
         totales.forEach(([label, value]) => {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
             doc.text(label, totalesX, totalY, { align: 'right' });
-            
+
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
             doc.text(value, pageWidth - margin, totalY, { align: 'right' });
@@ -622,7 +622,7 @@ function generarPDFFactura() {
         // ====== REMOVER MENSAJE DE CARGA ======
         const toast = document.getElementById('pdfLoadingToast');
         if (toast) toast.remove();
-        
+
         // ====== MOSTRAR MENSAJE DE ÉXITO ======
         const successToast = document.createElement('div');
         successToast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
@@ -641,7 +641,7 @@ function generarPDFFactura() {
             </div>
         `;
         document.body.appendChild(successToast);
-        
+
         // Cerrar automáticamente después de 4 segundos
         setTimeout(() => {
             if (successToast.parentNode) {
@@ -685,7 +685,7 @@ async function openReporteGlobal() {
         // Poblar select de tipos pago (nuevo)
         const selectTipo = document.getElementById("globalFiltroTipoPago") as HTMLSelectElement;
         if (selectTipo && allTiposPago.length > 0) {
-            selectTipo.innerHTML = '<option value="">Todos los tipos</option>' + 
+            selectTipo.innerHTML = '<option value="">Todos los tipos</option>' +
                 allTiposPago.map(t => `<option value="${t.tipIdTipop}">${t.tipDescripcion}</option>`).join('');
         }
         // Reset filtros
@@ -816,6 +816,17 @@ async function generarReporteGlobalPDF() {
     removeLoadingToast();
     showSuccessToast();
 }
+function drawTextBlock(
+    doc: jsPDF,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number
+): number {
+    const lines = doc.splitTextToSize(text, maxWidth);
+    doc.text(lines, x, y);
+    return y + doc.getTextDimensions(lines).h + 3; // espacio seguro
+}
 
 // 7. generateFacturaSection (nueva, adaptada de generarPDFFactura individual)
 function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
@@ -831,9 +842,54 @@ function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
     const clienteNombre = allClientsCache.find(c => c.cliCedula === clienteCedula)?.cliNombre || factura.cliente?.cliNombre || "N/A";
     const tipoPago = getTipoPagoInfo(factura);
     const estado = factura.facEstadoFactura ? "Activa" : "Anulada";
-    doc.text(`Cliente: ${clienteNombre} | Tipo Pago: ${tipoPago} | Estado: ${estado}`, margin, startY + 6);
-    doc.text(`Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"} | Total: $${factura.facTotal.toFixed(2)}`, margin, startY + 11);
-    const tableStartY = startY + 15;
+    let currentY = startY + 6;
+    const maxWidth = doc.internal.pageSize.width - margin * 2;
+
+    currentY = drawTextBlock(
+        doc,
+        `Cliente: ${clienteNombre}`,
+        margin,
+        currentY,
+        maxWidth
+    );
+
+    currentY = drawTextBlock(
+        doc,
+        `Tipo de Pago: ${tipoPago}`,
+        margin,
+        currentY,
+        maxWidth
+    );
+
+    currentY = drawTextBlock(
+        doc,
+        `Estado: ${estado}`,
+        margin,
+        currentY,
+        maxWidth
+    );
+
+    currentY = drawTextBlock(
+        doc,
+        `Fecha: ${factura.facFechaEmision
+            ? String(factura.facFechaEmision).split("T")[0]
+            : "N/A"
+        }`,
+        margin,
+        currentY,
+        maxWidth
+    );
+
+    currentY = drawTextBlock(
+        doc,
+        `Total: $${factura.facTotal.toFixed(2)}`,
+        margin,
+        currentY,
+        maxWidth
+    );
+
+    const tableStartY = currentY + 4;
+
     const detalles = factura.detallesFactura || [];
     if (detalles.length > 0) {
         const tableData = detalles.map((d: any) => [
@@ -1005,7 +1061,7 @@ async function showFacturaDetails(numeroFactura: string) {
 
     // AGREGAR ESTO NUEVO AQUÍ
     facturaActual = factura;
-    
+
     const downloadBtn = document.getElementById("downloadPdfBtn");
     if (downloadBtn) {
         const newBtn = downloadBtn.cloneNode(true) as HTMLElement;
