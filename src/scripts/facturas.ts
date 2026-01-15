@@ -19,6 +19,15 @@ const registrosPorPagina = 10;
 let facturaActual: any = null;
 let facturasFiltradas: any[] = [];
 
+//Variables para el reporte global
+let allInvoicesCache: any[] = [];
+let allClientsCache: any[] = []; // Si necesitas clientes para joins
+let filteredGlobalFacturas: any[] = []; // Estado de filtros
+let globalFilters = {
+    tipoPago: "", // ID del tipo pago
+    estado: ""
+};
+
 // Declaramos bootstrap para evitar errores de TS
 declare const bootstrap: any;
 
@@ -37,6 +46,7 @@ export function initFacturas() {
             if (inputId) limpiarFiltroIndividual(inputId);
         });
     });
+    setupGlobalReportButton();
 }
 
 function limpiarFiltros() {
@@ -275,6 +285,13 @@ function setupDeleteModal() {
         }
     });
 }
+// NUEVA FUNCIÓN: Setup botón global (agregar después de setupDeleteModal())
+function setupGlobalReportButton() {
+    const btn = document.getElementById("btnReporteGlobal");
+    btn?.addEventListener("click", () => openReporteGlobal());
+    const btnDownload = document.getElementById("btnDownloadGlobalPdf");
+    btnDownload?.addEventListener("click", () => generarReporteGlobalPDF());
+}
 
 function attachDeleteListeners() {
     document.querySelectorAll(".btn-delete").forEach((btn) => {
@@ -304,7 +321,6 @@ function attachDeleteListeners() {
             const modalTitle = document.getElementById("confirmDeleteModalLabel");
             if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${facturaNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
 
-            const confirmBtn = document.getElementById("confirmDeleteModal .btn-danger");
             // Nota: Aquí había un error en el script original seleccionando el botón.
             // Arreglamos seleccionando por ID
             const confirmBtnFixed = document.getElementById("confirmDeleteBtn");
@@ -633,6 +649,261 @@ function generarPDFFactura() {
             }
         }, 10000);
     }, 1000); // Tiempo para que se vea el mensaje de carga
+}
+// 1. openReporteGlobal (adaptado de clientes)
+async function openReporteGlobal() {
+    const modalEl = document.getElementById("reporteGlobalModal");
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+    setupGlobalReportFiltersListeners(); // Ensure listeners
+    const tbody = document.getElementById("globalReportBody");
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border text-primary" role="status"></div><br>Cargando datos globales...</td></tr>';
+    try {
+        let invoices = [];
+        // Usar cache o fetch si vacío
+        if (facturasData.length > 0) {
+            invoices = facturasData;
+        } else {
+            const resInvoices = await fetch(API_URL, { headers: getAuthHeaders() });
+            if (!resInvoices.ok) {
+                if (resInvoices.status === 401) window.location.href = '/login';
+                throw new Error(`Error fetching invoices: ${resInvoices.status}`);
+            }
+            const dataInvoices = await resInvoices.json();
+            invoices = Array.isArray(dataInvoices) ? dataInvoices : (dataInvoices.data || []);
+        }
+        // Cargar clientes si no están (para joins)
+        if (allClientsCache.length === 0) {
+            const resClients = await fetch(CLIENTES_URL, { headers: getAuthHeaders() });
+            if (resClients.ok) {
+                const dataClients = await resClients.json();
+                allClientsCache = Array.isArray(dataClients) ? dataClients : (dataClients.data || []);
+            }
+        }
+        allInvoicesCache = invoices;
+        // Poblar select de tipos pago (nuevo)
+        const selectTipo = document.getElementById("globalFiltroTipoPago") as HTMLSelectElement;
+        if (selectTipo && allTiposPago.length > 0) {
+            selectTipo.innerHTML = '<option value="">Todos los tipos</option>' + 
+                allTiposPago.map(t => `<option value="${t.tipIdTipop}">${t.tipDescripcion}</option>`).join('');
+        }
+        // Reset filtros
+        resetGlobalFilters();
+        applyGlobalFilters();
+    } catch (e) {
+        console.error("Error loading global report data", e);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-danger">Error cargando datos. Ver consola para más detalles.</td></tr>`;
+    }
+}
+
+// 2. setupGlobalReportFiltersListeners (adaptado)
+function setupGlobalReportFiltersListeners() {
+    const ids = ["globalFiltroTipoPago", "globalFiltroEstado"];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.listenerAttached) {
+            el.addEventListener("change", applyGlobalFilters);
+            el.dataset.listenerAttached = "true";
+        }
+    });
+    const btnClear = document.getElementById("btnLimpiarFiltrosGlobal");
+    if (btnClear && !btnClear.dataset.listenerAttached) {
+        btnClear.addEventListener("click", () => {
+            resetGlobalFilters();
+            applyGlobalFilters();
+        });
+        btnClear.dataset.listenerAttached = "true";
+    }
+}
+
+// 3. resetGlobalFilters
+function resetGlobalFilters() {
+    globalFilters = { tipoPago: "", estado: "" };
+    (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value = "";
+    (document.getElementById("globalFiltroEstado") as HTMLSelectElement).value = "";
+}
+
+// 4. applyGlobalFilters (adaptado para facturas)
+function applyGlobalFilters() {
+    globalFilters.tipoPago = (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value;
+    globalFilters.estado = (document.getElementById("globalFiltroEstado") as HTMLSelectElement).value;
+    filteredGlobalFacturas = allInvoicesCache.filter(f => {
+        let validTipo = true;
+        if (globalFilters.tipoPago !== "") {
+            const tipoId = parseInt(globalFilters.tipoPago);
+            validTipo = !isNaN(tipoId) && f.tipIdTipop === tipoId;
+        }
+        let validEstado = true;
+        if (globalFilters.estado !== "") {
+            validEstado = f.facEstadoFactura.toString() === globalFilters.estado;
+        }
+        return validTipo && validEstado;
+    });
+    renderGlobalReportTable();
+}
+
+// 5. renderGlobalReportTable (adaptado)
+function renderGlobalReportTable() {
+    const tbody = document.getElementById("globalReportBody");
+    if (!tbody) return;
+    if (filteredGlobalFacturas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay facturas que coincidan con los filtros.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = filteredGlobalFacturas.map(factura => {
+        const clienteNombre = allClientsCache.find(c => c.cliCedula === (factura.cliente?.cliCedula || factura.cliCedula))?.cliNombre || factura.cliente?.cliNombre || "N/A";
+        const tipoPagoDesc = getTipoPagoInfo(factura); // Reusa función existente
+        return `
+            <tr>
+                <td class="font-monospace">${formatInvoiceNumber(factura.facNumeroFactura)}</td>
+                <td class="text-start">${clienteNombre}</td>
+                <td>${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}</td>
+                <td class="fw-bold">$${factura.facTotal.toFixed(2)}</td>
+                <td><span class="badge bg-secondary">${tipoPagoDesc}</span></td>
+                <td><span class="badge ${factura.facEstadoFactura ? "text-bg-success" : "text-bg-danger"}">${factura.facEstadoFactura ? "Activa" : "Anulada"}</span></td>
+            </tr>
+        `;
+    }).join("");
+}
+
+// 6. generarReporteGlobalPDF (nueva, adaptada de clientes)
+async function generarReporteGlobalPDF() {
+    if (filteredGlobalFacturas.length === 0) {
+        alert("No hay datos para generar el reporte con los filtros actuales.");
+        return;
+    }
+    showLoadingToast("Generando Reporte Global...");
+    const doc = new jsPDF();
+    let isFirstPage = true;
+    let yPos = 50;
+    // Portada
+    doc.setFillColor(41, 128, 185);
+    doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("REPORTE GENERAL DE FACTURAS", doc.internal.pageSize.width / 2, 25, { align: "center" });
+    doc.setFontSize(14);
+    doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.width / 2, 35, { align: "center" });
+    yPos = 50;
+    for (let i = 0; i < filteredGlobalFacturas.length; i++) {
+        const factura = filteredGlobalFacturas[i];
+        // Cargar detalles completos si no están (similar a showFacturaDetails)
+        if (!factura.detallesFactura) {
+            try {
+                const res = await fetch(`${API_URL}/${factura.facNumeroFactura}`, { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const fullFactura = await res.json();
+                    filteredGlobalFacturas[i] = { ...factura, ...fullFactura };
+                    factura.detallesFactura = fullFactura.detallesFactura;
+                }
+            } catch (e) { console.warn("Error cargando detalles para PDF", e); }
+        }
+        if (yPos > doc.internal.pageSize.height - 40) {
+            doc.addPage();
+            yPos = 20;
+        } else if (!isFirstPage && i > 0) {
+            doc.setDrawColor(200, 200, 200);
+            doc.line(15, yPos - 5, doc.internal.pageSize.width - 15, yPos - 5);
+        }
+        isFirstPage = false;
+        generateFacturaSection(doc, factura, yPos); // Nueva función abajo
+        const lastY = (doc as any).lastAutoTable?.finalY;
+        yPos = lastY ? lastY + 15 : yPos + 60; // Espacio estimado
+    }
+    doc.save(`Reporte_Global_Facturas_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+    removeLoadingToast();
+    showSuccessToast();
+}
+
+// 7. generateFacturaSection (nueva, adaptada de generarPDFFactura individual)
+function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
+    const margin = 15;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Factura: ${formatInvoiceNumber(factura.facNumeroFactura)}`, margin, startY);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    const clienteCedula = factura.cliente?.cliCedula || factura.cliCedula || "";
+    const clienteNombre = allClientsCache.find(c => c.cliCedula === clienteCedula)?.cliNombre || factura.cliente?.cliNombre || "N/A";
+    const tipoPago = getTipoPagoInfo(factura);
+    const estado = factura.facEstadoFactura ? "Activa" : "Anulada";
+    doc.text(`Cliente: ${clienteNombre} | Tipo Pago: ${tipoPago} | Estado: ${estado}`, margin, startY + 6);
+    doc.text(`Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"} | Total: $${factura.facTotal.toFixed(2)}`, margin, startY + 11);
+    const tableStartY = startY + 15;
+    const detalles = factura.detallesFactura || [];
+    if (detalles.length > 0) {
+        const tableData = detalles.map((d: any) => [
+            d.detCodigoProducto || "S/C",
+            d.detNombreProducto,
+            d.detCantidad.toString(),
+            `$${d.detPrecioUnitario.toFixed(2)}`,
+            d.detGrabaIva ? "Sí" : "No",
+            `$${d.detTotal.toFixed(2)}`
+        ]);
+        autoTable(doc, {
+            startY: tableStartY,
+            head: [['Código', 'Descripción', 'Cant.', 'P. Unit.', 'IVA', 'Total']],
+            body: tableData,
+            theme: 'plain',
+            margin: { left: margin + 5 },
+            tableWidth: 100,
+            styles: { fontSize: 8, cellPadding: 1 },
+            headStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold' },
+        });
+    } else {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "italic");
+        doc.text("(Sin detalles de productos)", margin + 5, tableStartY + 4);
+        (doc as any).lastAutoTable = { finalY: tableStartY + 5 };
+    }
+    // Total al pie de sección
+    const finalY = (doc as any).lastAutoTable?.finalY || tableStartY + 10;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total: $${factura.facTotal.toFixed(2)}`, doc.internal.pageSize.width - margin, finalY, { align: 'right' });
+}
+// --- Toast Helpers ---
+function showLoadingToast(msg = "Generando Reporte...") {
+    if (document.getElementById('pdfLoadingToast')) return;
+    const toast = document.createElement('div');
+    toast.id = 'pdfLoadingToast';
+    toast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
+    toast.style.zIndex = '9999';
+    toast.style.marginTop = '20px';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-primary text-white">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                <strong class="me-auto">${msg}</strong>
+            </div>
+            <div class="toast-body">Por favor espere...</div>
+        </div>`;
+    document.body.appendChild(toast);
+}
+
+function removeLoadingToast() {
+    document.getElementById('pdfLoadingToast')?.remove();
+}
+
+function showSuccessToast() {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
+    toast.style.zIndex = '9999';
+    toast.style.marginTop = '20px';
+    toast.innerHTML = `
+         <div class="toast show" role="alert">
+             <div class="toast-header bg-success text-white">
+                 <strong class="me-auto">Reporte Generado</strong>
+                 <button type="button" class="btn-close btn-close-white" onclick="this.closest('.position-fixed').remove()"></button>
+             </div>
+             <div class="toast-body">Se descargó el reporte correctamente.</div>
+         </div>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
 }
 async function showFacturaDetails(numeroFactura: string) {
     let factura = facturasData.find(f => f.facNumeroFactura === numeroFactura);
