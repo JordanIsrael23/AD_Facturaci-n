@@ -1,3 +1,5 @@
+// src/scripts/login.ts
+
 let API_BASE_URL = import.meta.env.PUBLIC_LOGIN_URL;
 console.log("Configured API_BASE_URL:", API_BASE_URL);
 
@@ -14,9 +16,19 @@ if (typeof window !== "undefined" && (window.location.hostname === "localhost" |
 }
 
 const LOGIN_URL = `${API_BASE_URL}/api/login`;
+const MODULO_ID = 5; // 🔴 CAMBIA ESTE ID POR EL QUE TE ASIGNARON
 
 export function initLogin() {
     console.log("Inicializando Login...");
+    
+    // Verificar si ya está autenticado y redirigir
+    const existingToken = localStorage.getItem("access_token");
+    if (existingToken && window.location.pathname === "/login") {
+        console.log("Usuario ya autenticado, redirigiendo...");
+        window.location.href = "/";
+        return;
+    }
+
     const form = document.getElementById("loginForm") as HTMLFormElement;
     if (form) {
         form.addEventListener("submit", handleLogin);
@@ -31,7 +43,6 @@ async function handleLogin(e: Event) {
     const passwordInput = document.getElementById("password") as HTMLInputElement;
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
-    const modulo_id = 5;
 
     if (!email || !password) {
         showError("Por favor, completa todos los campos.");
@@ -50,7 +61,7 @@ async function handleLogin(e: Event) {
         const payload = {
             email_username: email,
             password: password,
-            modulo_id: modulo_id
+            modulo_id: MODULO_ID
         };
         console.log("Enviando payload:", payload);
 
@@ -78,9 +89,23 @@ async function handleLogin(e: Event) {
             const user = data.data.user;
             const modulo = data.data.modulo;
 
+            // Guardar datos en localStorage
             localStorage.setItem("access_token", token);
             localStorage.setItem("user_data", JSON.stringify(user));
             localStorage.setItem("modulo_data", JSON.stringify(modulo));
+
+            console.log("✅ Login exitoso:", {
+                username: user.username,
+                email: user.email,
+                funciones: modulo.funciones.map((f: any) => f.nombre)
+            });
+
+            // Registrar auditoría de login (si tiene permisos)
+            try {
+                await registrarLoginAuditoria(token, modulo.funciones);
+            } catch (audError) {
+                console.warn("No se pudo registrar auditoría de login:", audError);
+            }
 
             showSuccess(`¡Bienvenido, ${user.username}! Redirigiendo...`, () => {
                 // Redirigir al home o dashboard
@@ -89,15 +114,25 @@ async function handleLogin(e: Event) {
 
         } else {
             // ERROR DE LOGIN
-            // 400: Todos los campos son requeridos / Email incorrecto dominio
-            // 401: Credenciales inválidas
-            // 403: Usuario inactivo
-            // 404: Módulo no existe
             let errorMsg = data.message || "Error desconocido al iniciar sesión.";
 
-            // Personalizar mensajes si es necesario
-            if (response.status === 401) {
+            // Personalizar mensajes según código de error
+            if (response.status === 400) {
+                if (data.message?.includes("dominio")) {
+                    errorMsg = "Debes usar un correo institucional @utn.edu.ec";
+                } else {
+                    errorMsg = "Verifica que todos los campos estén completos.";
+                }
+            } else if (response.status === 401) {
                 errorMsg = "Credenciales incorrectas. Verifica tu usuario y contraseña.";
+            } else if (response.status === 403) {
+                if (data.message?.includes("inactivo")) {
+                    errorMsg = "Tu usuario está inactivo. Contacta al administrador.";
+                } else {
+                    errorMsg = "No tienes permisos para acceder a este módulo.";
+                }
+            } else if (response.status === 404) {
+                errorMsg = "El módulo no está disponible. Contacta a soporte.";
             }
 
             if (data.detail) {
@@ -105,6 +140,7 @@ async function handleLogin(e: Event) {
             }
 
             showError(errorMsg);
+            console.error("Error de login:", { status: response.status, message: errorMsg });
         }
 
     } catch (error: any) {
@@ -113,6 +149,64 @@ async function handleLogin(e: Event) {
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
+    }
+}
+
+// Registrar auditoría de login
+async function registrarLoginAuditoria(token: string, funciones: any[]) {
+    // Buscar una función válida para registrar la auditoría
+    // Priorizamos funciones relacionadas con auditoría o la primera disponible
+    let funcionId = null;
+    
+    const funcionAuditoria = funciones.find(f => 
+        f.nombre.toLowerCase().includes('auditoria') || 
+        f.nombre.toLowerCase().includes('auditoría')
+    );
+    
+    if (funcionAuditoria) {
+        funcionId = funcionAuditoria.funcion_id;
+    } else if (funciones.length > 0) {
+        funcionId = funciones[0].funcion_id;
+    }
+
+    if (!funcionId) {
+        console.warn("No hay funciones disponibles para registrar auditoría");
+        return;
+    }
+
+    try {
+        const ip = await getUserIP();
+        const response = await fetch(`${API_BASE_URL}/api/auditoria`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                id_funcion: funcionId,
+                accion: 'LOGIN',
+                descripcion: 'Usuario inició sesión en el sistema',
+                observacion: `Acceso al módulo de Facturación desde ${navigator.userAgent.includes('Chrome') ? 'Chrome' : 'navegador'}`,
+                ip_usuario: ip
+            })
+        });
+
+        if (response.ok) {
+            console.log("✅ Auditoría de login registrada");
+        }
+    } catch (error) {
+        console.warn("Error registrando auditoría:", error);
+    }
+}
+
+// Obtener IP del usuario
+async function getUserIP(): Promise<string> {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        return '0.0.0.0';
     }
 }
 
@@ -128,7 +222,8 @@ function showError(msg: string) {
     if (errorAlert) {
         errorAlert.innerText = msg;
         errorAlert.classList.remove("d-none");
-        // Shake animation effect optional
+        // Scroll to alert
+        errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
         alert(msg);
     }

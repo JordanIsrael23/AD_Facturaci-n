@@ -1,6 +1,6 @@
 
 // src/scripts/clientes.ts
-import { getAuthHeaders, checkAuth } from "./auth";
+import { getAuthHeaders, checkAuth, hasFunction } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -115,13 +115,16 @@ function renderClientes(clientes: any[]) {
                         data-cedula="${c.cliCedula}">
                         <i class="bi bi-eye-fill me-1"></i> Ver
                     </button>
-                    <a href="editar_clientes?id=${c.cliCedula}" class="btn btn-sm btn-warning d-inline-flex align-items-center">
-                        <i class="bi bi-pencil-square me-1"></i> Editar
-                    </a>
-                    <button type="button" class="btn btn-sm ${c.cliEstado ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
+                    ${hasFunction("Editar Clientes") ? `
+                        <a href="editar-clientes?id=${c.cliCedula}" class="btn btn-sm btn-warning d-inline-flex align-items-center">
+                            <i class="bi bi-pencil-square me-1"></i> Editar
+                        </a>
+                        <button type="button" class="btn btn-sm ${c.cliEstado ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
                         data-cedula="${c.cliCedula}" data-nombre="${c.cliNombre}" data-estado="${c.cliEstado}">
                         <i class="bi ${c.cliEstado ? "bi-trash" : "bi-check-circle"} me-1"></i> ${c.cliEstado ? "Desactivar" : "Activar"}
                     </button>
+                    ` : ""}
+                    
                 </div>
             </td>
             <td>${c.cliCedula}</td>
