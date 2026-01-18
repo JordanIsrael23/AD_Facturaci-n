@@ -1,6 +1,6 @@
 
 // src/scripts/clientes.ts
-import { getAuthHeaders, checkAuth, hasFunction } from "./auth";
+import { getAuthHeaders, checkAuth, hasFunction, registrarAuditoria } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -42,6 +42,14 @@ export function initClientes() {
             if (inputId) limpiarFiltroIndividual(inputId);
         });
     });
+
+    // ⭐ NUEVO: Registrar auditoría de acceso
+    registrarAuditoria(
+        'Crear Clientes', // Cualquier función relacionada con clientes
+        'VIEW',
+        'Usuario accedió al módulo de clientes',
+        'Visualización de tabla de clientes'
+    ).catch(err => console.warn('Error en auditoría:', err));
 }
 
 function limpiarFiltros() {
@@ -106,25 +114,39 @@ function renderClientes(clientes: any[]) {
         return;
     }
 
+    // ⭐ Verificar permisos UNA VEZ fuera del map
+    const canEdit = hasFunction("Editar Clientes");
+    const canDelete = hasFunction("Desactivar Clientes");
 
     tbody.innerHTML = clientes.map((c: any) => `
         <tr>
             <td>
                 <div class="d-flex gap-2">
+                    <!-- Botón Ver - Siempre visible -->
                     <button type="button" class="btn btn-sm btn-info text-white d-inline-flex align-items-center btn-view-cliente" 
                         data-cedula="${c.cliCedula}">
                         <i class="bi bi-eye-fill me-1"></i> Ver
                     </button>
-                    ${hasFunction("Editar Clientes") ? `
-                        <a href="editar-clientes?id=${c.cliCedula}" class="btn btn-sm btn-warning d-inline-flex align-items-center">
+                    
+                    ${canEdit ? `
+                        <!-- Botón Editar - Solo si tiene permiso -->
+                        <a href="editar-clientes?id=${c.cliCedula}" 
+                           class="btn btn-sm btn-warning d-inline-flex align-items-center">
                             <i class="bi bi-pencil-square me-1"></i> Editar
                         </a>
-                        <button type="button" class="btn btn-sm ${c.cliEstado ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
-                        data-cedula="${c.cliCedula}" data-nombre="${c.cliNombre}" data-estado="${c.cliEstado}">
-                        <i class="bi ${c.cliEstado ? "bi-trash" : "bi-check-circle"} me-1"></i> ${c.cliEstado ? "Desactivar" : "Activar"}
-                    </button>
-                    ` : ""}
+                    ` : ''}
                     
+                    ${canDelete ? `
+                        <!-- Botón Activar/Desactivar - Solo si tiene permiso -->
+                        <button type="button" 
+                                class="btn btn-sm ${c.cliEstado ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
+                                data-cedula="${c.cliCedula}" 
+                                data-nombre="${c.cliNombre}" 
+                                data-estado="${c.cliEstado}">
+                            <i class="bi ${c.cliEstado ? "bi-trash" : "bi-check-circle"} me-1"></i> 
+                            ${c.cliEstado ? "Desactivar" : "Activar"}
+                        </button>
+                    ` : ''}
                 </div>
             </td>
             <td>${c.cliCedula}</td>
@@ -200,6 +222,17 @@ function setupDeleteModal() {
             });
 
             if (response.ok) {
+                // ⭐ NUEVO: Registrar auditoría
+                const accion = clienteNuevoEstado ? 'ACTIVATE' : 'DELETE';
+                const descripcion = `Usuario ${clienteNuevoEstado ? 'activó' : 'desactivó'} el cliente con cédula: ${clienteIdToDelete}`;
+                
+                await registrarAuditoria(
+                    'Desactivar Clientes',
+                    accion,
+                    descripcion,
+                    `Estado cambiado a: ${clienteNuevoEstado ? 'Activo' : 'Inactivo'}`
+                ).catch(err => console.warn('Error en auditoría:', err));
+
                 const modalEl = document.getElementById("confirmDeleteModal");
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
@@ -217,17 +250,47 @@ function setupPdfButton() {
     const pdfBtn = document.getElementById("modalBtnPdf");
     pdfBtn?.addEventListener("click", async () => {
         if (!currentClienteForPdf) return;
+        
+        // ⭐ NUEVO: Registrar auditoría antes de generar PDF
+        await registrarAuditoria(
+            'Generar Reportes',
+            'EXPORT',
+            `Usuario generó PDF del cliente: ${currentClienteForPdf}`,
+            'Reporte individual en PDF'
+        ).catch(err => console.warn('Error en auditoría:', err));
+        
         await generarPDFCliente(currentClienteForPdf);
     });
 }
 
 function setupGlobalReportButton() {
     const btn = document.getElementById("btnReporteGlobal");
-    btn?.addEventListener("click", () => openReporteGlobal());
+    btn?.addEventListener("click", () => {
+        // ⭐ NUEVO: Registrar auditoría al abrir modal
+        registrarAuditoria(
+            'Generar Reportes',
+            'VIEW',
+            'Usuario abrió vista previa de reporte global',
+            'Modal de reporte global'
+        ).catch(err => console.warn('Error en auditoría:', err));
+        
+        openReporteGlobal();
+    });
 
     const btnDownload = document.getElementById("btnDownloadGlobalPdf");
-    btnDownload?.addEventListener("click", () => generarReporteGlobalPDF());
+    btnDownload?.addEventListener("click", () => {
+        // ⭐ NUEVO: Registrar auditoría al descargar PDF global
+        registrarAuditoria(
+            'Generar Reportes',
+            'EXPORT',
+            'Usuario generó reporte global de clientes en PDF',
+            `Total de clientes en reporte: ${filteredGlobalClients.length}`
+        ).catch(err => console.warn('Error en auditoría:', err));
+        
+        generarReporteGlobalPDF();
+    });
 }
+
 
 function attachDeleteListeners() {
     document.querySelectorAll(".btn-delete").forEach((btn) => {
@@ -292,10 +355,19 @@ function attachViewListeners() {
             const cedula = target.getAttribute("data-cedula");
             if (!cedula) return;
 
+            // ⭐ NUEVO: Registrar auditoría al ver detalles
+            await registrarAuditoria(
+                'Crear Clientes', // O cualquier función relacionada
+                'VIEW',
+                `Usuario visualizó detalles del cliente: ${cedula}`,
+                'Modal de detalles del cliente'
+            ).catch(err => console.warn('Error en auditoría:', err));
+
             await showClienteDetails(cedula);
         });
     });
 }
+
 
 function renderPagina() {
     const inicio = (paginaActual - 1) * registrosPorPagina;

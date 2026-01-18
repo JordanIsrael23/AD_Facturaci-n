@@ -39,24 +39,32 @@ import background from "../assets/background.svg";
                 <h1 class="h2 text-primary fw-bold me-2 mb-0">Clientes</h1>
                 <i class="bi bi-people-fill text-secondary fs-2"></i>
             </div>
-            <div class="d-flex gap-2">                
-               <button
+            <div class="d-flex gap-2">
+                <!-- Reporte Global - Solo visible para quien tiene "Generar Reportes" -->
+                <button
                     id="btnReporteGlobal"
                     class="btn btn-dark d-flex align-items-center"
+                    data-require-function="Generar Reportes"
                 >
                     <i class="bi bi-file-earmark-bar-graph-fill me-2"></i> Reporte
                     Global
                 </button>
+
+                <!-- Restablecer Clientes - Solo para quien puede "Desactivar Clientes" -->
                 <a
                     href="/restablecer-clientes"
                     class="btn btn-outline-primary d-flex align-items-center"
+                    data-require-function="Desactivar Clientes"
                 >
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Restablecer
                     Clientes
                 </a>
+
+                <!-- Nuevo Cliente - Solo para quien puede "Crear Clientes" -->
                 <a
                     href="/crear-cliente"
                     class="btn btn-primary d-flex align-items-center"
+                    data-require-function="Crear Clientes"
                 >
                     <i class="bi bi-plus-lg me-1"></i> Nuevo Cliente
                 </a>
@@ -293,10 +301,12 @@ import background from "../assets/background.svg";
                 >
                     <i class="bi bi-x-lg me-1"></i> Cerrar
                 </button>
+                <!-- Botón PDF solo para quien puede generar reportes -->
                 <button
                     type="button"
                     class="btn btn-info text-white d-flex align-items-center"
                     id="modalBtnPdf"
+                    data-require-function="Generar Reportes"
                 >
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar PDF
                 </button>
@@ -445,6 +455,7 @@ import background from "../assets/background.svg";
 
 <script>
     import { initClientes } from "../scripts/clientes";
+    import "../scripts/protectedElement"; // Importar para que oculte los botones
 
     // Astro ejecutará esto en el navegador
     document.addEventListener("DOMContentLoaded", () => {
