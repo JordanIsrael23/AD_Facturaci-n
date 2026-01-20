@@ -10,22 +10,19 @@ const PUNTOS_URL = BASE_URL + "PuntoEmisions";
 const ESTABLECIMIENTOS_URL = BASE_URL + "Establecimientoes";
 const TIPOS_PAGO_URL = BASE_URL + "TipoPagoes";
 
-let facturaIdToDelete: string | null = null;
-let facturaNuevoEstado: boolean = false;
+// Variables de estado
 let facturasData: any[] = [];
-let hayFiltros = false;
 let paginaActual = 1;
 const registrosPorPagina = 10;
 let facturaActual: any = null;
 let facturasFiltradas: any[] = [];
 
-//Variables para el reporte global
+// Variables para el reporte global
 let allInvoicesCache: any[] = [];
-let allClientsCache: any[] = []; // Si necesitas clientes para joins
-let filteredGlobalFacturas: any[] = []; // Estado de filtros
+let allClientsCache: any[] = [];
+let filteredGlobalFacturas: any[] = [];
 let globalFilters = {
     tipoPago: "", // ID del tipo pago
-    estado: ""
 };
 
 // Declaramos bootstrap para evitar errores de TS
@@ -34,7 +31,6 @@ declare const bootstrap: any;
 export function initFacturas() {
     checkAuth();
     loadFacturas();
-    setupDeleteModal();
 
     document
         .getElementById("filtroNumero")
@@ -51,10 +47,8 @@ export function initFacturas() {
 
 function limpiarFiltros() {
     (document.getElementById("filtroNumero") as HTMLInputElement).value = "";
-
     facturasFiltradas = [...facturasData];
     paginaActual = 1;
-
     renderPagina();
 
     document.querySelectorAll(".iconoFiltro").forEach((icono) => {
@@ -63,7 +57,6 @@ function limpiarFiltros() {
     });
 }
 
-
 let allEstablecimientos: any[] = [];
 let allTiposPago: any[] = [];
 
@@ -71,10 +64,9 @@ async function loadFacturas() {
     const tbody = document.querySelector("tbody");
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando...</td></tr>';
 
     try {
-        // Cargar Facturas, Establecimientos y Tipos de Pago en paralelo
         const headers = { headers: getAuthHeaders() };
 
         const [resFacturas, resEstab, resTipos] = await Promise.all([
@@ -91,26 +83,20 @@ async function loadFacturas() {
             throw new Error("Error cargando facturas");
         }
 
-        // Procesar Facturas
         const dataFacturas = await resFacturas.json();
         let datosSinOrdenar = Array.isArray(dataFacturas) ? dataFacturas : (dataFacturas.data || []);
 
-        // Ordenamos descendentemente (la factura con número más alto/reciente va primero)
         facturasData = datosSinOrdenar.sort((a: any, b: any) => {
-            // Asumimos que facNumeroFactura es un string. localeCompare hace la comparación alfabética/numérica inversa.
-            // Si tuvieras un campo numérico 'id' autoincremental, podrías usar: return b.id - a.id;
             const numA = a.facNumeroFactura || "";
             const numB = b.facNumeroFactura || "";
             return numB.localeCompare(numA);
         });
 
-        // Procesar Establecimientos
         if (resEstab.ok) {
             const dataEstab = await resEstab.json();
             allEstablecimientos = Array.isArray(dataEstab) ? dataEstab : (dataEstab.data || []);
         }
 
-        // Procesar Tipos de Pago
         if (resTipos.ok) {
             const dataTipos = await resTipos.json();
             allTiposPago = Array.isArray(dataTipos) ? dataTipos : (dataTipos.data || []);
@@ -124,7 +110,7 @@ async function loadFacturas() {
         console.error("Error:", error);
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-danger">
+                <td colspan="7" class="text-center text-danger">
                     Error de conexión.
                 </td>
             </tr>`;
@@ -133,53 +119,34 @@ async function loadFacturas() {
 
 function formatInvoiceNumber(num: string | null | undefined): string {
     if (!num) return "N/A";
-
-    // Eliminar cualquier caracter que no sea número
     const digits = num.replace(/\D/g, "");
-
-    // Si no tiene la longitud esperada (15), devolver original o intentar formatear lo que hay
-    // Formato: 3 - 3 - 9  (XXX-XXX-XXXXXXXXX)
     if (digits.length === 15) {
         return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
-
-    // Fallback: si ya viene con guiones y parece correcto
     if (num.includes("-")) return num;
-
     return num;
 }
 
 function getEstablecimientoInfo(f: any): string {
-    // Buscar el establecimiento
-    // 1. Intentar por estRuc directo en factura
-    // 2. Intentar por puntoEmision.estRuc
     const ruc = f.estRuc || f.puntoEmision?.estRuc;
-
     if (!ruc) return "N/A";
-
     const est = allEstablecimientos.find((e: any) => e.estRuc === ruc);
     if (est) {
         return `${est.estNombre} (${est.estRuc})`;
     }
-
-    // Si no encontramos el establecimiento en la lista, mostramos el RUC al menos
     return ruc;
 }
 
 function getTipoPagoInfo(f: any): string {
-    // Prioridad 1: Objeto anidado
     if (f.tipoPago && f.tipoPago.tipDescripcion) {
         return f.tipoPago.tipDescripcion;
     }
-
-    // Prioridad 2: Buscar en la lista cargada por ID
     if (f.tipIdTipop) {
         const tipo = allTiposPago.find((t: any) => t.tipIdTipop === f.tipIdTipop || t.id === f.tipIdTipop);
         if (tipo) {
             return tipo.tipDescripcion || tipo.descripcion || "N/A";
         }
     }
-
     return "N/A";
 }
 
@@ -188,7 +155,7 @@ function renderFacturas(facturas: any[]) {
     if (!tbody) return;
 
     if (facturas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay resultados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay resultados.</td></tr>';
         return;
     }
 
@@ -200,10 +167,6 @@ function renderFacturas(facturas: any[]) {
                         data-numero="${f.facNumeroFactura}">
                         <i class="bi bi-eye-fill me-1"></i> Ver
                     </button>
-                    <button type="button" class="btn btn-sm ${f.facEstadoFactura ? "btn-danger" : "btn-success"} d-inline-flex align-items-center btn-delete" 
-                        data-numero="${f.facNumeroFactura}" data-estado="${f.facEstadoFactura}">
-                        <i class="bi ${f.facEstadoFactura ? "bi-trash" : "bi-check-circle"} me-1"></i> ${f.facEstadoFactura ? "Anular" : "Activar"}
-                    </button>
                 </div>
             </td>
             <td class="text-nowrap font-monospace text-center">${formatInvoiceNumber(f.facNumeroFactura)}</td>
@@ -212,20 +175,14 @@ function renderFacturas(facturas: any[]) {
             <td>$${f.facTotal.toFixed(2)}</td>
             <td>${getTipoPagoInfo(f)}</td>
             <td>${getEstablecimientoInfo(f)}</td>
-            <td><span class="badge ${f.facEstadoFactura ? "text-bg-success" : "text-bg-danger"}">
-                    ${f.facEstadoFactura ? "Activa" : "Anulada"}
-                </span>
-            </td>
         </tr>
     `).join("");
 
-    attachDeleteListeners();
     attachViewListeners();
 }
 
 function aplicarFiltros(inputOrigen: "filtroNumero") {
     const numeroInput = document.getElementById("filtroNumero") as HTMLInputElement;
-
     const numero = numeroInput.value.toLowerCase();
 
     facturasFiltradas = facturasData.filter((f) =>
@@ -233,9 +190,7 @@ function aplicarFiltros(inputOrigen: "filtroNumero") {
     );
 
     paginaActual = 1;
-
     renderPagina();
-
     actualizarIcono("filtroNumero", numero !== "");
 }
 
@@ -243,9 +198,7 @@ function actualizarIcono(inputId: string, activo: boolean) {
     const btn = document.querySelector(
         `.btnFiltro[data-for="${inputId}"]`
     ) as HTMLElement | null;
-
     const icono = btn?.querySelector(".iconoFiltro");
-
     if (!icono) return;
 
     icono.classList.remove("bi-funnel", "bi-funnel-fill");
@@ -255,91 +208,15 @@ function actualizarIcono(inputId: string, activo: boolean) {
 function limpiarFiltroIndividual(inputId: string) {
     const input = document.getElementById(inputId) as HTMLInputElement;
     if (!input) return;
-
     input.value = "";
-
     aplicarFiltros(inputId as any);
 }
 
-function setupDeleteModal() {
-    const confirmBtn = document.getElementById("confirmDeleteBtn");
-    confirmBtn?.addEventListener("click", async () => {
-        if (!facturaIdToDelete) return;
-        try {
-            const response = await fetch(`${API_URL}/${facturaIdToDelete}/estado`, {
-                method: "PATCH",
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ estado: facturaNuevoEstado }),
-            });
-
-            if (response.ok) {
-                const modalEl = document.getElementById("confirmDeleteModal");
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modal.hide();
-                loadFacturas();
-            } else if (response.status === 401) {
-                window.location.href = '/login';
-            }
-        } catch (error) {
-            alert("Error de conexión");
-        }
-    });
-}
-// NUEVA FUNCIÓN: Setup botón global (agregar después de setupDeleteModal())
 function setupGlobalReportButton() {
     const btn = document.getElementById("btnReporteGlobal");
     btn?.addEventListener("click", () => openReporteGlobal());
     const btnDownload = document.getElementById("btnDownloadGlobalPdf");
     btnDownload?.addEventListener("click", () => generarReporteGlobalPDF());
-}
-
-function attachDeleteListeners() {
-    document.querySelectorAll(".btn-delete").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-            const target = (e.target as HTMLElement).closest(".btn-delete");
-            if (!target) return;
-
-            const numero = target.getAttribute("data-numero");
-            const estadoActual = target.getAttribute("data-estado") === "true";
-
-            facturaIdToDelete = numero;
-            facturaNuevoEstado = !estadoActual;
-
-            const accion = facturaNuevoEstado ? "Activar" : "Anular";
-            const colorClass = facturaNuevoEstado ? "success" : "danger";
-            const prevColorClass = facturaNuevoEstado ? "danger" : "success";
-
-            // Update Modal Styling
-            const modalContent = document.querySelector("#confirmDeleteModal .modal-content");
-            modalContent?.classList.remove(`border-${prevColorClass}`);
-            modalContent?.classList.add(`border-${colorClass}`);
-
-            const modalHeader = document.querySelector("#confirmDeleteModal .modal-header");
-            modalHeader?.classList.remove(`bg-${prevColorClass}`);
-            modalHeader?.classList.add(`bg-${colorClass}`);
-
-            const modalTitle = document.getElementById("confirmDeleteModalLabel");
-            if (modalTitle) modalTitle.innerHTML = `<i class="bi bi-${facturaNuevoEstado ? "check-circle" : "exclamation-triangle"}-fill me-2 fs-4"></i> Confirmar ${accion.toLowerCase()}`;
-
-            // Nota: Aquí había un error en el script original seleccionando el botón.
-            // Arreglamos seleccionando por ID
-            const confirmBtnFixed = document.getElementById("confirmDeleteBtn");
-
-            if (confirmBtnFixed) {
-                confirmBtnFixed.className = `btn btn-${colorClass} d-inline-flex align-items-center`;
-                confirmBtnFixed.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Aceptar y ${accion}`;
-            }
-
-            const modalBody = document.querySelector("#confirmDeleteModal .modal-body p.lead");
-            if (modalBody) modalBody.innerHTML = `¿Estás seguro que deseas ${accion.toLowerCase()} la factura <strong>${numero}</strong>?`;
-
-            const modalBodySub = document.querySelector("#confirmDeleteModal .modal-body p.text-muted");
-            if (modalBodySub) modalBodySub.innerHTML = `La factura será ${facturaNuevoEstado ? "activada" : "anulada"}.`;
-
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("confirmDeleteModal"));
-            modal.show();
-        });
-    });
 }
 
 function renderPagina() {
@@ -395,32 +272,17 @@ function attachViewListeners() {
     });
 }
 
+// ============================================
+// PDF GENERATION (Individual)
+// ============================================
 function generarPDFFactura() {
     if (!facturaActual) {
         alert("No hay factura cargada");
         return;
     }
 
-    // ====== MOSTRAR MENSAJE DE "GENERANDO PDF..." ======
-    const loadingToast = document.createElement('div');
-    loadingToast.id = 'pdfLoadingToast';
-    loadingToast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
-    loadingToast.style.zIndex = '9999';
-    loadingToast.style.marginTop = '20px';
-    loadingToast.innerHTML = `
-        <div class="toast show" role="alert">
-            <div class="toast-header bg-primary text-white">
-                <span class="spinner-border spinner-border-sm me-2"></span>
-                <strong class="me-auto">Generando PDF</strong>
-            </div>
-            <div class="toast-body">
-                Por favor espere, generando documento...
-            </div>
-        </div>
-    `;
-    document.body.appendChild(loadingToast);
+    showLoadingToast("Generando PDF...");
 
-    // Dar tiempo para que se vea el mensaje
     setTimeout(() => {
         const doc = new jsPDF();
         const factura = facturaActual;
@@ -448,10 +310,9 @@ function generarPDFFactura() {
 
         yPos = 40;
 
-        // SECCIÓN: INFORMACIÓN DE FACTURA Y CLIENTE (DOS COLUMNAS)
+        // Info Factura y Cliente
         doc.setTextColor(0, 0, 0);
 
-        // Columna Izquierda - Info Factura
         const col1X = margin;
         const col2X = pageWidth / 2 + 5;
         const colWidth = (pageWidth / 2) - margin - 10;
@@ -469,7 +330,6 @@ function generarPDFFactura() {
         const infoFactura = [
             ['Nº Factura:', formatInvoiceNumber(factura.facNumeroFactura)],
             ['Fecha:', factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"],
-            ['Estado:', factura.facEstadoFactura ? "Activa" : "Anulada"],
             ['Punto Emisión:', factura?.puntoEmision?.pemDescripcion || "N/A"],
             ['Establecimiento:', factura?.puntoEmision?.establecimiento?.estNombre || "N/A"]
         ];
@@ -487,7 +347,7 @@ function generarPDFFactura() {
             yPos += 5;
         });
 
-        // Columna Derecha - Info Cliente
+        // Columna Derecha
         yPos = startYPos - 6;
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
@@ -518,10 +378,7 @@ function generarPDFFactura() {
             const textValue = doc.splitTextToSize(value, colWidth - 28);
             doc.text(textValue, col2X + 26, yPos);
 
-            // Espaciado normal
             yPos += 5;
-
-            // Salto extra después de Cliente y Dirección
             if (label === 'Cliente:' || label === 'Dirección:') {
                 yPos += 5;
             }
@@ -529,7 +386,7 @@ function generarPDFFactura() {
 
         yPos = Math.max(yPos, startYPos + 25) + 8;
 
-        // TABLA DE PRODUCTOS
+        // Tabla
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
@@ -558,10 +415,7 @@ function generarPDFFactura() {
                 fontStyle: 'bold',
                 fontSize: 9
             },
-            styles: {
-                fontSize: 8,
-                cellPadding: 2
-            },
+            styles: { fontSize: 8, cellPadding: 2 },
             columnStyles: {
                 0: { cellWidth: 22 },
                 1: { cellWidth: 'auto' },
@@ -572,9 +426,7 @@ function generarPDFFactura() {
             }
         });
 
-        // TOTALES
         const finalY = (doc as any).lastAutoTable.finalY + 8;
-
         const totales = [
             ['Subtotal (0%):', `$${factura.facSubtotalSinIva.toFixed(2)}`],
             ['Subtotal (IVA):', `$${factura.facSubtotalConIva.toFixed(2)}`],
@@ -583,7 +435,6 @@ function generarPDFFactura() {
 
         let totalY = finalY;
         doc.setFontSize(9);
-
         const totalesX = pageWidth - margin - 50;
 
         totales.forEach(([label, value]) => {
@@ -597,71 +448,35 @@ function generarPDFFactura() {
             totalY += 6;
         });
 
-        // TOTAL GENERAL
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
         doc.text('TOTAL:', totalesX, totalY, { align: 'right' });
         doc.text(`$${factura.facTotal.toFixed(2)}`, pageWidth - margin, totalY, { align: 'right' });
 
-        // PIE DE PÁGINA
-        const pageHeight = doc.internal.pageSize.height;
-        doc.setFontSize(7);
-        doc.setTextColor(colorSecundario[0], colorSecundario[1], colorSecundario[2]);
-        doc.setFont('helvetica', 'italic');
-        doc.text(
-            `Documento generado el ${new Date().toLocaleDateString('es-ES')}`,
-            pageWidth / 2,
-            pageHeight - 10,
-            { align: 'center' }
-        );
-
         const nombreArchivo = `Factura_${formatInvoiceNumber(factura.facNumeroFactura).replace(/\//g, '-')}.pdf`;
         doc.save(nombreArchivo);
 
-        // ====== REMOVER MENSAJE DE CARGA ======
-        const toast = document.getElementById('pdfLoadingToast');
-        if (toast) toast.remove();
-
-        // ====== MOSTRAR MENSAJE DE ÉXITO ======
-        const successToast = document.createElement('div');
-        successToast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
-        successToast.style.zIndex = '9999';
-        successToast.style.marginTop = '20px';
-        successToast.innerHTML = `
-            <div class="toast show" role="alert">
-                <div class="toast-header bg-success text-white">
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                    <strong class="me-auto">PDF Generado</strong>
-                    <button type="button" class="btn-close btn-close-white" onclick="this.closest('.position-fixed').remove()"></button>
-                </div>
-                <div class="toast-body">
-                    El PDF fue generado correctamente. Seleccione dónde desea guardarlo.
-                </div>
-            </div>
-        `;
-        document.body.appendChild(successToast);
-
-        // Cerrar automáticamente después de 4 segundos
-        setTimeout(() => {
-            if (successToast.parentNode) {
-                successToast.remove();
-            }
-        }, 10000);
-    }, 1000); // Tiempo para que se vea el mensaje de carga
+        removeLoadingToast();
+        showSuccessToast();
+    }, 1000);
 }
-// 1. openReporteGlobal (adaptado de clientes)
+
+// ============================================
+// REPORTE GLOBAL
+// ============================================
 async function openReporteGlobal() {
     const modalEl = document.getElementById("reporteGlobalModal");
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
-    setupGlobalReportFiltersListeners(); // Ensure listeners
+    setupGlobalReportFiltersListeners();
+
     const tbody = document.getElementById("globalReportBody");
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border text-primary" role="status"></div><br>Cargando datos globales...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border text-primary" role="status"></div><br>Cargando datos globales...</td></tr>';
+
     try {
         let invoices = [];
-        // Usar cache o fetch si vacío
         if (facturasData.length > 0) {
             invoices = facturasData;
         } else {
@@ -673,7 +488,7 @@ async function openReporteGlobal() {
             const dataInvoices = await resInvoices.json();
             invoices = Array.isArray(dataInvoices) ? dataInvoices : (dataInvoices.data || []);
         }
-        // Cargar clientes si no están (para joins)
+
         if (allClientsCache.length === 0) {
             const resClients = await fetch(CLIENTES_URL, { headers: getAuthHeaders() });
             if (resClients.ok) {
@@ -682,31 +497,28 @@ async function openReporteGlobal() {
             }
         }
         allInvoicesCache = invoices;
-        // Poblar select de tipos pago (nuevo)
+
         const selectTipo = document.getElementById("globalFiltroTipoPago") as HTMLSelectElement;
         if (selectTipo && allTiposPago.length > 0) {
             selectTipo.innerHTML = '<option value="">Todos los tipos</option>' +
                 allTiposPago.map(t => `<option value="${t.tipIdTipop}">${t.tipDescripcion}</option>`).join('');
         }
-        // Reset filtros
+
         resetGlobalFilters();
         applyGlobalFilters();
     } catch (e) {
         console.error("Error loading global report data", e);
-        tbody.innerHTML = `<tr><td colspan="6" class="text-danger">Error cargando datos. Ver consola para más detalles.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error cargando datos. Ver consola para más detalles.</td></tr>`;
     }
 }
 
-// 2. setupGlobalReportFiltersListeners (adaptado)
 function setupGlobalReportFiltersListeners() {
-    const ids = ["globalFiltroTipoPago", "globalFiltroEstado"];
-    ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && !el.dataset.listenerAttached) {
-            el.addEventListener("change", applyGlobalFilters);
-            el.dataset.listenerAttached = "true";
-        }
-    });
+    const el = document.getElementById("globalFiltroTipoPago");
+    if (el && !el.dataset.listenerAttached) {
+        el.addEventListener("change", applyGlobalFilters);
+        el.dataset.listenerAttached = "true";
+    }
+
     const btnClear = document.getElementById("btnLimpiarFiltrosGlobal");
     if (btnClear && !btnClear.dataset.listenerAttached) {
         btnClear.addEventListener("click", () => {
@@ -717,43 +529,35 @@ function setupGlobalReportFiltersListeners() {
     }
 }
 
-// 3. resetGlobalFilters
 function resetGlobalFilters() {
-    globalFilters = { tipoPago: "", estado: "" };
+    globalFilters = { tipoPago: "" };
     (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value = "";
-    (document.getElementById("globalFiltroEstado") as HTMLSelectElement).value = "";
 }
 
-// 4. applyGlobalFilters (adaptado para facturas)
 function applyGlobalFilters() {
     globalFilters.tipoPago = (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value;
-    globalFilters.estado = (document.getElementById("globalFiltroEstado") as HTMLSelectElement).value;
+
     filteredGlobalFacturas = allInvoicesCache.filter(f => {
         let validTipo = true;
         if (globalFilters.tipoPago !== "") {
             const tipoId = parseInt(globalFilters.tipoPago);
             validTipo = !isNaN(tipoId) && f.tipIdTipop === tipoId;
         }
-        let validEstado = true;
-        if (globalFilters.estado !== "") {
-            validEstado = f.facEstadoFactura.toString() === globalFilters.estado;
-        }
-        return validTipo && validEstado;
+        return validTipo;
     });
     renderGlobalReportTable();
 }
 
-// 5. renderGlobalReportTable (adaptado)
 function renderGlobalReportTable() {
     const tbody = document.getElementById("globalReportBody");
     if (!tbody) return;
     if (filteredGlobalFacturas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay facturas que coincidan con los filtros.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay facturas que coincidan con los filtros.</td></tr>';
         return;
     }
     tbody.innerHTML = filteredGlobalFacturas.map(factura => {
         const clienteNombre = allClientsCache.find(c => c.cliCedula === (factura.cliente?.cliCedula || factura.cliCedula))?.cliNombre || factura.cliente?.cliNombre || "N/A";
-        const tipoPagoDesc = getTipoPagoInfo(factura); // Reusa función existente
+        const tipoPagoDesc = getTipoPagoInfo(factura);
         return `
             <tr>
                 <td class="font-monospace">${formatInvoiceNumber(factura.facNumeroFactura)}</td>
@@ -761,13 +565,11 @@ function renderGlobalReportTable() {
                 <td>${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}</td>
                 <td class="fw-bold">$${factura.facTotal.toFixed(2)}</td>
                 <td><span class="badge bg-secondary">${tipoPagoDesc}</span></td>
-                <td><span class="badge ${factura.facEstadoFactura ? "text-bg-success" : "text-bg-danger"}">${factura.facEstadoFactura ? "Activa" : "Anulada"}</span></td>
             </tr>
         `;
     }).join("");
 }
 
-// 6. generarReporteGlobalPDF (nueva, adaptada de clientes)
 async function generarReporteGlobalPDF() {
     if (filteredGlobalFacturas.length === 0) {
         alert("No hay datos para generar el reporte con los filtros actuales.");
@@ -777,6 +579,7 @@ async function generarReporteGlobalPDF() {
     const doc = new jsPDF();
     let isFirstPage = true;
     let yPos = 50;
+
     // Portada
     doc.setFillColor(41, 128, 185);
     doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
@@ -786,10 +589,10 @@ async function generarReporteGlobalPDF() {
     doc.text("REPORTE GENERAL DE FACTURAS", doc.internal.pageSize.width / 2, 25, { align: "center" });
     doc.setFontSize(14);
     doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.width / 2, 35, { align: "center" });
+
     yPos = 50;
     for (let i = 0; i < filteredGlobalFacturas.length; i++) {
         const factura = filteredGlobalFacturas[i];
-        // Cargar detalles completos si no están (similar a showFacturaDetails)
         if (!factura.detallesFactura) {
             try {
                 const res = await fetch(`${API_URL}/${factura.facNumeroFactura}`, { headers: getAuthHeaders() });
@@ -800,6 +603,7 @@ async function generarReporteGlobalPDF() {
                 }
             } catch (e) { console.warn("Error cargando detalles para PDF", e); }
         }
+
         if (yPos > doc.internal.pageSize.height - 40) {
             doc.addPage();
             yPos = 20;
@@ -808,14 +612,15 @@ async function generarReporteGlobalPDF() {
             doc.line(15, yPos - 5, doc.internal.pageSize.width - 15, yPos - 5);
         }
         isFirstPage = false;
-        generateFacturaSection(doc, factura, yPos); // Nueva función abajo
+        generateFacturaSection(doc, factura, yPos);
         const lastY = (doc as any).lastAutoTable?.finalY;
-        yPos = lastY ? lastY + 15 : yPos + 60; // Espacio estimado
+        yPos = lastY ? lastY + 15 : yPos + 60;
     }
     doc.save(`Reporte_Global_Facturas_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
     removeLoadingToast();
     showSuccessToast();
 }
+
 function drawTextBlock(
     doc: jsPDF,
     text: string,
@@ -825,10 +630,9 @@ function drawTextBlock(
 ): number {
     const lines = doc.splitTextToSize(text, maxWidth);
     doc.text(lines, x, y);
-    return y + doc.getTextDimensions(lines).h + 3; // espacio seguro
+    return y + doc.getTextDimensions(lines).h + 3;
 }
 
-// 7. generateFacturaSection (nueva, adaptada de generarPDFFactura individual)
 function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
     const margin = 15;
     doc.setTextColor(0, 0, 0);
@@ -838,58 +642,20 @@ function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 100, 100);
+
     const clienteCedula = factura.cliente?.cliCedula || factura.cliCedula || "";
     const clienteNombre = allClientsCache.find(c => c.cliCedula === clienteCedula)?.cliNombre || factura.cliente?.cliNombre || "N/A";
     const tipoPago = getTipoPagoInfo(factura);
-    const estado = factura.facEstadoFactura ? "Activa" : "Anulada";
+
     let currentY = startY + 6;
     const maxWidth = doc.internal.pageSize.width - margin * 2;
 
-    currentY = drawTextBlock(
-        doc,
-        `Cliente: ${clienteNombre}`,
-        margin,
-        currentY,
-        maxWidth
-    );
-
-    currentY = drawTextBlock(
-        doc,
-        `Tipo de Pago: ${tipoPago}`,
-        margin,
-        currentY,
-        maxWidth
-    );
-
-    currentY = drawTextBlock(
-        doc,
-        `Estado: ${estado}`,
-        margin,
-        currentY,
-        maxWidth
-    );
-
-    currentY = drawTextBlock(
-        doc,
-        `Fecha: ${factura.facFechaEmision
-            ? String(factura.facFechaEmision).split("T")[0]
-            : "N/A"
-        }`,
-        margin,
-        currentY,
-        maxWidth
-    );
-
-    currentY = drawTextBlock(
-        doc,
-        `Total: $${factura.facTotal.toFixed(2)}`,
-        margin,
-        currentY,
-        maxWidth
-    );
+    currentY = drawTextBlock(doc, `Cliente: ${clienteNombre}`, margin, currentY, maxWidth);
+    currentY = drawTextBlock(doc, `Tipo de Pago: ${tipoPago}`, margin, currentY, maxWidth);
+    currentY = drawTextBlock(doc, `Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}`, margin, currentY, maxWidth);
+    currentY = drawTextBlock(doc, `Total: $${factura.facTotal.toFixed(2)}`, margin, currentY, maxWidth);
 
     const tableStartY = currentY + 4;
-
     const detalles = factura.detallesFactura || [];
     if (detalles.length > 0) {
         const tableData = detalles.map((d: any) => [
@@ -916,13 +682,12 @@ function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
         doc.text("(Sin detalles de productos)", margin + 5, tableStartY + 4);
         (doc as any).lastAutoTable = { finalY: tableStartY + 5 };
     }
-    // Total al pie de sección
     const finalY = (doc as any).lastAutoTable?.finalY || tableStartY + 10;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text(`Total: $${factura.facTotal.toFixed(2)}`, doc.internal.pageSize.width - margin, finalY, { align: 'right' });
 }
-// --- Toast Helpers ---
+
 function showLoadingToast(msg = "Generando Reporte...") {
     if (document.getElementById('pdfLoadingToast')) return;
     const toast = document.createElement('div');
@@ -961,6 +726,7 @@ function showSuccessToast() {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
 }
+
 async function showFacturaDetails(numeroFactura: string) {
     let factura = facturasData.find(f => f.facNumeroFactura === numeroFactura);
 
@@ -1015,12 +781,11 @@ async function showFacturaDetails(numeroFactura: string) {
     const estNombre = factura?.puntoEmision?.establecimiento?.estNombre || "N/A";
     setText("modalFacEstablecimiento", estNombre);
 
-    const estadoEl = document.getElementById("modalFacEstado");
-    if (estadoEl) {
-        estadoEl.innerHTML = `<span class="badge ${factura.facEstadoFactura ? "text-bg-success" : "text-bg-danger"}">
-            ${factura.facEstadoFactura ? "Activa" : "Anulada"}
-        </span>`;
-    }
+    // ==========================================================
+    // CORRECCIÓN: Agregar la línea que faltaba
+    // ==========================================================
+    setText("modalFacTipoPago", getTipoPagoInfo(factura));
+    // ==========================================================
 
     const cli = factura.cliente;
     setText("modalCliNombre", cli?.cliNombre || factura.cliCedula);
@@ -1059,7 +824,6 @@ async function showFacturaDetails(numeroFactura: string) {
     setText("modalFacIva", `$${factura.facIva.toFixed(2)}`);
     setText("modalFacTotal", `$${factura.facTotal.toFixed(2)}`);
 
-    // AGREGAR ESTO NUEVO AQUÍ
     facturaActual = factura;
 
     const downloadBtn = document.getElementById("downloadPdfBtn");
@@ -1068,7 +832,6 @@ async function showFacturaDetails(numeroFactura: string) {
         downloadBtn.parentNode?.replaceChild(newBtn, downloadBtn);
         newBtn.addEventListener("click", generarPDFFactura);
     }
-    // FIN DE LO NUEVO
 
     const modalEl = document.getElementById("viewFacturaModal");
     if (modalEl) {
