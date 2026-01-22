@@ -54,20 +54,31 @@ import background from "../assets/background.svg";
 
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label for="estRuc" class="form-label fw-medium small">
+                    <label class="form-label fw-medium small">
                       <i class="bi bi-building me-1"></i>Establecimiento
                     </label>
-                    <select class="form-select" id="estRuc" required>
-                      <option value="">Seleccione...</option>
-                    </select>
+                    <input 
+                      type="text" 
+                      class="form-control bg-light" 
+                      value="Gran Aqui" 
+                      readonly 
+                      disabled
+                    />
+                    <input type="hidden" id="estRuc" />
                   </div>
+                  
                   <div class="col-md-6">
-                    <label for="pemId" class="form-label fw-medium small">
+                    <label class="form-label fw-medium small">
                       <i class="bi bi-geo-alt me-1"></i>Punto de Emisión
                     </label>
-                    <select class="form-select" id="pemId" required disabled>
-                      <option value="">Seleccione...</option>
-                    </select>
+                    <input 
+                      type="text" 
+                      class="form-control bg-light" 
+                      value="Caja de cobro - 001" 
+                      readonly 
+                      disabled
+                    />
+                    <input type="hidden" id="pemId" />
                   </div>
                   <div class="col-md-6">
                     <label for="tipIdTipop" class="form-label fw-medium small">
@@ -507,6 +518,27 @@ import background from "../assets/background.svg";
             class="btn btn-danger px-5"
             data-bs-dismiss="modal">Corregir</button
           >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade"
+    id="loadingModal"
+    tabindex="-1"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-body text-center p-4">
+          <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <h5 class="fw-bold text-secondary mb-0">Generando Factura...</h5>
+          <p class="text-muted small mt-2 mb-0">Por favor, espera.</p>
         </div>
       </div>
     </div>
