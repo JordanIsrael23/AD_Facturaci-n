@@ -1,6 +1,6 @@
 
 // src/scripts/editar-cliente.ts
-import { getAuthHeaders, checkAuth } from "./auth";
+import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
@@ -72,6 +72,13 @@ export async function initEditarCliente() {
             });
 
             if (response.ok || response.status === 204) {
+                await registrarAuditoria(
+                    'Editar Clientes',
+                    'UPDATE',
+                    `Se editó el cliente: ${cliente.cliNombre}`,
+                    `Cédula: ${cliente.cliCedula}`
+                ).catch(err => console.warn('Error en auditoría:', err));
+
                 mostrarModal("successEditModal");
 
                 document.getElementById('btnOkEditSuccess')?.addEventListener('click', () => {

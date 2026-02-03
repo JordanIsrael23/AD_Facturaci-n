@@ -1,6 +1,6 @@
 
 // src/scripts/crear-cliente.ts
-import { getAuthHeaders, checkAuth } from "./auth";
+import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL + "Clientes";
 
@@ -41,6 +41,13 @@ export function initCrearCliente() {
 
             if (response.ok) {
                 // MOSTRAR MODAL DE ÉXITO
+                await registrarAuditoria(
+                    'Crear Clientes',
+                    'CREATE',
+                    `Se creó el cliente: ${cliente.cliNombre}`,
+                    `Cédula: ${cliente.cliCedula}`
+                ).catch(err => console.warn('Error en auditoría:', err));
+
                 const modalEl = document.getElementById('successModal');
                 if (modalEl) {
                     const successModal = new bootstrap.Modal(modalEl);

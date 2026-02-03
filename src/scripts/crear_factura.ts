@@ -1,4 +1,4 @@
-import { getAuthHeaders, checkAuth } from "./auth";
+import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 
 // --- CONFIGURACIÓN API (Del Archivo Verdadero) ---
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
@@ -625,13 +625,20 @@ async function handleSubmit(e: Event) {
                 console.warn("La respuesta no tiene JSON válido, pero fue exitosa.");
             }
 
+            await registrarAuditoria(
+                'Generar Facturas',
+                'CREATE',
+                `Se creó la factura ${numeroFactura || '(Pendiente)'} para ${cliCedula}`,
+                `Total: $${totalFactura.toFixed(2)}`
+            ).catch(err => console.warn('Error en auditoría:', err));
+
             const modalEl = document.getElementById('successModal');
             if (modalEl) {
                 const modal = new bootstrap.Modal(modalEl);
                 const msgExito = document.getElementById('mensajeExitoId');
-                
+
                 if (msgExito) {
-                    msgExito.innerText = numeroFactura 
+                    msgExito.innerText = numeroFactura
                         ? `Factura ${numeroFactura} generada correctamente.`
                         : `Factura generada correctamente.`;
                 }
@@ -646,14 +653,31 @@ async function handleSubmit(e: Event) {
                 return;
             }
 
-            let msg = "Error al crear factura";
+            let msg = `Error al crear factura (${response.status})`;
             const rawText = await response.text();
+
+            // Log para debug en consola, siempre útil
+            console.error("Error backend status:", response.status);
+            console.error("Error backend raw:", rawText);
+
             try {
                 const errData = JSON.parse(rawText);
-                msg = errData.detail || errData.message || JSON.stringify(errData);
-                if (errData.errors) msg += ": " + JSON.stringify(errData.errors);
+                // Prioridad de mensajes
+                const mainMsg = errData.detail || errData.message || errData.title;
+                if (mainMsg) {
+                    msg = mainMsg;
+                }
+
+                // Si hay validaciones específicas (campo 'errors' o 'validationErrors')
+                if (errData.errors) {
+                    msg += "\n\n" + JSON.stringify(errData.errors, null, 2);
+                } else if (!mainMsg) {
+                    // Fallback: si es JSON pero no tiene estructura conocida, mostrar todo
+                    msg += "\n\n" + JSON.stringify(errData, null, 2);
+                }
             } catch (e) {
-                if (rawText) msg = rawText;
+                // Si no es JSON, mostrar el texto crudo (puede ser HTML de error 500)
+                if (rawText) msg += "\n\n" + rawText;
             }
             mostrarErrorEnModal(msg);
         }

@@ -16,14 +16,10 @@ export function initReportes() {
     checkAuth();
     cargarDatos();
     setupEventListeners();
-    
+
     // Registrar auditoría
-    registrarAuditoria(
-        'Generar Reportes',
-        'VIEW',
-        'Usuario accedió al módulo de reportes',
-        'Centro de reportes'
-    ).catch(err => console.warn('Error en auditoría:', err));
+    // Auditoria de acceso eliminada
+
 }
 
 function setupEventListeners() {
@@ -103,7 +99,7 @@ function actualizarEstadisticas() {
 
 async function generarReporteClientesGeneral() {
     await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte general de clientes', '');
-    
+
     const doc = new jsPDF();
     agregarEncabezado(doc, 'REPORTE GENERAL DE CLIENTES');
 
@@ -197,11 +193,11 @@ async function generarReporteClientesFacturas() {
     agregarEncabezado(doc, 'CLIENTES CON HISTORIAL DE COMPRAS');
 
     const tableData = clientesData.map(cliente => {
-        const facturas = facturasData.filter(f => 
+        const facturas = facturasData.filter(f =>
             (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
         );
         const total = facturas.reduce((sum, f) => sum + f.facTotal, 0);
-        
+
         return [
             cliente.cliCedula,
             cliente.cliNombre,
@@ -229,19 +225,19 @@ async function generarReporteTopClientes() {
     await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte Top 10 clientes', '');
 
     const clientesConVentas = clientesData.map(cliente => {
-        const facturas = facturasData.filter(f => 
+        const facturas = facturasData.filter(f =>
             (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
         );
         const total = facturas.reduce((sum, f) => sum + f.facTotal, 0);
-        
+
         return {
             ...cliente,
             cantidadFacturas: facturas.length,
             totalComprado: total
         };
     }).filter(c => c.totalComprado > 0)
-      .sort((a, b) => b.totalComprado - a.totalComprado)
-      .slice(0, 10);
+        .sort((a, b) => b.totalComprado - a.totalComprado)
+        .slice(0, 10);
 
     const doc = new jsPDF();
     agregarEncabezado(doc, 'TOP 10 MEJORES CLIENTES');
@@ -409,11 +405,11 @@ async function generarReporteVentasCliente() {
     await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó resumen de ventas por cliente', '');
 
     const ventasPorCliente = clientesData.map(cliente => {
-        const facturas = facturasData.filter(f => 
+        const facturas = facturasData.filter(f =>
             (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
         );
         const total = facturas.reduce((sum, f) => sum + f.facTotal, 0);
-        
+
         return {
             cedula: cliente.cliCedula,
             nombre: cliente.cliNombre,
@@ -421,7 +417,7 @@ async function generarReporteVentasCliente() {
             total: total
         };
     }).filter(v => v.cantidad > 0)
-      .sort((a, b) => b.total - a.total);
+        .sort((a, b) => b.total - a.total);
 
     const doc = new jsPDF();
     agregarEncabezado(doc, 'RESUMEN DE VENTAS POR CLIENTE');
@@ -479,12 +475,12 @@ function renderChartVentasMes() {
         const ventasMes = facturasData
             .filter(f => {
                 const fechaFac = new Date(f.facFechaEmision);
-                return fechaFac.getMonth() === fecha.getMonth() && 
-                       fechaFac.getFullYear() === fecha.getFullYear() &&
-                       f.facEstadoFactura;
+                return fechaFac.getMonth() === fecha.getMonth() &&
+                    fechaFac.getFullYear() === fecha.getFullYear() &&
+                    f.facEstadoFactura;
             })
             .reduce((sum, f) => sum + f.facTotal, 0);
-        
+
         ventas.push(ventasMes);
     }
 
@@ -659,9 +655,9 @@ function mostrarToast(mensaje: string, tipo: 'success' | 'error' | 'info' = 'suc
         error: { bg: 'bg-danger', icon: 'exclamation-triangle-fill' },
         info: { bg: 'bg-info', icon: 'info-circle-fill' }
     };
-    
+
     const { bg, icon } = colores[tipo];
-    
+
     const toast = document.createElement('div');
     toast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
     toast.style.zIndex = '9999';
