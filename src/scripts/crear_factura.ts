@@ -604,6 +604,7 @@ async function handleSubmit(e: Event) {
     };
 
     // 5. Enviar
+    mostrarLoading();
     try {
         const response = await fetch(FACTURAS_URL, {
             method: "POST",
@@ -632,6 +633,7 @@ async function handleSubmit(e: Event) {
                 `Total: $${totalFactura.toFixed(2)}`
             ).catch(err => console.warn('Error en auditoría:', err));
 
+            ocultarLoading();
             const modalEl = document.getElementById('successModal');
             if (modalEl) {
                 const modal = new bootstrap.Modal(modalEl);
@@ -679,11 +681,13 @@ async function handleSubmit(e: Event) {
                 // Si no es JSON, mostrar el texto crudo (puede ser HTML de error 500)
                 if (rawText) msg += "\n\n" + rawText;
             }
+            ocultarLoading();
             mostrarErrorEnModal(msg);
         }
     } catch (error) {
         // Manejo de errores de red reales (servidor caído, sin internet)
         console.error("Error de red:", error);
+        ocultarLoading();
         mostrarErrorEnModal("Error de conexión con el servidor.");
     }
 }
@@ -694,5 +698,21 @@ function mostrarErrorEnModal(msg: string) {
     if (msgEl && modalEl) {
         msgEl.innerText = msg;
         new bootstrap.Modal(modalEl).show();
+    }
+}
+
+function mostrarLoading() {
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) {
+        overlay.classList.remove("d-none");
+        overlay.classList.add("d-flex");
+    }
+}
+
+function ocultarLoading() {
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) {
+        overlay.classList.add("d-none");
+        overlay.classList.remove("d-flex");
     }
 }
