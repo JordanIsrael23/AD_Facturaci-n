@@ -1,0 +1,138 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div class="container pt-3">
+    <a href="/clientes" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="bi bi-arrow-left"></i> Volver a Clientes
+    </a>
+</div>
+
+<div style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}></div>
+
+<main class="container pb-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="card shadow-lg border-0 rounded-lg mt-2">
+                <div class="card-header bg-primary text-white py-3">
+                    <h3 class="text-center font-weight-light my-0">
+                        <i class="bi bi-pencil-square me-2"></i>Editar Cliente
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <form autocomplete="off">
+                        <h5 class="mb-3 text-primary border-bottom pb-2">Información Personal</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="cedula" class="form-label">Cédula</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-person-vcard-fill"></i></span>
+                                    <input type="text" class="form-control" id="cedula" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cliNombre" class="form-label">Nombre</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-person-fill"></i></span>
+                                    <input type="text" class="form-control" id="cliNombre" required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="fechaNacimiento" class="form-label">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" id="fechaNacimiento" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tipoCliente" class="form-label">Tipo de Cliente</label>
+                                <select class="form-select" id="tipoCliente" required>
+                                    <option value="1">Contado</option>
+                                    <option value="2">Crédito</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 text-primary border-bottom pb-2">Contacto y Ubicación</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="cliTelefono" class="form-label">Teléfono</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-phone"></i></span>
+                                    <input type="tel" class="form-control" id="cliTelefono" maxlength="15" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">E-mail</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-envelope-fill"></i></span>
+                                    <input type="email" class="form-control" id="email" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="cliDireccion" class="form-label">Dirección</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-geo-alt-fill"></i></span>
+                                <input type="text" class="form-control" id="cliDireccion" />
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                <i class="bi bi-save-fill me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                    <div class="container pt-3">
+                        <a
+                            href="/clientes"
+                            class="btn btn-outline-secondary w-100 fw-bold py-2 mb-3 d-flex align-items-center justify-content-center"
+                        >
+                            <i class="bi bi-x-circle me-2"></i>
+                            Cancelar Cambios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="successEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-primary border-3">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-check-circle-fill me-2"></i>Actualización Exitosa</h5>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="lead">Los cambios se han guardado correctamente.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary px-4" id="btnOkEditSuccess">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-danger border-3">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i>Atención</h5>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="lead">Ocurrió un error inesperado.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    import { initEditarCliente } from "../scripts/editar_clientes";
+    document.addEventListener("DOMContentLoaded", initEditarCliente);
+</script>

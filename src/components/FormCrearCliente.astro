@@ -1,67 +1,50 @@
+---
+import background from "../assets/background.svg";
+---
+
 <div class="container pt-3">
-    <div>
-        <a href="clientes" class="btn btn-outline-secondary btn-sm mb-3">
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                class="bi bi-arrow-left me-1"
-                viewBox="0 0 16 16"
-            >
-                <path
-                    fill-rule="evenodd"
-                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
-                ></path>
-            </svg>
-            Volver a Clientes
-        </a>
-    </div>
+    <a href="/clientes" class="btn btn-outline-secondary btn-sm mb-3">
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            class="bi bi-arrow-left me-1"
+            viewBox="0 0 16 16"
+        >
+            <path
+                fill-rule="evenodd"
+                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+            ></path>
+        </svg>
+        Volver a Clientes
+    </a>
 </div>
 
-<div class="container">
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main class="container">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow-sm mt-4">
                 <div class="card-body p-4">
-                    <form autocomplete="off">
+                    <form id="formCrearCliente" autocomplete="off">
                         <h2 class="text-center text-primary mb-4">
                             Registrar Cliente<br />
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="40"
-                                height="40"
-                                fill="currentColor"
-                                class="bi bi-person-add"
-                                viewBox="0 0 16 16"
-                            >
-                                <path
-                                    d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0m-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4"
-                                ></path>
-                                <path
-                                    d="M8.256 14a4.5 4.5 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10q.39 0 .74.025c.226-.341.496-.65.804-.918Q8.844 9.002 8 9c-5 0-6 3-6 4s1 1 1 1z"
-                                ></path>
-                            </svg>
+                            <i class="bi bi-person-add fs-1"></i>
                         </h2>
 
                         <div class="mb-3">
                             <label for="cedula" class="form-label">Cédula</label
                             >
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-person-vcard-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm9 1.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4a.5.5 0 0 0-.5.5M9 8a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4A.5.5 0 0 0 9 8m1 2.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 0-1h-3a.5.5 0 0 0-.5.5m-1 2C9 10.567 7.21 9 5 9c-2.086 0-3.8 1.398-3.984 3.181A1 1 0 0 0 2 13h6.96q.04-.245.04-.5M7 6a2 2 0 1 0-4 0 2 2 0 0 0 4 0"
-                                        ></path>
-                                    </svg>
-                                </span>
+                                <span class="input-group-text"
+                                    ><i class="bi bi-person-vcard-fill"
+                                    ></i></span
+                                >
                                 <input
                                     type="text"
                                     class="form-control"
@@ -79,20 +62,9 @@
                                 >Nombre Completo</label
                             >
                             <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-person-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"
-                                        ></path>
-                                    </svg>
-                                </span>
+                                <span class="input-group-text"
+                                    ><i class="bi bi-person-fill"></i></span
+                                >
                                 <input
                                     type="text"
                                     class="form-control"
@@ -104,25 +76,11 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="fechaNacimiento" class="form-label"
-                                >Fecha de nacimiento</label
-                            >
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-calendar-event-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2m-3.5-7h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5"
-                                        ></path>
-                                    </svg>
-                                </span>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fechaNacimiento" class="form-label"
+                                    >Fecha de nacimiento</label
+                                >
                                 <input
                                     type="date"
                                     class="form-control"
@@ -131,30 +89,10 @@
                                     required
                                 />
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="tipoCliente" class="form-label"
-                                >Tipo de cliente</label
-                            >
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-person-check-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M15.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L12.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"
-                                        ></path>
-                                        <path
-                                            d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
-                                        ></path>
-                                    </svg>
-                                </span>
+                            <div class="col-md-6 mb-3">
+                                <label for="tipoCliente" class="form-label"
+                                    >Tipo de cliente</label
+                                >
                                 <select
                                     class="form-select"
                                     id="tipoCliente"
@@ -172,79 +110,33 @@
                             <label for="direccion" class="form-label"
                                 >Dirección</label
                             >
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-geo-alt-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"
-                                        ></path>
-                                    </svg>
-                                </span>
-                                <textarea
-                                    class="form-control"
-                                    id="direccion"
-                                    name="cli_direccion"
-                                    rows="3"
-                                    placeholder="Ingrese la dirección"
-                                ></textarea>
-                            </div>
+                            <textarea
+                                class="form-control"
+                                id="direccion"
+                                name="cli_direccion"
+                                rows="2"
+                                placeholder="Ingrese la dirección"></textarea>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="telefono" class="form-label"
-                                >Teléfono</label
-                            >
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-phone-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M3 2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm6 11a1 1 0 1 0-2 0 1 1 0 0 0 2 0"
-                                        ></path>
-                                    </svg>
-                                </span>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="telefono" class="form-label"
+                                    >Teléfono</label
+                                >
                                 <input
                                     type="text"
                                     class="form-control"
                                     id="telefono"
                                     name="cli_telefono"
-                                    placeholder="Número de teléfono"
+                                    placeholder="Teléfono"
                                     maxlength="15"
                                     required
                                 />
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        fill="currentColor"
-                                        class="bi bi-envelope-open-fill"
-                                        viewBox="0 0 16 16"
-                                    >
-                                        <path
-                                            d="M8.941.435a2 2 0 0 0-1.882 0l-6 3.2A2 2 0 0 0 0 5.4v.314l6.709 3.932L8 8.928l1.291.718L16 5.714V5.4a2 2 0 0 0-1.059-1.765zM16 6.873l-5.693 3.337L16 13.372v-6.5Zm-.059 7.611L8 10.072.059 14.484A2 2 0 0 0 2 16h12a2 2 0 0 0 1.941-1.516M0 13.373l5.693-3.163L0 6.873z"
-                                        ></path>
-                                    </svg>
-                                </span>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label"
+                                    >Email</label
+                                >
                                 <input
                                     type="email"
                                     class="form-control"
@@ -265,75 +157,99 @@
                                     id="cli_estado"
                                     checked
                                 />
-                                <label
-                                    class="form-check-label"
-                                    for="cli_estado"
+                                <label class="form-check-label" for="cli_estado"
+                                    >Cliente activo</label
                                 >
-                                    Cliente activo
-                                </label>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100">
-                            Guardar Cliente
-                        </button>
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100 fw-bold"
+                            >Guardar Cliente</button
+                        >
                     </form>
+                    <div class="container pt-3">
+                        <a
+                            href="/clientes"
+                            class="btn btn-outline-secondary w-100 fw-bold py-2 mb-3 d-flex align-items-center justify-content-center"
+                        >
+                            <i class="bi bi-x-circle me-2"></i>
+                            Cancelar Registro
+                        </a>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-success border-3">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                    Registro Exitoso
+                </h5>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="lead text-dark">
+                    ¡El cliente ha sido creado correctamente!
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button
+                    type="button"
+                    class="btn btn-success px-4"
+                    id="btnOkSuccess">Aceptar</button
+                >
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-danger border-3">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title d-flex align-items-center">
+                    <i class="bi bi-exclamation-octagon-fill me-2 fs-4"></i>
+                    Error de Validación
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-3">
+                    <i
+                        class="bi bi-x-circle text-danger"
+                        style="font-size: 3rem;"></i>
+                </div>
+                <p class="text-dark fw-bold text-center">
+                    No se pudo completar el registro:
+                </p>
+                <p
+                    id="errorModalMsg"
+                    class="text-muted small bg-light p-3 rounded border"
+                >
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center border-0">
+                <button
+                    type="button"
+                    class="btn btn-danger px-5"
+                    data-bs-dismiss="modal">Corregir Datos</button
+                >
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const API_URL = "http://127.0.0.1:5055/api/Clientes";
-
-    document.querySelector("form")?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const form = e.target as HTMLFormElement;
-        const formData = new FormData(form);
-
-        // Función auxiliar para convertir vacíos a null
-        const getValue = (key: string) => {
-            const val = formData.get(key)?.toString().trim();
-            return val === "" ? null : val;
-        };
-
-        const cliente = {
-            cliCedula: getValue("cli_cedula"),
-            cliNombre: getValue("cli_nombre"),
-            cliFechaNacimiento: getValue("cli_fecha_nacimiento"),
-            ticIdTipoc: parseInt(getValue("tic_id_tipoc") || "0"), // API requiere entero
-            cliDireccion: getValue("cli_direccion"),
-            cliTelefono: getValue("cli_telefono"),
-            cliEmail: getValue("cli_email"),
-            cliEstado:
-                form.querySelector<HTMLInputElement>("#cli_estado")?.checked,
-            // Campos de auditoría se llenan en backend usualmente, pero si son requeridos:
-            cliFechaCreacion: new Date().toISOString(),
-            // cliUsuarioCreacion: "system"
-        };
-
-        try {
-            const response = await fetch(API_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(cliente),
-            });
-
-            if (response.ok) {
-                alert("Cliente creado exitosamente");
-                window.location.href = "/clientes";
-            } else {
-                const errorText = await response.text();
-                console.error("Error creating client:", errorText);
-                alert("Error al crear cliente: " + errorText);
-            }
-        } catch (error) {
-            console.error("Network error:", error);
-            alert("Error de conexión con la API");
-        }
-    });
+    import { initCrearCliente } from "../scripts/crear_clientes";
+    document.addEventListener("DOMContentLoaded", initCrearCliente);
 </script>

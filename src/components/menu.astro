@@ -1,0 +1,277 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(40px); opacity: 0.4; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main
+    class="container d-flex align-items-center justify-content-center min-vh-100"
+>
+    <div class="row justify-content-center w-100">
+        <div class="col-lg-10 col-xl-8">
+            <div class="text-center mb-5">
+                <div class="mb-3">
+                    <i class="bi bi-cpu-fill display-2 text-primary opacity-75"
+                    ></i>
+                </div>
+                <h1
+                    class="display-4 fw-bold text-secondary text-uppercase tracking-wider mb-2"
+                >
+                    Sistema de <span class="text-primary">Facturación</span>
+                </h1>
+                <div
+                    class="mx-auto bg-primary opacity-25"
+                    style="height: 3px; width: 60px; border-radius: 2px;"
+                >
+                </div>
+                <!-- Info del usuario -->
+                <div class="mt-3">
+                    <small class="text-muted">
+                        Bienvenido, <strong id="username-display">Usuario</strong> 
+                        (<span id="role-display">Cargando...</span>)
+                    </small>
+                </div>
+            </div>
+
+            <div class="row g-3" id="menu-container">
+                <!-- Gestión de Clientes -->
+                <div class="col-md-6" data-require-any="Crear Clientes,Editar Clientes,Desactivar Clientes">
+                    <a href="/clientes" class="btn-menu-custom">
+                        <div
+                            class="icon-wrapper bg-primary-subtle text-primary"
+                        >
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Gestión de Clientes
+                            </h5>
+                            <small class="text-muted">Administra tus clientes</small>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Gestión de Facturas -->
+                <div class="col-md-6" data-require-function="Generar Facturas">
+                    <a href="/facturas" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-info-subtle text-info">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Gestión de Facturas
+                            </h5>
+                            <small class="text-muted">Crea y administra facturas</small>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Reportes -->
+                <div class="col-md-6" data-require-function="Generar Reportes">
+                    <a href="/reportes" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-success-subtle text-success">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Reportes
+                            </h5>
+                            <small class="text-muted">Visualiza estadísticas</small>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Auditoría -->
+                <div class="col-md-6" data-require-function="Ver Pistas de Auditoria">
+                    <a href="/auditoria" class="btn-menu-custom">
+                        <div
+                            class="icon-wrapper bg-warning-subtle text-warning"
+                        >
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Revisión de Auditoría
+                            </h5>
+                            <small class="text-muted">Historial de acciones</small>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Establecimientos -->
+                <div class="col-md-6" data-require-any="Crear Establecimientos,Editar Establecimientos,Desactivar Establecimientos">
+                    <a href="/establecimientos" class="btn-menu-custom">
+                        <div
+                            class="icon-wrapper bg-success-subtle text-success"
+                        >
+                            <i class="bi bi-building-fill"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Gestión de Establecimientos
+                            </h5>
+                            <small class="text-muted">Administra establecimientos</small>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Puntos de Emisión -->
+                <div class="col-md-6" data-require-any="Crear Puntos de emisión,Editar Puntos de emisión,Desactivar Puntos de emisión">
+                    <a href="/puntos-emision" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-danger-subtle text-danger">
+                            <i class="bi bi-shop-window"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Gestión de Puntos de Emisión
+                            </h5>
+                            <small class="text-muted">Configura puntos de venta</small>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Cerrar Sesión (Siempre visible) -->
+                <div class="col-md-6">
+                    <a href="#" id="btnLogout" class="btn-menu-custom">
+                        <div class="icon-wrapper bg-danger-subtle text-danger">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </div>
+                        <div class="ms-3 text-start">
+                            <h5 class="mb-1 fw-bold text-dark">
+                                Cerrar Sesión
+                            </h5>
+                            <small class="text-muted">Salir del sistema</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mensaje si no tiene permisos -->
+            <div id="no-permissions-message" class="text-center mt-4 d-none">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    No tienes permisos asignados para ningún módulo. 
+                    Contacta al administrador.
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    import { logout, getUserData, getRoleName, getUserFunciones, checkAuth, registrarAuditoria } from "../scripts/auth";
+    import "../scripts/protectedElement";
+
+    // Verificar autenticación
+    checkAuth();
+
+    // Cargar información del usuario
+    const user = getUserData();
+    const rol = getRoleName();
+    const funciones = getUserFunciones();
+
+    if (user) {
+        const usernameDisplay = document.getElementById("username-display");
+        const roleDisplay = document.getElementById("role-display");
+        
+        if (usernameDisplay) usernameDisplay.textContent = user.username;
+        if (roleDisplay) roleDisplay.textContent = rol;
+    }
+
+    console.log("📋 Permisos del usuario:", funciones.map(f => f.nombre));
+
+    // Verificar si tiene al menos un permiso
+    const menuItems = document.querySelectorAll('[data-require-function], [data-require-any]');
+    let hasAnyPermission = false;
+
+    menuItems.forEach(item => {
+        const el = item as HTMLElement;
+        if (el.style.display !== 'none' && !el.classList.contains('d-none')) {
+            hasAnyPermission = true;
+        }
+    });
+
+    // Mostrar mensaje si no tiene permisos
+    if (!hasAnyPermission) {
+        const noPermissionsMsg = document.getElementById("no-permissions-message");
+        if (noPermissionsMsg) {
+            noPermissionsMsg.classList.remove('d-none');
+        }
+    }
+
+    // Registrar auditoría de acceso al menú
+    if (funciones.length > 0) {
+        registrarAuditoria(
+            funciones[0].nombre, // Usar la primera función disponible
+            'VIEW',
+            'Usuario accedió al menú principal',
+            `Rol: ${rol}, Funciones: ${funciones.length}`
+        );
+    }
+
+    // Manejar logout
+    document.getElementById("btnLogout")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        
+        // Confirmar antes de cerrar sesión
+        if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
+            logout();
+        }
+    });
+</script>
+
+<style>
+    /* Solo usamos CSS para detalles de comportamiento que Bootstrap no maneja por defecto */
+    .btn-menu-custom {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 1rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        height: 100%;
+    }
+
+    .btn-menu-custom:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        border-color: #0d6efd44;
+    }
+
+    .icon-wrapper {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        font-size: 1.75rem;
+        flex-shrink: 0;
+    }
+
+    .tracking-wider {
+        letter-spacing: 0.1rem;
+    }
+
+    /* Animación suave al ocultar elementos */
+    [data-require-function],
+    [data-require-any],
+    [data-require-all] {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    [data-require-function].d-none,
+    [data-require-any].d-none,
+    [data-require-all].d-none {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+</style>

@@ -1,0 +1,548 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div class="container pt-3">
+  <a href="/facturas" class="btn btn-outline-secondary btn-sm mb-3">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      fill="currentColor"
+      class="bi bi-arrow-left me-1"
+      viewBox="0 0 16 16"
+    >
+      <path
+        fill-rule="evenodd"
+        d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+      ></path>
+    </svg>
+    Volver a Facturas
+  </a>
+</div>
+
+<div
+  style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow-sm mt-2 mb-5">
+        <div class="card-body p-4">
+          <form id="formCrearFactura" autocomplete="off">
+            <div
+              class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3"
+            >
+              <h2 class="text-primary fw-bold mb-0">
+                <i class="bi bi-receipt-cutoff me-2"></i>Nueva Factura
+              </h2>
+              <a
+                href="/crear-cliente"
+                class="btn btn-outline-primary btn-sm d-flex align-items-center"
+              >
+                <i class="bi bi-person-plus-fill me-1"></i> Nuevo Cliente
+              </a>
+            </div>
+
+            <div class="card bg-light border-0 mb-4">
+              <div class="card-body">
+                <h5 class="card-title text-secondary border-bottom pb-2 mb-3">
+                  <i class="bi bi-receipt me-2"></i>Datos de Facturación
+                </h5>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label for="estRuc" class="form-label fw-medium small">
+                      <i class="bi bi-building me-1"></i>Establecimiento
+                    </label>
+                    <select class="form-select" id="estRuc" required>
+                      <option value="">Seleccione...</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="pemId" class="form-label fw-medium small">
+                      <i class="bi bi-geo-alt me-1"></i>Punto de Emisión
+                    </label>
+                    <select class="form-select" id="pemId" required disabled>
+                      <option value="">Seleccione...</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="tipIdTipop" class="form-label fw-medium small">
+                      <i class="bi bi-wallet2 me-1"></i>Tipo de Pago
+                    </label>
+                    <select class="form-select" id="tipIdTipop" required>
+                      <option value="">Seleccione...</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label
+                      for="facFechaVisual"
+                      class="form-label fw-medium small"
+                    >
+                      <i class="bi bi-calendar-event-fill me-1"></i>Fecha de
+                      Emisión
+                    </label>
+                    <input
+                      type="date"
+                      class="form-control bg-white"
+                      id="facFechaVisual"
+                      readonly
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card bg-light border-0 mb-4">
+              <div class="card-body">
+                <h5 class="card-title text-secondary border-bottom pb-2 mb-3">
+                  <i class="bi bi-person-vcard me-2"></i>Datos del Cliente
+                </h5>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-medium small">
+                      <i class="bi bi-search me-1"></i>Buscar Cliente
+                    </label>
+                    <div class="input-group">
+                      <input
+                        type="text"
+                        class="form-control bg-white"
+                        id="cliCedulaVisual"
+                        placeholder="Clic para buscar..."
+                        readonly
+                        required
+                        style="cursor: pointer;"
+                        onclick="document.getElementById('btnBuscarCliente').click()"
+                      />
+                      <input type="hidden" id="cliCedula" name="cliCedula" />
+                      <button
+                        class="btn btn-primary"
+                        type="button"
+                        id="btnBuscarCliente"
+                      >
+                        <i class="bi bi-search"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-medium small">
+                      <i class="bi bi-person-fill me-1"></i>Nombre
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control bg-white"
+                      id="cliNombreVisual"
+                      readonly
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-medium small">
+                      <i class="bi bi-tags-fill me-1"></i>Tipo
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control bg-white"
+                      id="cliTipoVisual"
+                      readonly
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-medium small">
+                      <i class="bi bi-telephone-fill me-1"></i>Teléfono
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control bg-white"
+                      id="cliTelefonoVisual"
+                      readonly
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-medium small">
+                      <i class="bi bi-envelope-at-fill me-1"></i>Email
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control bg-white"
+                      id="cliEmailVisual"
+                      readonly
+                    />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fw-medium small">
+                      <i class="bi bi-geo-alt-fill me-1"></i>Dirección
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control bg-white"
+                      id="cliDireccionVisual"
+                      readonly
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <h5 class="text-secondary mb-0">
+                  <i class="bi bi-box-seam me-2"></i>Detalle de Productos
+                </h5>
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  id="btnAddDetalle"
+                >
+                  <i class="bi bi-plus-lg me-1"></i> Agregar Producto
+                </button>
+              </div>
+              <div
+                class="alert alert-info d-flex align-items-center py-2 mb-3 small"
+                role="alert"
+              >
+                <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                <div>
+                  La descripción, precios e impuestos se completarán
+                  automáticamente desde el inventario.
+                </div>
+              </div>
+              <div class="table-responsive bg-white border rounded">
+                <table class="table table-bordered mb-0 align-middle table-sm">
+                  <thead class="table-light">
+                    <tr class="text-center small">
+                      <th style="width: 40px;"><i class="bi bi-trash"></i></th>
+                      <th>Producto</th>
+                      <th>Código</th>
+                      <th>Stock</th>
+                      <th>Costo</th>
+                      <th style="width: 70px;">Cant.</th>
+                      <th>Impuesto</th>
+                      <th>P. Unit</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyDetalles"> </tbody>
+                </table>
+                <div id="emptyMessage" class="text-center text-muted p-3 small">
+                  No hay productos agregados. Haz clic en "Agregar Producto".
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 pt-3 border-top"
+            >
+              <a
+                href="/facturas"
+                class="btn btn-outline-secondary px-4 fw-medium">Cancelar</a
+              >
+              <button
+                type="submit"
+                class="btn btn-success px-5 fw-bold d-flex align-items-center justify-content-center"
+              >
+                <i class="bi bi-save me-2"></i> Emitir Factura
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade"
+    id="modalBuscarCliente"
+    tabindex="-1"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-person-lines-fill me-2"></i>Buscar Cliente
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row mb-3 g-2">
+            <div class="col-md-6">
+              <div class="input-group">
+                <button
+                  class="btn btn-outline-secondary btnFiltroModal"
+                  type="button"
+                  data-for="filtroModalCedula"
+                  ><i class="bi bi-funnel"></i></button
+                >
+                <input
+                  type="text"
+                  id="filtroModalCedula"
+                  class="form-control"
+                  placeholder="Filtrar por Cédula"
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <button
+                  class="btn btn-outline-secondary btnFiltroModal"
+                  type="button"
+                  data-for="filtroModalNombre"
+                  ><i class="bi bi-funnel"></i></button
+                >
+                <input
+                  type="text"
+                  id="filtroModalNombre"
+                  class="form-control"
+                  placeholder="Filtrar por Nombre"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class="table-responsive border rounded"
+            style="max-height: 350px; overflow-y: auto;"
+          >
+            <table
+              class="table table-hover table-striped mb-0 align-middle small"
+            >
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>Sel.</th>
+                  <th>Cédula</th>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyModalClientes"></tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <small class="text-muted" id="infoPaginacionModal"
+              >0 resultados</small
+            >
+            <div>
+              <button
+                class="btn btn-sm btn-outline-secondary me-1"
+                id="btnModalAnt">Anterior</button
+              >
+              <button class="btn btn-sm btn-outline-secondary" id="btnModalSig"
+                >Siguiente</button
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">Cancelar</button
+          >
+          <button
+            type="button"
+            class="btn btn-primary fw-bold"
+            id="btnModalAceptar"
+            disabled>Aceptar</button
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade"
+    id="modalBuscarProducto"
+    tabindex="-1"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-box-seam me-2"></i>Seleccionar Producto a Agregar
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row mb-3 g-2">
+            <div class="col-md-6">
+              <div class="input-group">
+                <button
+                  class="btn btn-outline-secondary btnFiltroModal"
+                  type="button"
+                  data-for="filtroProdCodigo"
+                  ><i class="bi bi-funnel"></i></button
+                >
+                <input
+                  type="text"
+                  id="filtroProdCodigo"
+                  class="form-control"
+                  placeholder="Filtrar por Código"
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <button
+                  class="btn btn-outline-secondary btnFiltroModal"
+                  type="button"
+                  data-for="filtroProdNombre"
+                  ><i class="bi bi-funnel"></i></button
+                >
+                <input
+                  type="text"
+                  id="filtroProdNombre"
+                  class="form-control"
+                  placeholder="Filtrar por Nombre"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class="table-responsive border rounded"
+            style="max-height: 400px; overflow-y: auto;"
+          >
+            <table
+              class="table table-hover table-striped mb-0 align-middle small"
+            >
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th style="width: 50px;">Sel.</th>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th class="text-center">Stock</th>
+                  <th class="text-end">Precio (PVP)</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyModalProductos"></tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <small class="text-muted" id="infoPaginacionProd"
+              >0 resultados</small
+            >
+            <div>
+              <button
+                class="btn btn-sm btn-outline-secondary me-1"
+                id="btnProdAnt">Anterior</button
+              >
+              <button class="btn btn-sm btn-outline-secondary" id="btnProdSig"
+                >Siguiente</button
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">Cancelar</button
+          >
+          <button
+            type="button"
+            class="btn btn-info text-white fw-bold"
+            id="btnProdAceptar"
+            disabled
+          >
+            <i class="bi bi-plus-circle me-1"></i> Agregar a Factura
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-success border-3">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title d-flex align-items-center">
+            <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+            Factura Emitida
+          </h5>
+        </div>
+        <div class="modal-body text-center p-4">
+          <p class="lead text-dark">La factura ha sido creada exitosamente.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-success px-4" id="btnOkSuccess"
+            >Aceptar</button
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-danger border-3">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title d-flex align-items-center">
+            <i class="bi bi-exclamation-octagon-fill me-2 fs-4"></i>
+            Error en Emisión
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="text-center mb-3">
+            <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+          </div>
+          <p class="text-dark fw-bold text-center">
+            No se pudo emitir la factura:
+          </p>
+          <p
+            id="errorModalMsg"
+            class="text-muted small bg-light p-3 rounded border text-break"
+          >
+          </p>
+        </div>
+        <div class="modal-footer justify-content-center border-0">
+          <button
+            type="button"
+            class="btn btn-danger px-5"
+            data-bs-dismiss="modal">Corregir</button
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    id="loadingOverlay"
+    class="d-none position-fixed top-0 start-0 w-100 h-100 justify-content-center align-items-center"
+    style="background: rgba(0,0,0,0.5); z-index: 9999; backdrop-filter: blur(5px);"
+  >
+    <div class="text-center text-white">
+      <div
+        class="spinner-border text-light"
+        role="status"
+        style="width: 3rem; height: 3rem;"
+      >
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <h4 class="mt-3 fw-bold">Procesando Factura...</h4>
+      <p>Por favor espere, no cierre la página.</p>
+    </div>
+  </div>
+
+  <script>
+    import { initCrearFactura } from "../scripts/crear_factura";
+    document.addEventListener("DOMContentLoaded", initCrearFactura);
+  </script>
+</main>

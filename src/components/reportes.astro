@@ -1,0 +1,441 @@
+---
+import background from "../assets/background.svg";
+---
+
+<div class="container pt-3">
+    <div>
+        <a href="/" class="btn btn-outline-secondary btn-sm mb-3">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                class="bi bi-arrow-left me-1"
+                viewBox="0 0 16 16"
+            >
+                <path
+                    fill-rule="evenodd"
+                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"
+                ></path>
+            </svg>
+            Volver a Menú
+        </a>
+    </div>
+</div>
+
+<div
+    style={`background-image: url(${background.src}); background-size: cover; background-attachment: fixed; filter: blur(100px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;`}
+>
+</div>
+
+<main class="container-fluid d-flex flex-column align-items-center p-0 min-vh-100">
+    <section class="container mt-5 p-3">
+        
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+            <div class="d-flex align-items-center">
+                <h1 class="h2 text-primary fw-bold me-2 mb-0">Centro de Reportes</h1>
+                <i class="bi bi-graph-up-arrow text-secondary fs-2"></i>
+            </div>
+            <div class="d-flex gap-2">
+                <button
+                    id="btnActualizar"
+                    class="btn btn-outline-primary d-flex align-items-center"
+                >
+                    <i class="bi bi-arrow-clockwise me-1"></i> Actualizar Datos
+                </button>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Estadísticas Generales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center border-primary stat-card">
+                    <div class="card-body">
+                        <i class="bi bi-people-fill text-primary fs-1"></i>
+                        <h3 class="mt-2 mb-0" id="totalClientes">0</h3>
+                        <p class="text-muted mb-0">Total Clientes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-success stat-card">
+                    <div class="card-body">
+                        <i class="bi bi-receipt text-success fs-1"></i>
+                        <h3 class="mt-2 mb-0" id="totalFacturas">0</h3>
+                        <p class="text-muted mb-0">Total Facturas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-warning stat-card">
+                    <div class="card-body">
+                        <i class="bi bi-currency-dollar text-warning fs-1"></i>
+                        <h3 class="mt-2 mb-0" id="totalVentas">$0.00</h3>
+                        <p class="text-muted mb-0">Total Ventas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-info stat-card">
+                    <div class="card-body">
+                        <i class="bi bi-graph-up text-info fs-1"></i>
+                        <h3 class="mt-2 mb-0" id="promedioVenta">$0.00</h3>
+                        <p class="text-muted mb-0">Promedio Venta</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs de Reportes -->
+        <ul class="nav nav-tabs" id="reportesTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link active"
+                    id="clientes-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#clientes"
+                    type="button"
+                    role="tab"
+                >
+                    <i class="bi bi-people-fill me-2"></i>Reportes de Clientes
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link"
+                    id="facturas-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#facturas"
+                    type="button"
+                    role="tab"
+                >
+                    <i class="bi bi-receipt me-2"></i>Reportes de Facturas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link"
+                    id="ventas-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#ventas"
+                    type="button"
+                    role="tab"
+                >
+                    <i class="bi bi-graph-up me-2"></i>Análisis de Ventas
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content border border-top-0 rounded-bottom p-4 bg-white" id="reportesTabContent">
+            
+            <!-- TAB: Reportes de Clientes -->
+            <div class="tab-pane fade show active" id="clientes" role="tabpanel">
+                <h4 class="mb-3">
+                    <i class="bi bi-people-fill text-primary me-2"></i>
+                    Reportes de Clientes
+                </h4>
+                
+                <div class="row g-3">
+                    <!-- Reporte General de Clientes -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                    Listado General de Clientes
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Reporte completo con todos los clientes registrados, incluyendo datos personales y estado.
+                                </p>
+                                <button class="btn btn-primary" id="btnReporteClientesGeneral">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clientes por Tipo -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-funnel text-success me-2"></i>
+                                    Clientes por Tipo
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Clasificación de clientes según tipo (Contado/Crédito) con estadísticas.
+                                </p>
+                                <button class="btn btn-success" id="btnReporteClientesTipo">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clientes con Facturas -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-receipt-cutoff text-info me-2"></i>
+                                    Clientes con Historial de Compras
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Reporte de clientes con su historial completo de facturas y totales.
+                                </p>
+                                <button class="btn btn-info text-white" id="btnReporteClientesFacturas">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Clientes -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-award text-warning me-2"></i>
+                                    Top 10 Mejores Clientes
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Ranking de los 10 clientes con mayor volumen de compras.
+                                </p>
+                                <button class="btn btn-warning" id="btnReporteTopClientes">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Reportes de Facturas -->
+            <div class="tab-pane fade" id="facturas" role="tabpanel">
+                <h4 class="mb-3">
+                    <i class="bi bi-receipt text-success me-2"></i>
+                    Reportes de Facturas
+                </h4>
+                
+                <!-- Filtros de Fechas -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="bi bi-calendar-range me-2"></i>Filtrar por Rango de Fechas
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" id="facturaFechaInicio" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" id="facturaFechaFin" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-secondary w-100" id="btnLimpiarFechas">
+                                    <i class="bi bi-x-circle me-1"></i>Limpiar Fechas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Reporte General de Facturas -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                    Listado General de Facturas
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Todas las facturas registradas con detalles completos.
+                                </p>
+                                <button class="btn btn-primary" id="btnReporteFacturasGeneral">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Facturas por Estado -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-check-circle text-success me-2"></i>
+                                    Facturas por Estado
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Clasificación de facturas activas vs anuladas.
+                                </p>
+                                <button class="btn btn-success" id="btnReporteFacturasEstado">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Facturas por Período -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-calendar-event text-info me-2"></i>
+                                    Facturas por Período
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Facturas filtradas por el rango de fechas seleccionado arriba.
+                                </p>
+                                <button class="btn btn-info text-white" id="btnReporteFacturasPeriodo">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de Ventas por Cliente -->
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm reporte-card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-person-lines-fill text-warning me-2"></i>
+                                    Resumen por Cliente
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Total de ventas agrupadas por cada cliente.
+                                </p>
+                                <button class="btn btn-warning" id="btnReporteVentasCliente">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Análisis de Ventas -->
+            <div class="tab-pane fade" id="ventas" role="tabpanel">
+                <h4 class="mb-3">
+                    <i class="bi bi-graph-up text-info me-2"></i>
+                    Análisis de Ventas
+                </h4>
+
+                <div class="row g-3">
+                    <!-- Gráfico de Barras: Ventas por Mes -->
+                    <div class="col-md-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-bar-chart-fill me-2"></i>
+                                    Ventas por Mes (Últimos 6 meses)
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="chartVentasMes" height="80"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Pastel: Clientes por Tipo -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-pie-chart-fill me-2"></i>
+                                    Clientes por Tipo
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="chartClientesTipo"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Dona: Estado de Facturas -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-pie-chart me-2"></i>
+                                    Estado de Facturas
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="chartFacturasEstado"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exportar Análisis -->
+                    <div class="col-md-12">
+                        <div class="card shadow-sm reporte-card">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">
+                                    <i class="bi bi-file-earmark-bar-graph text-danger me-2"></i>
+                                    Reporte Completo de Análisis
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Genera un PDF con todos los gráficos y análisis estadísticos.
+                                </p>
+                                <button class="btn btn-danger btn-lg" id="btnReporteAnalisis">
+                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar Reporte Completo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    import { initReportes } from "../scripts/reportes";
+
+    document.addEventListener("DOMContentLoaded", () => {
+        initReportes();
+    });
+</script>
+
+<style>
+    .stat-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .reporte-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .reporte-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        border: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border-bottom-color: #dee2e6;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+        background: none;
+    }
+</style>
