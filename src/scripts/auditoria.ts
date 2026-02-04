@@ -23,14 +23,9 @@ export function initAuditoria() {
     checkAuth();
     setupEventListeners();
     cargarAuditorias();
-    
-    // Registrar acceso al módulo
-    registrarAuditoria(
-        'Ver Pistas de Auditoria',
-        'VIEW',
-        'Usuario accedió al módulo de auditoría',
-        'Visualización de pistas de auditoría'
-    ).catch(err => console.warn('Error en auditoría:', err));
+
+    // Modulo de auditoria cargado
+
 }
 
 function setupEventListeners() {
@@ -79,13 +74,13 @@ async function cargarAuditorias() {
         if (resultado && resultado.success) {
             auditoriaData = resultado.data;
             auditoriaFiltrada = [...auditoriaData];
-            
+
             // Aplicar filtros locales
             aplicarFiltrosLocales();
-            
+
             // Actualizar estadísticas
             actualizarEstadisticas();
-            
+
             // Mostrar primera página
             paginaActual = 1;
             renderPagina();
@@ -131,6 +126,11 @@ function aplicarFiltrosLocales() {
 
         // Filtro por acción
         if (filtros.accion && item.accion !== filtros.accion) {
+            return false;
+        }
+
+        // Filtro estricto: Eliminar mensajes tipo VIEW (solo permitidos: LOGIN, LOGOUT, CREATE, UPDATE, EXPORT, ACTIVATE, DELETE)
+        if (item.accion === 'VIEW') {
             return false;
         }
 
@@ -357,7 +357,7 @@ function actualizarEstadisticas() {
     (document.getElementById('totalVistas') as HTMLElement).textContent = totalVistas.toString();
 
     // Total modificaciones (CREATE, UPDATE, DELETE)
-    const totalMods = auditoriaFiltrada.filter(item => 
+    const totalMods = auditoriaFiltrada.filter(item =>
         ['CREATE', 'UPDATE', 'DELETE'].includes(item.accion)
     ).length;
     (document.getElementById('totalModificaciones') as HTMLElement).textContent = totalMods.toString();
@@ -382,7 +382,7 @@ async function generarPDF() {
     ).catch(err => console.warn('Error en auditoría:', err));
 
     const doc = new jsPDF('landscape'); // Modo horizontal para más columnas
-    
+
     // Título
     doc.setFillColor(13, 110, 253);
     doc.rect(0, 0, doc.internal.pageSize.width, 35, 'F');
@@ -390,7 +390,7 @@ async function generarPDF() {
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.text('REPORTE DE AUDITORÍA', doc.internal.pageSize.width / 2, 15, { align: 'center' });
-    
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha: ${new Date().toLocaleDateString('es-EC')}`, doc.internal.pageSize.width / 2, 25, { align: 'center' });
@@ -413,12 +413,12 @@ async function generarPDF() {
         head: [['Usuario', 'Acción', 'Función', 'Descripción', 'IP', 'Fecha/Hora']],
         body: tableData,
         theme: 'striped',
-        headStyles: { 
+        headStyles: {
             fillColor: [13, 110, 253],
             textColor: 255,
             fontStyle: 'bold'
         },
-        styles: { 
+        styles: {
             fontSize: 8,
             cellPadding: 2
         },
@@ -448,7 +448,7 @@ async function generarPDF() {
 
     // Descargar
     doc.save(`Auditoria_${new Date().toISOString().split('T')[0]}.pdf`);
-    
+
     // Toast de éxito
     mostrarToast('PDF generado exitosamente', 'success');
 }
@@ -456,7 +456,7 @@ async function generarPDF() {
 function mostrarToast(mensaje: string, tipo: 'success' | 'error' = 'success') {
     const bgColor = tipo === 'success' ? 'bg-success' : 'bg-danger';
     const icon = tipo === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill';
-    
+
     const toast = document.createElement('div');
     toast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
     toast.style.zIndex = '9999';

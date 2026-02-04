@@ -3,9 +3,13 @@
 let API_BASE_URL = import.meta.env.PUBLIC_LOGIN_URL;
 console.log("Configured API_BASE_URL:", API_BASE_URL);
 
-// WORKAROUND CORS: Si estamos en localhost, usamos el proxy configurado en astro.config.mjs
-if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-    console.log("⚠️ Entorno Local detectado: Usando Proxy /security-proxy para evitar bloqueo CORS.");
+// WORKAROUND CORS: Si estamos en localhost O en Amplify, usamos el proxy
+if (typeof window !== "undefined" && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.includes("amplifyapp.com")
+)) {
+    console.log("⚠️ Entorno Proxy detectado: Usando Proxy /security-proxy para evitar bloqueo CORS.");
     API_BASE_URL = "/security-proxy";
 } else {
     // Validar solo si no estamos en modo proxy
@@ -20,10 +24,11 @@ const MODULO_ID = 5; // 🔴 CAMBIA ESTE ID POR EL QUE TE ASIGNARON
 
 export function initLogin() {
     console.log("Inicializando Login...");
-    
+
     // Verificar si ya está autenticado y redirigir
     const existingToken = localStorage.getItem("access_token");
-    if (existingToken && window.location.pathname === "/login") {
+    const path = window.location.pathname.replace(/\/$/, "");
+    if (existingToken && path === "/login") {
         console.log("Usuario ya autenticado, redirigiendo...");
         window.location.href = "/";
         return;
@@ -157,12 +162,12 @@ async function registrarLoginAuditoria(token: string, funciones: any[]) {
     // Buscar una función válida para registrar la auditoría
     // Priorizamos funciones relacionadas con auditoría o la primera disponible
     let funcionId = null;
-    
-    const funcionAuditoria = funciones.find(f => 
-        f.nombre.toLowerCase().includes('auditoria') || 
+
+    const funcionAuditoria = funciones.find(f =>
+        f.nombre.toLowerCase().includes('auditoria') ||
         f.nombre.toLowerCase().includes('auditoría')
     );
-    
+
     if (funcionAuditoria) {
         funcionId = funcionAuditoria.funcion_id;
     } else if (funciones.length > 0) {

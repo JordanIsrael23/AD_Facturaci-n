@@ -43,13 +43,8 @@ export function initClientes() {
         });
     });
 
-    // ⭐ NUEVO: Registrar auditoría de acceso
-    registrarAuditoria(
-        'Crear Clientes', // Cualquier función relacionada con clientes
-        'VIEW',
-        'Usuario accedió al módulo de clientes',
-        'Visualización de tabla de clientes'
-    ).catch(err => console.warn('Error en auditoría:', err));
+    // Auditoria de acceso eliminada
+
 }
 
 function limpiarFiltros() {
@@ -225,7 +220,7 @@ function setupDeleteModal() {
                 // ⭐ NUEVO: Registrar auditoría
                 const accion = clienteNuevoEstado ? 'ACTIVATE' : 'DELETE';
                 const descripcion = `Usuario ${clienteNuevoEstado ? 'activó' : 'desactivó'} el cliente con cédula: ${clienteIdToDelete}`;
-                
+
                 await registrarAuditoria(
                     'Desactivar Clientes',
                     accion,
@@ -250,7 +245,7 @@ function setupPdfButton() {
     const pdfBtn = document.getElementById("modalBtnPdf");
     pdfBtn?.addEventListener("click", async () => {
         if (!currentClienteForPdf) return;
-        
+
         // ⭐ NUEVO: Registrar auditoría antes de generar PDF
         await registrarAuditoria(
             'Generar Reportes',
@@ -258,7 +253,7 @@ function setupPdfButton() {
             `Usuario generó PDF del cliente: ${currentClienteForPdf}`,
             'Reporte individual en PDF'
         ).catch(err => console.warn('Error en auditoría:', err));
-        
+
         await generarPDFCliente(currentClienteForPdf);
     });
 }
@@ -266,14 +261,9 @@ function setupPdfButton() {
 function setupGlobalReportButton() {
     const btn = document.getElementById("btnReporteGlobal");
     btn?.addEventListener("click", () => {
-        // ⭐ NUEVO: Registrar auditoría al abrir modal
-        registrarAuditoria(
-            'Generar Reportes',
-            'VIEW',
-            'Usuario abrió vista previa de reporte global',
-            'Modal de reporte global'
-        ).catch(err => console.warn('Error en auditoría:', err));
-        
+        // Auditoria de vista previa eliminada
+
+
         openReporteGlobal();
     });
 
@@ -286,7 +276,7 @@ function setupGlobalReportButton() {
             'Usuario generó reporte global de clientes en PDF',
             `Total de clientes en reporte: ${filteredGlobalClients.length}`
         ).catch(err => console.warn('Error en auditoría:', err));
-        
+
         generarReporteGlobalPDF();
     });
 }
@@ -355,13 +345,8 @@ function attachViewListeners() {
             const cedula = target.getAttribute("data-cedula");
             if (!cedula) return;
 
-            // ⭐ NUEVO: Registrar auditoría al ver detalles
-            await registrarAuditoria(
-                'Crear Clientes', // O cualquier función relacionada
-                'VIEW',
-                `Usuario visualizó detalles del cliente: ${cedula}`,
-                'Modal de detalles del cliente'
-            ).catch(err => console.warn('Error en auditoría:', err));
+            // Auditoria de ver detalles eliminada
+
 
             await showClienteDetails(cedula);
         });
