@@ -217,12 +217,6 @@ export function checkRoutePermission(pathname: string): boolean {
         '/facturas': ['Generar Facturas'],
         '/crear-factura': ['Generar Facturas'],
         '/reportes': ['Generar Reportes'],
-        '/establecimientos': ['Crear Establecimientos', 'Editar Establecimientos', 'Desactivar Establecimientos'],
-        '/crear-establecimiento': ['Crear Establecimientos'],
-        '/editar-establecimientos': ['Editar Establecimientos'],
-        '/puntos-emision': ['Crear Puntos de emisión', 'Editar Puntos de emisión', 'Desactivar Puntos de emisión'],
-        '/crear-punto-emision': ['Crear Puntos de emisión'],
-        '/editar-punto-emision': ['Editar Puntos de emisión'],
         '/auditoria': ['Ver Pistas de Auditoria'],
     };
 

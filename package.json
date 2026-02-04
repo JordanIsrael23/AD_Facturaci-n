@@ -2,6 +2,9 @@
   "name": "c-users-asus-documents-6to-semestre-aplicaciones-distribuidas-proyecto-ad-facturaci-n",
   "type": "module",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=18.17.1"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
