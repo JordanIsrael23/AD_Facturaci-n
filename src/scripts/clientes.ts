@@ -210,14 +210,34 @@ function setupDeleteModal() {
     confirmBtn?.addEventListener("click", async () => {
         if (!clienteIdToDelete) return;
         try {
-            const response = await fetch(`${API_URL}/${clienteIdToDelete}/estado`, {
-                method: "PATCH",
+            // WORKAROUND: Endpoint PATCH da error 500. Usamos actualización completa (PUT).
+
+            // 1. Obtener datos actuales del cliente
+            const resGet = await fetch(`${API_URL}/${clienteIdToDelete}`, { headers: getAuthHeaders() });
+            if (!resGet.ok) throw new Error("No se pudo obtener la información del cliente para actualizarlo.");
+            const clientData = await resGet.json();
+
+            // 2. Preparar objeto completo con el nuevo estado
+            const clientToUpdate = {
+                cliCedula: clientData.cliCedula,
+                cliNombre: clientData.cliNombre,
+                cliFechaNacimiento: clientData.cliFechaNacimiento ? String(clientData.cliFechaNacimiento).split("T")[0] : null,
+                ticIdTipoc: clientData.ticIdTipoc,
+                cliDireccion: clientData.cliDireccion,
+                cliTelefono: clientData.cliTelefono,
+                cliEmail: clientData.cliEmail,
+                cliEstado: clienteNuevoEstado // El nuevo estado (true/false)
+            };
+
+            // 3. Enviar actualización completa (PUT)
+            const response = await fetch(`${API_URL}/${clienteIdToDelete}`, {
+                method: "PUT",
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ estado: clienteNuevoEstado }),
+                body: JSON.stringify(clientToUpdate),
             });
 
-            if (response.ok) {
-                // ⭐ NUEVO: Registrar auditoría
+            if (response.ok || response.status === 204) {
+                // ⭐ Registrar auditoría
                 const accion = clienteNuevoEstado ? 'ACTIVATE' : 'DELETE';
                 const descripcion = `Usuario ${clienteNuevoEstado ? 'activó' : 'desactivó'} el cliente con cédula: ${clienteIdToDelete}`;
 
@@ -234,9 +254,30 @@ function setupDeleteModal() {
                 loadClientes();
             } else if (response.status === 401) {
                 window.location.href = '/login';
+            } else {
+                let errorMsg = "Ocurrió un error al actualizar el estado.";
+                try {
+                    const errorObj = await response.json();
+                    if (errorObj.message) {
+                        // Mensaje limpio del backend (Ej: Reglas de negocio)
+                        errorMsg = errorObj.message;
+                    } else if (errorObj.title) {
+                        errorMsg = errorObj.title;
+                    } else {
+                        errorMsg = JSON.stringify(errorObj);
+                    }
+                } catch (e) {
+                    // Si no es JSON, texto plano
+                    errorMsg = await response.text();
+                }
+
+                // Mostrar alerta más limpia
+                alert(errorMsg);
+                console.warn("Backend validation:", errorMsg);
             }
         } catch (error) {
-            alert("Error de conexión");
+            console.error("Error red:", error);
+            alert("Error de conexión al intentar actualizar el cliente.");
         }
     });
 }
