@@ -1,3 +1,5 @@
+
+/*
 // src/scripts/auditoria.ts
 import { getAuthHeaders, checkAuth, registrarAuditoria, obtenerAuditorias } from "./auth";
 import jsPDF from 'jspdf';
@@ -474,3 +476,4 @@ function mostrarToast(mensaje: string, tipo: 'success' | 'error' = 'success') {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
 }
+*/
