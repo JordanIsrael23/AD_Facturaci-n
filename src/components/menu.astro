@@ -30,7 +30,9 @@ import background from "../assets/background.svg";
                 <!-- Info del usuario -->
                 <div class="mt-3">
                     <small class="text-muted">
-                        Bienvenido, <strong id="username-display">Usuario</strong> 
+                        Bienvenido, <strong id="username-display"
+                            >Usuario</strong
+                        >
                         (<span id="role-display">Cargando...</span>)
                     </small>
                 </div>
@@ -38,7 +40,10 @@ import background from "../assets/background.svg";
 
             <div class="row g-3" id="menu-container">
                 <!-- Gestión de Clientes -->
-                <div class="col-md-6" data-require-any="Crear Clientes,Editar Clientes,Desactivar Clientes">
+                <div
+                    class="col-md-6"
+                    data-require-any="Crear Clientes,Editar Clientes,Desactivar Clientes"
+                >
                     <a href="/clientes" class="btn-menu-custom">
                         <div
                             class="icon-wrapper bg-primary-subtle text-primary"
@@ -49,7 +54,9 @@ import background from "../assets/background.svg";
                             <h5 class="mb-1 fw-bold text-dark">
                                 Gestión de Clientes
                             </h5>
-                            <small class="text-muted">Administra tus clientes</small>
+                            <small class="text-muted"
+                                >Administra tus clientes</small
+                            >
                         </div>
                     </a>
                 </div>
@@ -64,7 +71,9 @@ import background from "../assets/background.svg";
                             <h5 class="mb-1 fw-bold text-dark">
                                 Gestión de Facturas
                             </h5>
-                            <small class="text-muted">Crea y administra facturas</small>
+                            <small class="text-muted"
+                                >Crea y administra facturas</small
+                            >
                         </div>
                     </a>
                 </div>
@@ -72,20 +81,25 @@ import background from "../assets/background.svg";
                 <!-- Reportes -->
                 <div class="col-md-6" data-require-function="Generar Reportes">
                     <a href="/reportes" class="btn-menu-custom">
-                        <div class="icon-wrapper bg-success-subtle text-success">
+                        <div
+                            class="icon-wrapper bg-success-subtle text-success"
+                        >
                             <i class="bi bi-graph-up-arrow"></i>
                         </div>
                         <div class="ms-3 text-start">
-                            <h5 class="mb-1 fw-bold text-dark">
-                                Reportes
-                            </h5>
-                            <small class="text-muted">Visualiza estadísticas</small>
+                            <h5 class="mb-1 fw-bold text-dark">Reportes</h5>
+                            <small class="text-muted"
+                                >Visualiza estadísticas</small
+                            >
                         </div>
                     </a>
                 </div>
 
                 <!-- Auditoría -->
-                <div class="col-md-6" data-require-function="Ver Pistas de Auditoria">
+                <div
+                    class="col-md-6"
+                    data-require-function="Ver Pistas de Auditoria"
+                >
                     <a href="/auditoria" class="btn-menu-custom">
                         <div
                             class="icon-wrapper bg-warning-subtle text-warning"
@@ -96,39 +110,9 @@ import background from "../assets/background.svg";
                             <h5 class="mb-1 fw-bold text-dark">
                                 Revisión de Auditoría
                             </h5>
-                            <small class="text-muted">Historial de acciones</small>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Establecimientos -->
-                <div class="col-md-6" data-require-any="Crear Establecimientos,Editar Establecimientos,Desactivar Establecimientos">
-                    <a href="/establecimientos" class="btn-menu-custom">
-                        <div
-                            class="icon-wrapper bg-success-subtle text-success"
-                        >
-                            <i class="bi bi-building-fill"></i>
-                        </div>
-                        <div class="ms-3 text-start">
-                            <h5 class="mb-1 fw-bold text-dark">
-                                Gestión de Establecimientos
-                            </h5>
-                            <small class="text-muted">Administra establecimientos</small>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Puntos de Emisión -->
-                <div class="col-md-6" data-require-any="Crear Puntos de emisión,Editar Puntos de emisión,Desactivar Puntos de emisión">
-                    <a href="/puntos-emision" class="btn-menu-custom">
-                        <div class="icon-wrapper bg-danger-subtle text-danger">
-                            <i class="bi bi-shop-window"></i>
-                        </div>
-                        <div class="ms-3 text-start">
-                            <h5 class="mb-1 fw-bold text-dark">
-                                Gestión de Puntos de Emisión
-                            </h5>
-                            <small class="text-muted">Configura puntos de venta</small>
+                            <small class="text-muted"
+                                >Historial de acciones</small
+                            >
                         </div>
                     </a>
                 </div>
@@ -153,8 +137,7 @@ import background from "../assets/background.svg";
             <div id="no-permissions-message" class="text-center mt-4 d-none">
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    No tienes permisos asignados para ningún módulo. 
-                    Contacta al administrador.
+                    No tienes permisos asignados para ningún módulo. Contacta al administrador.
                 </div>
             </div>
         </div>
@@ -162,7 +145,14 @@ import background from "../assets/background.svg";
 </main>
 
 <script>
-    import { logout, getUserData, getRoleName, getUserFunciones, checkAuth, registrarAuditoria } from "../scripts/auth";
+    import {
+        logout,
+        getUserData,
+        getRoleName,
+        getUserFunciones,
+        checkAuth,
+        registrarAuditoria,
+    } from "../scripts/auth";
     import "../scripts/protectedElement";
 
     // Verificar autenticación
@@ -176,29 +166,36 @@ import background from "../assets/background.svg";
     if (user) {
         const usernameDisplay = document.getElementById("username-display");
         const roleDisplay = document.getElementById("role-display");
-        
+
         if (usernameDisplay) usernameDisplay.textContent = user.username;
         if (roleDisplay) roleDisplay.textContent = rol;
     }
 
-    console.log("📋 Permisos del usuario:", funciones.map(f => f.nombre));
+    console.log(
+        "📋 Permisos del usuario:",
+        funciones.map((f) => f.nombre),
+    );
 
     // Verificar si tiene al menos un permiso
-    const menuItems = document.querySelectorAll('[data-require-function], [data-require-any]');
+    const menuItems = document.querySelectorAll(
+        "[data-require-function], [data-require-any]",
+    );
     let hasAnyPermission = false;
 
-    menuItems.forEach(item => {
+    menuItems.forEach((item) => {
         const el = item as HTMLElement;
-        if (el.style.display !== 'none' && !el.classList.contains('d-none')) {
+        if (el.style.display !== "none" && !el.classList.contains("d-none")) {
             hasAnyPermission = true;
         }
     });
 
     // Mostrar mensaje si no tiene permisos
     if (!hasAnyPermission) {
-        const noPermissionsMsg = document.getElementById("no-permissions-message");
+        const noPermissionsMsg = document.getElementById(
+            "no-permissions-message",
+        );
         if (noPermissionsMsg) {
-            noPermissionsMsg.classList.remove('d-none');
+            noPermissionsMsg.classList.remove("d-none");
         }
     }
 
@@ -206,16 +203,16 @@ import background from "../assets/background.svg";
     if (funciones.length > 0) {
         registrarAuditoria(
             funciones[0].nombre, // Usar la primera función disponible
-            'VIEW',
-            'Usuario accedió al menú principal',
-            `Rol: ${rol}, Funciones: ${funciones.length}`
+            "VIEW",
+            "Usuario accedió al menú principal",
+            `Rol: ${rol}, Funciones: ${funciones.length}`,
         );
     }
 
     // Manejar logout
     document.getElementById("btnLogout")?.addEventListener("click", (e) => {
         e.preventDefault();
-        
+
         // Confirmar antes de cerrar sesión
         if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
             logout();
@@ -265,7 +262,9 @@ import background from "../assets/background.svg";
     [data-require-function],
     [data-require-any],
     [data-require-all] {
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+            opacity 0.3s ease,
+            transform 0.3s ease;
     }
 
     [data-require-function].d-none,
