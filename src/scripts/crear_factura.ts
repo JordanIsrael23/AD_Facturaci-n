@@ -1,7 +1,16 @@
 import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 
 // --- CONFIGURACIÓN API (Del Archivo Verdadero) ---
-const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
+let API_URL = import.meta.env.PUBLIC_BACKEND_URL;
+
+if (typeof window !== "undefined" && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.includes("amplifyapp.com")
+)) {
+    console.log("⚠️ [CrearFactura] Entorno Proxy: Usando Proxy /backend-proxy");
+    API_URL = "/backend-proxy/api/";
+}
 const API_URL_INVENTORY = import.meta.env.PUBLIC_EXTERNAL_INVENTORY_URL;
 
 const CLIENTES_URL = API_URL + "Clientes";
@@ -174,7 +183,7 @@ function setupModalProductos() {
             if (existe) {
                 // AQUI ESTÁ EL CAMBIO: Usamos tu modal de error en lugar de alert()
                 mostrarErrorEnModal(`El producto "${productoSeleccionadoTemp.nombre}" ya está agregado. Modifica la cantidad en la tabla.`);
-                return; 
+                return;
             }
             // ------------------------------------------
 
@@ -421,14 +430,14 @@ async function loadSelects() {
     allClientes = Array.isArray(clientesData) ? clientesData : (clientesData.data || []);
     allProductos = Array.isArray(prodData) ? prodData : (prodData.data || []);
     allPuntosEmision = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
-    
+
     // Datos de Establecimientos y Puntos (Búsqueda automática de los fijos)
     const establecimientos = Array.isArray(estData) ? estData : (estData.data || []);
     const puntos = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
 
     // 1. Buscar y setear "Gran Aqui"
-    const establecimientoFijo = establecimientos.find((e: any) => 
-        e.estNombre.trim().toLowerCase() === "gran aqui" || 
+    const establecimientoFijo = establecimientos.find((e: any) =>
+        e.estNombre.trim().toLowerCase() === "gran aqui" ||
         e.estNombre.includes("Gran Aqui") // Fallback por si hay espacios extra
     );
 
@@ -439,12 +448,12 @@ async function loadSelects() {
 
         // 2. Buscar y setear "Caja de cobro - 001" basado en el RUC encontrado
         // La lógica original era: `${p.pemDescripcion} - ${p.pemIdPuntoEmision}`
-        const puntoFijo = puntos.find((p: any) => 
-            p.estRuc === establecimientoFijo.estRuc && 
+        const puntoFijo = puntos.find((p: any) =>
+            p.estRuc === establecimientoFijo.estRuc &&
             p.pemEstado === true &&
             // Buscamos coincidencia con el formato visual que tenías
             (`${p.pemDescripcion} - ${p.pemIdPuntoEmision}` === "Caja de cobro - 001" ||
-             p.pemDescripcion.includes("Caja de cobro")) // Fallback flexible
+                p.pemDescripcion.includes("Caja de cobro")) // Fallback flexible
         );
 
         const inputPemId = document.getElementById("pemId") as HTMLInputElement;
@@ -631,7 +640,7 @@ async function handleSubmit(e: Event) {
     // --- MANEJO DE MODAL DE CARGA ---
     const loadingModalEl = document.getElementById("loadingModal");
     let loadingModalInstance: any = null;
-    
+
     if (loadingModalEl) {
         loadingModalInstance = new bootstrap.Modal(loadingModalEl);
         loadingModalInstance.show();
@@ -652,9 +661,9 @@ async function handleSubmit(e: Event) {
 
         // Ocultar modal de carga antes de mostrar resultado
         if (loadingModalInstance) {
-             // Pequeño timeout para asegurar transición suave
-             await new Promise(r => setTimeout(r, 500)); 
-             loadingModalInstance.hide();
+            // Pequeño timeout para asegurar transición suave
+            await new Promise(r => setTimeout(r, 500));
+            loadingModalInstance.hide();
         }
 
         if (response.ok) {
