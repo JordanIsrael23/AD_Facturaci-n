@@ -28,9 +28,10 @@ export function initCrearCliente() {
             cliDireccion: getValue("cli_direccion"),
             cliTelefono: getValue("cli_telefono"),
             cliEmail: getValue("cli_email"),
-            cliEstado: (document.getElementById("cli_estado") as HTMLInputElement).checked,
-            cliFechaCreacion: new Date().toISOString()
+            cliEstado: (document.getElementById("cli_estado") as HTMLInputElement).checked
         };
+
+        console.log("Enviando cliente:", cliente);
 
         try {
             const response = await fetch(API_URL, {
@@ -60,6 +61,7 @@ export function initCrearCliente() {
                 }
             } else {
                 if (response.status === 401) {
+                    alert(`Error 401 en CREAR CLIENTE.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                     window.location.href = '/login';
                     return;
                 }
@@ -72,6 +74,7 @@ export function initCrearCliente() {
 
                 if (contentType && contentType.includes("application/json")) {
                     const errorData = await response.json();
+                    console.error("Error backend:", errorData);
                     // Extraemos el mensaje según el formato estándar de .NET (Problem Details)
                     mensajeParaMostrar = errorData.detail || errorData.title || errorData.message || JSON.stringify(errorData);
                 } else {

@@ -3,17 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // Definimos la URL de la API
-// Definimos la URL de la API
-let BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
-
-if (typeof window !== "undefined" && (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname.includes("amplifyapp.com")
-)) {
-    console.log("⚠️ [Facturas] Entorno Proxy: Usando Proxy /backend-proxy");
-    BASE_URL = "/backend-proxy/api/";
-}
+const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const API_URL = BASE_URL + "Facturas";
 const CLIENTES_URL = BASE_URL + "Clientes";
 const PUNTOS_URL = BASE_URL + "PuntoEmisions";

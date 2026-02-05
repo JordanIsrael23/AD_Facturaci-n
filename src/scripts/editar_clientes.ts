@@ -24,6 +24,7 @@ export async function initEditarCliente() {
         });
         if (!response.ok) {
             if (response.status === 401) {
+                alert(`Error 401 en CARGAR EDITOR CLIENTE.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                 window.location.href = '/login';
                 return;
             }
@@ -86,6 +87,7 @@ export async function initEditarCliente() {
                 });
             } else {
                 if (response.status === 401) {
+                    alert(`Error 401 en GUARDAR EDICION CLIENTE.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                     window.location.href = '/login';
                     return;
                 }

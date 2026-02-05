@@ -1,16 +1,7 @@
 import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 
 // --- CONFIGURACIÓN API (Del Archivo Verdadero) ---
-let API_URL = import.meta.env.PUBLIC_BACKEND_URL;
-
-if (typeof window !== "undefined" && (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname.includes("amplifyapp.com")
-)) {
-    console.log("⚠️ [CrearFactura] Entorno Proxy: Usando Proxy /backend-proxy");
-    API_URL = "/backend-proxy/api/";
-}
+const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const API_URL_INVENTORY = import.meta.env.PUBLIC_EXTERNAL_INVENTORY_URL;
 
 const CLIENTES_URL = API_URL + "Clientes";

@@ -11,12 +11,6 @@ export default defineConfig({
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/security-proxy/, ''),
           secure: false,
-        },
-        '/backend-proxy': {
-          target: 'https://fracturacion-api-f0hkcqfnb9ath3ff.canadacentral-01.azurewebsites.net',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/backend-proxy/, ''),
-          secure: false,
         }
       }
     }

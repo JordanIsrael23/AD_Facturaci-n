@@ -4,17 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Chart from 'chart.js/auto';
 
-// --- CONFIGURACIÓN DINÁMICA DE URL (Igual que en auth.ts) ---
-let BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
-
-if (typeof window !== "undefined" && (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname.includes("amplifyapp.com")
-)) {
-    console.log("⚠️ [Reportes] Entorno Proxy: Usando Proxy /backend-proxy");
-    BASE_URL = "/backend-proxy/api/"; // Target: Azure Backend
-}
+const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
 
 const API_CLIENTES = BASE_URL + "Clientes";
 const API_FACTURAS = BASE_URL + "Facturas";

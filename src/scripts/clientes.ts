@@ -6,16 +6,7 @@ import autoTable from 'jspdf-autotable';
 
 // Definimos la URL de la API
 // Definimos la URL de la API
-let BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
-
-if (typeof window !== "undefined" && (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname.includes("amplifyapp.com")
-)) {
-    console.log("⚠️ [Clientes] Entorno Proxy: Usando Proxy /backend-proxy");
-    BASE_URL = "/backend-proxy/api/";
-}
+const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const API_URL = BASE_URL + "Clientes";
 const FACTURAS_URL = BASE_URL + "Facturas";
 
@@ -85,6 +76,7 @@ async function loadClientes() {
 
         if (!response.ok) {
             if (response.status === 401) {
+                alert(`Error 401 en CARGAR CLIENTES.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                 window.location.href = '/login';
                 return;
             }
@@ -263,6 +255,7 @@ function setupDeleteModal() {
                 modal.hide();
                 loadClientes();
             } else if (response.status === 401) {
+                alert(`Error 401 en ELIMINAR/ACTIVAR CLIENTE.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                 window.location.href = '/login';
             } else {
                 let errorMsg = "Ocurrió un error al actualizar el estado.";
