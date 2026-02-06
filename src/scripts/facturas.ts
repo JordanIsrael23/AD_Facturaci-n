@@ -284,7 +284,16 @@ function generarPDFFactura() {
     showLoadingToast("Generando PDF...");
 
     setTimeout(() => {
-        const doc = new jsPDF();
+
+        // Generamos una contraseña para que el usuario no pueda editar
+        const doc = new jsPDF({
+            encryption: {
+                userPassword: "", // Se deja vacío para que abran el PDF sin pedir clave
+                ownerPassword: "ADMIN_BLOCK_EDIT_123", // Esta clave se requiere si alguien intenta editarlo
+                userPermissions: ["print"] // Solo permitimos IMPRIMIR. 'modify', 'copy', etc. quedan bloqueados.
+            }
+        });
+
         const factura = facturaActual;
 
         const colorPrimario = [0, 123, 255];
