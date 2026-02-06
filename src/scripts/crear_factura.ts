@@ -343,6 +343,19 @@ function renderTablaClientesModal() {
 
     tbody.innerHTML = "";
 
+    // ---Validar si no hay resultados ---
+    if (clientesFiltrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center" style="padding: 1rem;">
+                    No se encontraron resultados
+                </td>
+            </tr>
+        `;
+        if (info) info.innerText = "Mostrando 0 de 0";
+        return; // Detenemos la función para que no intente paginar
+    }
+
     const inicio = (paginaActualModal - 1) * registrosPorPaginaModal;
     const fin = inicio + registrosPorPaginaModal;
     const items = clientesFiltrados.slice(inicio, fin);
