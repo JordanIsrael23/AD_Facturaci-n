@@ -5,25 +5,24 @@ import autoTable from 'jspdf-autotable';
 import Chart from 'chart.js/auto';
 
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
+
 const API_CLIENTES = BASE_URL + "Clientes";
 const API_FACTURAS = BASE_URL + "Facturas";
+const API_TIPOS_PAGO = BASE_URL + "TipoPagoes";
 
 let clientesData: any[] = [];
 let facturasData: any[] = [];
+let tiposPagoData: any[] = [];
 let charts: Record<string, Chart> = {};
 
 export function initReportes() {
     checkAuth();
     cargarDatos();
     setupEventListeners();
-    
+
     // Registrar auditoría
-    registrarAuditoria(
-        'Generar Reportes',
-        'VIEW',
-        'Usuario accedió al módulo de reportes',
-        'Centro de reportes'
-    ).catch(err => console.warn('Error en auditoría:', err));
+    // Auditoria de acceso eliminada
+
 }
 
 function setupEventListeners() {
@@ -38,7 +37,7 @@ function setupEventListeners() {
 
     // Reportes de Facturas
     document.getElementById('btnReporteFacturasGeneral')?.addEventListener('click', () => generarReporteFacturasGeneral());
-    document.getElementById('btnReporteFacturasEstado')?.addEventListener('click', () => generarReporteFacturasEstado());
+    // btnReporteFacturasEstado removed
     document.getElementById('btnReporteFacturasPeriodo')?.addEventListener('click', () => generarReporteFacturasPeriodo());
     document.getElementById('btnReporteVentasCliente')?.addEventListener('click', () => generarReporteVentasCliente());
 
@@ -72,6 +71,17 @@ async function cargarDatos() {
             facturasData = Array.isArray(dataFacturas) ? dataFacturas : (dataFacturas.data || []);
         }
 
+        // Cargar tipos de pago
+        const headers = getAuthHeaders();
+        console.log("Headers for TipoPagoes:", headers);
+        const resTipos = await fetch(API_TIPOS_PAGO, { headers });
+        if (resTipos.ok) {
+            const dataTipos = await resTipos.json();
+            tiposPagoData = Array.isArray(dataTipos) ? dataTipos : (dataTipos.data || []);
+        } else {
+            console.error("Error fetching TipoPagoes:", resTipos.status);
+        }
+
         actualizarEstadisticas();
         mostrarToast('Datos cargados correctamente', 'success');
     } catch (error) {
@@ -102,177 +112,243 @@ function actualizarEstadisticas() {
 // ============================================================
 
 async function generarReporteClientesGeneral() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte general de clientes', '');
-    
-    const doc = new jsPDF();
-    agregarEncabezado(doc, 'REPORTE GENERAL DE CLIENTES');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte general de clientes', '');
 
-    const tableData = clientesData.map(c => [
-        c.cliCedula,
-        c.cliNombre,
-        c.tipoCliente?.ticDescripcion || (c.ticIdTipoc === 1 ? 'Contado' : 'Crédito'),
-        c.cliEmail || 'N/A',
-        c.cliTelefono || 'N/A',
-        c.cliEstado ? 'Activo' : 'Inactivo'
-    ]);
+        const doc = new jsPDF();
 
-    autoTable(doc, {
-        startY: 45,
-        head: [['Cédula/RUC', 'Nombre', 'Tipo', 'Email', 'Teléfono', 'Estado']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [13, 110, 253] },
-        styles: { fontSize: 9 }
-    });
+        // --- PORTADA ---
+        agregarEncabezado(doc, 'REPORTE GENERAL DE CLIENTES');
+        let yPos = 50;
+        let isFirstPage = true;
 
-    agregarPiePagina(doc);
-    doc.save(`Clientes_General_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+        for (let i = 0; i < clientesData.length; i++) {
+            const client = clientesData[i];
+            const clientInvoices = facturasData.filter(f => f.cliCedula === client.cliCedula || f.cliente?.cliCedula === client.cliCedula);
+
+            // Fetch details if missing (simulado/rápido) - Para reportes muy grandes esto puede ser lento.
+            // Considerar si cargar detalles bajo demanda o asumir que están.
+            // En reporte global de clientes.ts se cargan lazy. Aquí quizás ya están? 
+            // `cargarDatos` trae /Facturas, que suele ser lista simple.
+            // Vamos a intentar traer detalles si no estan.
+
+            // --- PRE-CALC HEIGHT ---
+            // --- PRE-CALC HEIGHT ---
+            let estimatedHeight = 60 + (clientInvoices.length * 15);
+
+            // Fetch Details for Invoices (Copy-Paste Logic)
+            for (const invoice of clientInvoices) {
+                await ensureInvoiceDetails(invoice);
+            }
+
+            if (yPos + estimatedHeight > doc.internal.pageSize.height - 20) {
+                doc.addPage();
+                yPos = 20;
+            } else if (!isFirstPage && i > 0) {
+                yPos += 10;
+            }
+            isFirstPage = false;
+
+            const startPage = doc.getNumberOfPages();
+            const startY = yPos;
+
+            generateClientSection(doc, client, clientInvoices, yPos + 5);
+
+            const endPage = doc.getNumberOfPages();
+            const lastY = (doc as any).customLastY || (doc as any).lastAutoTable?.finalY;
+            const endY = (lastY || (startY + 60)) + 5;
+
+            drawClientBorder(doc, startPage, startY, endPage, endY);
+
+            yPos = endY + 15;
+        }
+
+        agregarPiePagina(doc);
+        doc.save(`Clientes_General_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar el reporte de clientes', 'error');
+    }
 }
 
 async function generarReporteClientesTipo() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de clientes por tipo', '');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de clientes por tipo', '');
 
-    const contado = clientesData.filter(c => c.ticIdTipoc === 1);
-    const credito = clientesData.filter(c => c.ticIdTipoc === 2);
+        const contado = clientesData.filter(c => c.ticIdTipoc === 1);
+        const credito = clientesData.filter(c => c.ticIdTipoc === 2);
 
-    const doc = new jsPDF();
-    agregarEncabezado(doc, 'CLIENTES POR TIPO');
+        // Función interna para generar bloque por tipo
+        const generarBloqueTipo = async (doc: jsPDF, titulo: string, clientes: any[]) => {
+            doc.addPage();
+            agregarEncabezado(doc, titulo);
 
-    let yPos = 50;
+            let yPos = 50;
+            let isFirstPage = true;
 
-    // Estadísticas
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Resumen por Tipo', 15, yPos);
-    yPos += 8;
+            for (let i = 0; i < clientes.length; i++) {
+                const client = clientes[i];
+                const clientInvoices = facturasData.filter(f => f.cliCedula === client.cliCedula || f.cliente?.cliCedula === client.cliCedula);
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Clientes Contado: ${contado.length} (${((contado.length / clientesData.length) * 100).toFixed(1)}%)`, 20, yPos);
-    yPos += 6;
-    doc.text(`Clientes Crédito: ${credito.length} (${((credito.length / clientesData.length) * 100).toFixed(1)}%)`, 20, yPos);
-    yPos += 15;
+                // Fetch details
+                for (const invoice of clientInvoices) {
+                    await ensureInvoiceDetails(invoice);
+                }
 
-    // Tabla de Contado
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Clientes de Contado', 15, yPos);
-    yPos += 5;
+                // Pre-calc height (simulated)
+                let estimatedHeight = 60 + (clientInvoices.length * 15);
 
-    autoTable(doc, {
-        startY: yPos,
-        head: [['Cédula', 'Nombre', 'Email', 'Estado']],
-        body: contado.map(c => [c.cliCedula, c.cliNombre, c.cliEmail || 'N/A', c.cliEstado ? 'Activo' : 'Inactivo']),
-        theme: 'grid',
-        headStyles: { fillColor: [40, 167, 69] },
-        styles: { fontSize: 9 }
-    });
+                if (yPos + estimatedHeight > doc.internal.pageSize.height - 20) {
+                    doc.addPage();
+                    yPos = 20;
+                } else if (!isFirstPage && i > 0) {
+                    yPos += 10;
+                }
+                isFirstPage = false;
 
-    const finalYContado = (doc as any).lastAutoTable.finalY + 10;
+                const startPage = doc.getNumberOfPages();
+                const startY = yPos;
 
-    // Tabla de Crédito
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Clientes de Crédito', 15, finalYContado);
+                generateClientSection(doc, client, clientInvoices, yPos + 5);
 
-    autoTable(doc, {
-        startY: finalYContado + 5,
-        head: [['Cédula', 'Nombre', 'Email', 'Estado']],
-        body: credito.map(c => [c.cliCedula, c.cliNombre, c.cliEmail || 'N/A', c.cliEstado ? 'Activo' : 'Inactivo']),
-        theme: 'grid',
-        headStyles: { fillColor: [255, 193, 7] },
-        styles: { fontSize: 9 }
-    });
+                const endPage = doc.getNumberOfPages();
+                const lastY = (doc as any).customLastY || (doc as any).lastAutoTable?.finalY;
+                const endY = (lastY || (startY + 60)) + 5;
 
-    agregarPiePagina(doc);
-    doc.save(`Clientes_Por_Tipo_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+                drawClientBorder(doc, startPage, startY, endPage, endY);
+                yPos = endY + 15;
+            }
+        };
+
+        const doc = new jsPDF();
+        // Portada Resumen
+        agregarEncabezado(doc, 'CLIENTES POR TIPO - RESUMEN');
+        let yPos = 50;
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Resumen Estadístico', 15, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`• Clientes Contado: ${contado.length} (${((contado.length / (clientesData.length || 1)) * 100).toFixed(1)}%)`, 20, yPos);
+        yPos += 8;
+        doc.text(`• Clientes Crédito: ${credito.length} (${((credito.length / (clientesData.length || 1)) * 100).toFixed(1)}%)`, 20, yPos);
+
+        // Generar secciones detalladas
+        if (contado.length > 0) await generarBloqueTipo(doc, 'CLIENTES DE CONTADO', contado);
+        if (credito.length > 0) await generarBloqueTipo(doc, 'CLIENTES DE CRÉDITO', credito);
+
+        agregarPiePagina(doc);
+        doc.save(`Clientes_Por_Tipo_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar el reporte de tipos', 'error');
+    }
 }
 
 async function generarReporteClientesFacturas() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de clientes con historial', '');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de clientes con historial', '');
 
-    const doc = new jsPDF('landscape');
-    agregarEncabezado(doc, 'CLIENTES CON HISTORIAL DE COMPRAS');
+        const doc = new jsPDF('landscape');
+        agregarEncabezado(doc, 'CLIENTES CON HISTORIAL DE COMPRAS');
 
-    const tableData = clientesData.map(cliente => {
-        const facturas = facturasData.filter(f => 
-            (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
-        );
-        const total = facturas.reduce((sum, f) => sum + f.facTotal, 0);
-        
-        return [
-            cliente.cliCedula,
-            cliente.cliNombre,
-            cliente.tipoCliente?.ticDescripcion || (cliente.ticIdTipoc === 1 ? 'Contado' : 'Crédito'),
-            facturas.length,
-            `$${total.toFixed(2)}`
-        ];
-    }).sort((a, b) => parseFloat(b[4].replace('$', '')) - parseFloat(a[4].replace('$', '')));
+        const tableData = clientesData.map(cliente => {
+            const facturas = facturasData.filter(f =>
+                (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
+            );
+            const total = facturas.reduce((sum, f) => sum + (f.facTotal || 0), 0);
 
-    autoTable(doc, {
-        startY: 45,
-        head: [['Cédula', 'Nombre', 'Tipo', 'Nº Facturas', 'Total Comprado']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [23, 162, 184] },
-        styles: { fontSize: 9 }
-    });
+            return [
+                cliente.cliCedula,
+                cliente.cliNombre,
+                cliente.tipoCliente?.ticDescripcion || (cliente.ticIdTipoc === 1 ? 'Contado' : 'Crédito'),
+                facturas.length,
+                `$${total.toFixed(2)}`
+            ];
+        }).sort((a, b) => parseFloat(b[4].replace('$', '')) - parseFloat(a[4].replace('$', '')));
 
-    agregarPiePagina(doc);
-    doc.save(`Clientes_Historial_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+        autoTable(doc, {
+            startY: 50,
+            head: [['Cédula', 'Nombre', 'Tipo', 'Nº Facturas', 'Total Comprado']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [23, 162, 184], fontStyle: 'bold' },
+            styles: { fontSize: 10, cellPadding: 4 },
+            alternateRowStyles: { fillColor: [240, 255, 255] },
+            columnStyles: {
+                3: { halign: 'center' },
+                4: { halign: 'right', fontStyle: 'bold' }
+            }
+        });
+
+        agregarPiePagina(doc);
+        doc.save(`Clientes_Historial_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar historial de compras', 'error');
+    }
 }
 
 async function generarReporteTopClientes() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte Top 10 clientes', '');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte Top 10 clientes', '');
 
-    const clientesConVentas = clientesData.map(cliente => {
-        const facturas = facturasData.filter(f => 
-            (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
-        );
-        const total = facturas.reduce((sum, f) => sum + f.facTotal, 0);
-        
-        return {
-            ...cliente,
-            cantidadFacturas: facturas.length,
-            totalComprado: total
-        };
-    }).filter(c => c.totalComprado > 0)
-      .sort((a, b) => b.totalComprado - a.totalComprado)
-      .slice(0, 10);
+        const clientesConVentas = clientesData.map(cliente => {
+            const facturas = facturasData.filter(f =>
+                (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
+            );
+            const total = facturas.reduce((sum, f) => sum + Number(f.facTotal || 0), 0);
 
-    const doc = new jsPDF();
-    agregarEncabezado(doc, 'TOP 10 MEJORES CLIENTES');
+            return {
+                ...cliente,
+                cantidadFacturas: facturas.length,
+                totalComprado: total
+            };
+        }).filter(c => c.totalComprado > 0)
+            .sort((a, b) => b.totalComprado - a.totalComprado)
+            .slice(0, 10);
 
-    doc.setFontSize(10);
-    doc.text('Clientes ordenados por volumen de compras', 15, 45);
+        const doc = new jsPDF();
+        agregarEncabezado(doc, 'TOP 10 MEJORES CLIENTES');
 
-    const tableData = clientesConVentas.map((c, index) => [
-        `#${index + 1}`,
-        c.cliNombre,
-        c.tipoCliente?.ticDescripcion || (c.ticIdTipoc === 1 ? 'Contado' : 'Crédito'),
-        c.cantidadFacturas,
-        `$${c.totalComprado.toFixed(2)}`
-    ]);
+        doc.setFontSize(10);
+        doc.text('Clientes ordenados por volumen de compras', 15, 45);
 
-    autoTable(doc, {
-        startY: 50,
-        head: [['Ranking', 'Nombre', 'Tipo', 'Facturas', 'Total Comprado']],
-        body: tableData,
-        theme: 'grid',
-        headStyles: { fillColor: [255, 193, 7] },
-        styles: { fontSize: 10 },
-        columnStyles: {
-            0: { halign: 'center', fontStyle: 'bold' },
-            4: { halign: 'right', fontStyle: 'bold' }
-        }
-    });
+        const tableData = clientesConVentas.map((c, index) => [
+            `#${index + 1}`,
+            c.cliNombre,
+            c.tipoCliente?.ticDescripcion || (c.ticIdTipoc === 1 ? 'Contado' : 'Crédito'),
+            c.cantidadFacturas,
+            `$${(c.totalComprado || 0).toFixed(2)}`
+        ]);
 
-    agregarPiePagina(doc);
-    doc.save(`Top_10_Clientes_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+        autoTable(doc, {
+            startY: 55,
+            head: [['Ranking', 'Nombre', 'Tipo', 'Facturas', 'Total Comprado']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [255, 193, 7], textColor: [0, 0, 0], fontStyle: 'bold' },
+            styles: { fontSize: 11, cellPadding: 4 },
+            columnStyles: {
+                0: { halign: 'center', fontStyle: 'bold', fillColor: [255, 243, 205] },
+                3: { halign: 'center' },
+                4: { halign: 'right', fontStyle: 'bold' }
+            },
+            alternateRowStyles: { fillColor: [255, 250, 230] }
+        });
+
+        agregarPiePagina(doc);
+        doc.save(`Top_10_Clientes_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar top clientes', 'error');
+    }
 }
 
 // ============================================================
@@ -280,171 +356,157 @@ async function generarReporteTopClientes() {
 // ============================================================
 
 async function generarReporteFacturasGeneral() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte general de facturas', '');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte general de facturas', '');
 
-    const doc = new jsPDF('landscape');
-    agregarEncabezado(doc, 'REPORTE GENERAL DE FACTURAS');
+        const doc = new jsPDF();
 
-    const tableData = facturasData.map(f => [
-        f.facNumeroFactura,
-        f.cliente?.cliNombre || 'N/A',
-        formatearFecha(f.facFechaEmision),
-        `$${f.facSubtotal.toFixed(2)}`,
-        `$${f.facIva.toFixed(2)}`,
-        `$${f.facTotal.toFixed(2)}`,
-        f.facEstadoFactura ? 'Activa' : 'Anulada'
-    ]);
+        agregarEncabezado(doc, 'REPORTE GENERAL DE FACTURAS');
+        let yPos = 50;
+        let isFirstPage = true;
 
-    autoTable(doc, {
-        startY: 45,
-        head: [['Nº Factura', 'Cliente', 'Fecha', 'Subtotal', 'IVA', 'Total', 'Estado']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [13, 110, 253] },
-        styles: { fontSize: 8 }
-    });
+        for (let i = 0; i < facturasData.length; i++) {
+            const factura = facturasData[i];
 
-    agregarPiePagina(doc);
-    doc.save(`Facturas_General_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+            await ensureInvoiceDetails(factura);
+
+            // Check page break (Header ~ 40 height + Details Table)
+            if (yPos > doc.internal.pageSize.height - 60) {
+                doc.addPage();
+                yPos = 20;
+            } else if (!isFirstPage && i > 0) {
+                // Separator line
+                doc.setDrawColor(200, 200, 200);
+                doc.line(15, yPos - 5, doc.internal.pageSize.width - 15, yPos - 5);
+            }
+            isFirstPage = false;
+
+            generateFacturaSection(doc, factura, yPos);
+
+            const lastY = (doc as any).lastAutoTable?.finalY;
+            yPos = lastY ? lastY + 15 : yPos + 60;
+        }
+
+        agregarPiePagina(doc);
+        doc.save(`Facturas_General_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar reporte de facturas', 'error');
+    }
 }
 
-async function generarReporteFacturasEstado() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de facturas por estado', '');
 
-    const activas = facturasData.filter(f => f.facEstadoFactura);
-    const anuladas = facturasData.filter(f => !f.facEstadoFactura);
-
-    const doc = new jsPDF('landscape');
-    agregarEncabezado(doc, 'FACTURAS POR ESTADO');
-
-    let yPos = 50;
-
-    // Estadísticas
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Resumen por Estado', 15, yPos);
-    yPos += 8;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Facturas Activas: ${activas.length}`, 20, yPos);
-    yPos += 6;
-    doc.text(`Facturas Anuladas: ${anuladas.length}`, 20, yPos);
-    yPos += 6;
-    const totalActivas = activas.reduce((sum, f) => sum + f.facTotal, 0);
-    doc.text(`Total Ventas Activas: $${totalActivas.toFixed(2)}`, 20, yPos);
-    yPos += 15;
-
-    // Tabla Activas
-    autoTable(doc, {
-        startY: yPos,
-        head: [['Nº Factura', 'Cliente', 'Fecha', 'Total']],
-        body: activas.map(f => [
-            f.facNumeroFactura,
-            f.cliente?.cliNombre || 'N/A',
-            formatearFecha(f.facFechaEmision),
-            `$${f.facTotal.toFixed(2)}`
-        ]),
-        theme: 'grid',
-        headStyles: { fillColor: [40, 167, 69] },
-        styles: { fontSize: 8 }
-    });
-
-    agregarPiePagina(doc);
-    doc.save(`Facturas_Estado_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
-}
 
 async function generarReporteFacturasPeriodo() {
-    const fechaInicio = (document.getElementById('facturaFechaInicio') as HTMLInputElement).value;
-    const fechaFin = (document.getElementById('facturaFechaFin') as HTMLInputElement).value;
+    try {
+        const fechaInicio = (document.getElementById('facturaFechaInicio') as HTMLInputElement).value;
+        const fechaFin = (document.getElementById('facturaFechaFin') as HTMLInputElement).value;
 
-    if (!fechaInicio || !fechaFin) {
-        mostrarToast('Selecciona un rango de fechas', 'error');
-        return;
+        if (!fechaInicio || !fechaFin) {
+            mostrarToast('Selecciona un rango de fechas', 'error');
+            return;
+        }
+
+        await registrarAuditoria('Generar Reportes', 'EXPORT', `Generó reporte de facturas del ${fechaInicio} al ${fechaFin}`, '');
+
+        const facturasFiltradas = facturasData.filter(f => {
+            const fechaFactura = new Date(f.facFechaEmision);
+            fechaFactura.setHours(0, 0, 0, 0);
+            const inicio = new Date(fechaInicio + 'T00:00:00');
+            inicio.setHours(0, 0, 0, 0);
+            const fin = new Date(fechaFin + 'T00:00:00');
+            fin.setHours(0, 0, 0, 0);
+            return fechaFactura.getTime() >= inicio.getTime() && fechaFactura.getTime() <= fin.getTime();
+        });
+
+        const doc = new jsPDF();
+        agregarEncabezado(doc, `FACTURAS DEL ${fechaInicio} AL ${fechaFin}`);
+
+        let yPos = 50;
+        let isFirstPage = true;
+
+        for (let i = 0; i < facturasFiltradas.length; i++) {
+            const factura = facturasFiltradas[i];
+            await ensureInvoiceDetails(factura);
+            if (yPos > doc.internal.pageSize.height - 60) {
+                doc.addPage();
+                yPos = 20;
+            } else if (!isFirstPage && i > 0) {
+                doc.setDrawColor(200, 200, 200);
+                doc.line(15, yPos - 5, doc.internal.pageSize.width - 15, yPos - 5);
+            }
+            isFirstPage = false;
+            generateFacturaSection(doc, factura, yPos);
+            const lastY = (doc as any).lastAutoTable?.finalY;
+            yPos = lastY ? lastY + 15 : yPos + 60;
+        }
+
+        // Total Periodo
+        doc.addPage();
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+        const total = facturasFiltradas.filter(f => f.facEstadoFactura).reduce((sum, f) => sum + (f.facTotal || 0), 0);
+        doc.text(`Total Período: $${total.toFixed(2)}`, 15, 20);
+
+        agregarPiePagina(doc);
+        doc.save(`Facturas_Periodo_${fechaInicio}_${fechaFin}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar reporte por periodo', 'error');
     }
-
-    await registrarAuditoria('Generar Reportes', 'EXPORT', `Generó reporte de facturas del ${fechaInicio} al ${fechaFin}`, '');
-
-    const facturasFiltradas = facturasData.filter(f => {
-        const fecha = new Date(f.facFechaEmision);
-        const inicio = new Date(fechaInicio);
-        const fin = new Date(fechaFin);
-        return fecha >= inicio && fecha <= fin;
-    });
-
-    const doc = new jsPDF('landscape');
-    agregarEncabezado(doc, `FACTURAS DEL ${fechaInicio} AL ${fechaFin}`);
-
-    const tableData = facturasFiltradas.map(f => [
-        f.facNumeroFactura,
-        f.cliente?.cliNombre || 'N/A',
-        formatearFecha(f.facFechaEmision),
-        `$${f.facTotal.toFixed(2)}`,
-        f.facEstadoFactura ? 'Activa' : 'Anulada'
-    ]);
-
-    autoTable(doc, {
-        startY: 45,
-        head: [['Nº Factura', 'Cliente', 'Fecha', 'Total', 'Estado']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [23, 162, 184] },
-        styles: { fontSize: 9 }
-    });
-
-    const total = facturasFiltradas.filter(f => f.facEstadoFactura).reduce((sum, f) => sum + f.facTotal, 0);
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total Período: $${total.toFixed(2)}`, 15, finalY);
-
-    agregarPiePagina(doc);
-    doc.save(`Facturas_Periodo_${fechaInicio}_${fechaFin}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
 }
 
 async function generarReporteVentasCliente() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó resumen de ventas por cliente', '');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó resumen de ventas por cliente', '');
 
-    const ventasPorCliente = clientesData.map(cliente => {
-        const facturas = facturasData.filter(f => 
-            (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
-        );
-        const total = facturas.reduce((sum, f) => sum + f.facTotal, 0);
-        
-        return {
-            cedula: cliente.cliCedula,
-            nombre: cliente.cliNombre,
-            cantidad: facturas.length,
-            total: total
-        };
-    }).filter(v => v.cantidad > 0)
-      .sort((a, b) => b.total - a.total);
+        const ventasPorCliente = clientesData.map(cliente => {
+            const facturas = facturasData.filter(f =>
+                (f.cliCedula === cliente.cliCedula || f.cliente?.cliCedula === cliente.cliCedula) && f.facEstadoFactura
+            );
+            const total = facturas.reduce((sum, f) => sum + Number(f.facTotal || 0), 0);
 
-    const doc = new jsPDF();
-    agregarEncabezado(doc, 'RESUMEN DE VENTAS POR CLIENTE');
+            return {
+                cedula: cliente.cliCedula,
+                nombre: cliente.cliNombre,
+                cantidad: facturas.length,
+                total: total
+            };
+        }).filter(v => v.cantidad > 0)
+            .sort((a, b) => b.total - a.total);
 
-    const tableData = ventasPorCliente.map(v => [
-        v.cedula,
-        v.nombre,
-        v.cantidad,
-        `$${v.total.toFixed(2)}`
-    ]);
+        const doc = new jsPDF();
+        agregarEncabezado(doc, 'RESUMEN DE VENTAS POR CLIENTE');
 
-    autoTable(doc, {
-        startY: 45,
-        head: [['Cédula', 'Nombre', 'Facturas', 'Total']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [255, 193, 7] },
-        styles: { fontSize: 10 }
-    });
+        const tableData = ventasPorCliente.map(v => [
+            v.cedula,
+            v.nombre,
+            v.cantidad,
+            `$${(v.total || 0).toFixed(2)}`
+        ]);
 
-    agregarPiePagina(doc);
-    doc.save(`Ventas_Por_Cliente_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+        autoTable(doc, {
+            startY: 50,
+            head: [['Cédula', 'Nombre', 'Facturas', 'Total']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [255, 193, 7], fontStyle: 'bold', textColor: [0, 0, 0] },
+            styles: { fontSize: 10, cellPadding: 4 },
+            alternateRowStyles: { fillColor: [255, 250, 230] },
+            columnStyles: {
+                2: { halign: 'center' },
+                3: { halign: 'right', fontStyle: 'bold' }
+            }
+        });
+
+        agregarPiePagina(doc);
+        doc.save(`Ventas_Por_Cliente_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar ventas por cliente', 'error');
+    }
 }
 
 // ============================================================
@@ -454,7 +516,7 @@ async function generarReporteVentasCliente() {
 function renderCharts() {
     renderChartVentasMes();
     renderChartClientesTipo();
-    renderChartFacturasEstado();
+    // renderChartFacturasEstado removed
 }
 
 function renderChartVentasMes() {
@@ -479,12 +541,12 @@ function renderChartVentasMes() {
         const ventasMes = facturasData
             .filter(f => {
                 const fechaFac = new Date(f.facFechaEmision);
-                return fechaFac.getMonth() === fecha.getMonth() && 
-                       fechaFac.getFullYear() === fecha.getFullYear() &&
-                       f.facEstadoFactura;
+                return fechaFac.getMonth() === fecha.getMonth() &&
+                    fechaFac.getFullYear() === fecha.getFullYear() &&
+                    f.facEstadoFactura;
             })
-            .reduce((sum, f) => sum + f.facTotal, 0);
-        
+            .reduce((sum, f) => sum + Number(f.facTotal || 0), 0);
+
         ventas.push(ventasMes);
     }
 
@@ -545,83 +607,341 @@ function renderChartClientesTipo() {
     });
 }
 
-function renderChartFacturasEstado() {
-    const canvas = document.getElementById('chartFacturasEstado') as HTMLCanvasElement;
-    if (!canvas) return;
 
-    if (charts['facturasEstado']) {
-        charts['facturasEstado'].destroy();
-    }
-
-    const activas = facturasData.filter(f => f.facEstadoFactura).length;
-    const anuladas = facturasData.filter(f => !f.facEstadoFactura).length;
-
-    charts['facturasEstado'] = new Chart(canvas, {
-        type: 'doughnut',
-        data: {
-            labels: ['Activas', 'Anuladas'],
-            datasets: [{
-                data: [activas, anuladas],
-                backgroundColor: ['rgba(40, 167, 69, 0.7)', 'rgba(220, 53, 69, 0.7)'],
-                borderColor: ['rgba(40, 167, 69, 1)', 'rgba(220, 53, 69, 1)'],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
-}
 
 async function generarReporteAnalisisCompleto() {
-    await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de análisis completo', '');
-    mostrarToast('Generando reporte completo...', 'info');
+    try {
+        await registrarAuditoria('Generar Reportes', 'EXPORT', 'Generó reporte de análisis completo', '');
+        mostrarToast('Generando reporte completo...', 'info');
 
-    const doc = new jsPDF();
-    agregarEncabezado(doc, 'ANÁLISIS COMPLETO DE VENTAS');
+        const doc = new jsPDF();
+        agregarEncabezado(doc, 'ANÁLISIS COMPLETO DE VENTAS');
 
-    // TODO: Agregar gráficos convertidos a imágenes
-    doc.setFontSize(10);
-    doc.text('Este reporte incluye análisis estadísticos completos', 15, 50);
-    doc.text('con gráficos de ventas, clientes y facturación.', 15, 56);
+        doc.setFontSize(10);
+        doc.text('Este reporte incluye análisis estadísticos completos', 15, 50);
+        doc.text('con gráficos de ventas, clientes y facturación.', 15, 56);
 
-    // Por ahora, agregar resumen textual
-    let yPos = 70;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Resumen Ejecutivo:', 15, yPos);
-    yPos += 8;
+        let yPos = 70;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Resumen Ejecutivo:', 15, yPos);
+        yPos += 8;
 
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Clientes: ${clientesData.length}`, 20, yPos);
-    yPos += 6;
-    doc.text(`Total Facturas Activas: ${facturasData.filter(f => f.facEstadoFactura).length}`, 20, yPos);
-    yPos += 6;
-    const totalVentas = facturasData.filter(f => f.facEstadoFactura).reduce((s, f) => s + f.facTotal, 0);
-    doc.text(`Total Ventas: $${totalVentas.toFixed(2)}`, 20, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Total Clientes: ${clientesData.length}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Total Facturas Activas: ${facturasData.filter(f => f.facEstadoFactura).length}`, 20, yPos);
+        yPos += 6;
+        const totalVentas = facturasData.filter(f => f.facEstadoFactura).reduce((s, f) => s + (f.facTotal || 0), 0);
+        doc.text(`Total Ventas: $${totalVentas.toFixed(2)}`, 20, yPos);
 
-    agregarPiePagina(doc);
-    doc.save(`Analisis_Completo_${getFechaActual()}.pdf`);
-    mostrarToast('Reporte generado exitosamente', 'success');
+        agregarPiePagina(doc);
+        doc.save(`Analisis_Completo_${getFechaActual()}.pdf`);
+        mostrarToast('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando reporte:', error);
+        mostrarToast('Error al generar análisis completo', 'error');
+    }
 }
 
-// ============================================================
-// UTILIDADES
-// ============================================================
+// ============================================
+// HELPERS FOR DETAILED REPORTS (Ported from clientes.ts & facturas.ts)
+// ============================================
+
+async function ensureInvoiceDetails(factura: any) {
+    if (!factura.detallesFactura) {
+        try {
+            const res = await fetch(`${API_FACTURAS}/${factura.facNumeroFactura}`, { headers: getAuthHeaders() });
+            if (res.ok) {
+                const fullFactura = await res.json();
+                Object.assign(factura, fullFactura);
+            }
+        } catch (e) {
+            console.warn(`Error fetching details for invoice ${factura.facNumeroFactura}`, e);
+        }
+    }
+}
+
+/**
+ * Dibuja un borde alrededor de una sección que puede abarcar múltiples páginas.
+ */
+function drawClientBorder(doc: jsPDF, startPage: number, startY: number, endPage: number, endY: number) {
+    const margin = 10;
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const boxWidth = pageWidth - (margin * 2);
+    const boxX = margin;
+
+    doc.setDrawColor(108, 117, 125);
+    doc.setLineWidth(0.5);
+
+    const originalPage = doc.getNumberOfPages();
+
+    for (let p = startPage; p <= endPage; p++) {
+        doc.setPage(p);
+
+        const topY = (p === startPage) ? startY : 20;
+        const bottomY = (p === endPage) ? endY : (pageHeight - 20);
+
+        doc.line(boxX, topY, boxX, bottomY); // Left
+        doc.line(boxX + boxWidth, topY, boxX + boxWidth, bottomY); // Right
+
+        if (p === startPage) doc.line(boxX, topY, boxX + boxWidth, topY); // Top
+        if (p === endPage) doc.line(boxX, bottomY, boxX + boxWidth, bottomY); // Bottom
+    }
+    doc.setPage(originalPage);
+}
+
+function generateClientSection(doc: jsPDF, client: any, invoices: any[], startY: number) {
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.width;
+    const contentWidth = pageWidth - (margin * 2);
+
+    // --- SECCIÓN DEL CLIENTE (DISEÑO VERTICAL TIPO TARJETA) ---
+    const bgFill = [248, 249, 250];
+    const borderColor = [220, 220, 220];
+    const labelColor = [33, 37, 41];
+    const textColor = [73, 80, 87];
+
+    const cardStartX = margin;
+    const cardStartY = startY;
+
+    // Helper interno
+    const pField = (lbl: string, val: string, x: number, y: number, maxW: number) => {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.text(lbl, x, y);
+        const lW = doc.getTextWidth(lbl);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        const vLines = doc.splitTextToSize(val, maxW - lW - 5);
+        doc.text(vLines, x + lW + 2, y);
+        return doc.getTextDimensions(vLines).h;
+    };
+
+    const drawContent = () => {
+        let cy = startY + 10;
+
+        doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+
+        const nLines = doc.splitTextToSize(client.cliNombre, contentWidth - 10);
+        doc.text(nLines, margin + 5, cy);
+        const nH = doc.getTextDimensions(nLines).h;
+
+        const lY = cy + nH + 2;
+        doc.setDrawColor(13, 110, 253);
+        doc.setLineWidth(0.5);
+        doc.line(margin + 5, lY, margin + 5 + 50, lY);
+
+        cy = lY + 8;
+        const halfWidth = contentWidth / 2;
+
+        const h1_ = pField("Cédula/RUC:", client.cliCedula, margin + 5, cy, halfWidth);
+        cy += Math.max(h1_, 6) + 2;
+
+        const h2_ = pField("Email:", client.cliEmail || 'N/A', margin + 5, cy, contentWidth);
+        cy += Math.max(h2_, 6) + 2;
+
+        pField("Teléfono:", client.cliTelefono || 'N/A', margin + 5, cy, halfWidth);
+
+        let c2y = lY + 8;
+        const c2x = margin + halfWidth + 5;
+        pField("Tipo:", client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito"), c2x, c2y, halfWidth);
+
+        c2y += 8;
+        doc.setFillColor(client.cliEstado ? 40 : 220, client.cliEstado ? 167 : 53, client.cliEstado ? 69 : 69);
+        doc.circle(c2x + 15, c2y - 1, 1.5, 'F');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.text(client.cliEstado ? "Activo" : "Inactivo", c2x + 20, c2y);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.text("Estado:", c2x, c2y);
+
+        cy = Math.max(cy, c2y + 6) + 4;
+        const ha = pField("Dirección:", client.cliDireccion || 'N/A', margin + 5, cy, contentWidth);
+        cy += Math.max(ha, 6) + 5;
+
+        return cy;
+    };
+
+    // Calculate height
+    const _nLines = doc.splitTextToSize(client.cliNombre, contentWidth - 10);
+    const _nH = doc.getTextDimensions(_nLines).h;
+    const _addrLines = doc.splitTextToSize(client.cliDireccion || 'N/A', contentWidth - (doc.getTextWidth("Dirección:") + 10));
+    const _addrH = doc.getTextDimensions(_addrLines).h;
+    const calculatedHeight = 10 + _nH + 2 + 8 + 24 + 4 + _addrH + 5;
+
+    // Pintar Fondo
+    doc.setFillColor(bgFill[0], bgFill[1], bgFill[2]);
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.roundedRect(cardStartX, cardStartY, contentWidth, calculatedHeight, 3, 3, 'FD');
+
+    drawContent();
+
+    // --- SECCIÓN DE FACTURAS ---
+    let currentY = startY + calculatedHeight + 10;
+    doc.setTextColor(0, 0, 0);
+
+    if (invoices.length > 0) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Historial de Facturas (${invoices.length})`, margin, currentY);
+        currentY += 5;
+
+        invoices.forEach((factura, index) => {
+            if (currentY + 30 > doc.internal.pageSize.height - 20) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.setFillColor(52, 58, 64);
+            doc.rect(margin, currentY, contentWidth, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+
+            const fechaFac = factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A";
+            const estadoFac = factura.facEstadoFactura ? "ACTIVA" : "ANULADA";
+            // Removed Estado from text as requested
+            doc.text(`FACTURA #${factura.facNumeroFactura}  |  Fecha: ${fechaFac}`, margin + 3, currentY + 5.5);
+            doc.text(`Total: $${(factura.facTotal || 0).toFixed(2)}`, pageWidth - margin - 3, currentY + 5.5, { align: 'right' });
+
+            currentY += 8;
+
+            const detalles = factura.detallesFactura || [];
+            if (detalles.length > 0) {
+                const bodyData = detalles.map((d: any) => [
+                    d.detCodigoProducto || String(d.detIdProductoExterno),
+                    d.detNombreProducto,
+                    d.detCantidad,
+                    `$${(d.detPrecioUnitario || 0).toFixed(2)}`,
+                    `$${(d.detTotal || 0).toFixed(2)}`
+                ]);
+
+                autoTable(doc, {
+                    startY: currentY,
+                    head: [['Cód.', 'Producto', 'Cant.', 'P. Unit', 'Total']],
+                    body: bodyData,
+                    theme: 'plain',
+                    styles: { fontSize: 8, cellPadding: 1.5, overflow: 'linebreak' },
+                    headStyles: { fillColor: [233, 236, 239], textColor: [73, 80, 87], fontStyle: 'bold', lineWidth: 0 },
+                    columnStyles: {
+                        0: { cellWidth: 25 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 15, halign: 'center' },
+                        3: { cellWidth: 20, halign: 'right' },
+                        4: { cellWidth: 20, halign: 'right' }
+                    },
+                    margin: { left: margin, right: margin },
+                    pageBreak: 'auto',
+                });
+
+                currentY = (doc as any).lastAutoTable.finalY + 5;
+            } else {
+                doc.setTextColor(150, 150, 150);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                doc.text("(Sin detalles de productos disponibles)", margin + 3, currentY + 5);
+                currentY += 10;
+            }
+            currentY += 2;
+        });
+    } else {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(108, 117, 125);
+        doc.text("(Este cliente no tiene facturas registradas)", margin, currentY + 5);
+        currentY += 10;
+    }
+    (doc as any).customLastY = currentY;
+}
+
+// =================================== 
+// HELPERS FACTURAS
+// ==================================
+
+function drawTextBlock(doc: jsPDF, text: string, x: number, y: number, maxWidth: number): number {
+    const lines = doc.splitTextToSize(text, maxWidth);
+    doc.text(lines, x, y);
+    return y + doc.getTextDimensions(lines).h + 3;
+}
+
+function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
+    const margin = 15;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Factura: ${factura.facNumeroFactura}`, margin, startY);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+
+    const clienteCedula = factura.cliente?.cliCedula || factura.cliCedula || "";
+    // Note: In reportes.ts we have 'clientesData' globally
+    const clienteNombre = clientesData?.find(c => c.cliCedula === clienteCedula)?.cliNombre || factura.cliente?.cliNombre || "N/A";
+
+    // Fix TipoPago: check nested object first, then fallback to lookup using tipIdTipop (common FK)
+    const tipoObj = factura.tipoPago || tiposPagoData.find(t => t.tipIdTipop === factura.tipIdTipop) || {};
+    const tipoPago = tipoObj.tipDescripcion || "N/A";
+
+    let currentY = startY + 6;
+    const maxWidth = doc.internal.pageSize.width - margin * 2;
+
+    currentY = drawTextBlock(doc, `Cliente: ${clienteNombre}`, margin, currentY, maxWidth);
+    currentY = drawTextBlock(doc, `Tipo de Pago: ${tipoPago}`, margin, currentY, maxWidth);
+    currentY = drawTextBlock(doc, `Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}`, margin, currentY, maxWidth);
+    currentY = drawTextBlock(doc, `Total: $${(factura.facTotal || 0).toFixed(2)}`, margin, currentY, maxWidth);
+
+    const tableStartY = currentY + 4;
+    const detalles = factura.detallesFactura || [];
+    if (detalles.length > 0) {
+        const tableData = detalles.map((d: any) => [
+            d.detCodigoProducto || "S/C",
+            d.detNombreProducto,
+            d.detCantidad.toString(),
+            `$${(d.detPrecioUnitario || 0).toFixed(2)}`,
+            d.detGrabaIva ? "Sí" : "No",
+            `$${(d.detTotal || 0).toFixed(2)}`
+        ]);
+        autoTable(doc, {
+            startY: tableStartY,
+            head: [['Código', 'Descripción', 'Cant.', 'P. Unit.', 'IVA', 'Total']],
+            body: tableData,
+            theme: 'plain',
+            margin: { left: margin + 5 },
+            tableWidth: doc.internal.pageSize.width - (margin * 2) - 10,
+            styles: { fontSize: 8, cellPadding: 1 },
+            headStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold' },
+        });
+    } else {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "italic");
+        doc.text("(Sin detalles de productos)", margin + 5, tableStartY + 4);
+        (doc as any).lastAutoTable = { finalY: tableStartY + 5 };
+    }
+    const finalY = (doc as any).lastAutoTable?.finalY || tableStartY + 10;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total a Pagar: $${(factura.facTotal || 0).toFixed(2)}`, doc.internal.pageSize.width - margin, finalY + 5, { align: 'right' });
+    (doc as any).lastAutoTable = { finalY: finalY + 10 };
+}
 
 function agregarEncabezado(doc: jsPDF, titulo: string) {
-    doc.setFillColor(13, 110, 253);
-    doc.rect(0, 0, doc.internal.pageSize.width, 35, 'F');
+    // Modificar Header para usar estilos estándar (similar a clientes.ts)
+    doc.setFillColor(41, 128, 185); // Azúl corporativo
+    doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text(titulo, doc.internal.pageSize.width / 2, 15, { align: 'center' });
-    doc.setFontSize(10);
+    doc.text(titulo, doc.internal.pageSize.width / 2, 20, { align: 'center' });
+
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${new Date().toLocaleDateString('es-EC')}`, doc.internal.pageSize.width / 2, 25, { align: 'center' });
+    doc.text(`Generado el: ${new Date().toLocaleDateString('es-EC')} ${new Date().toLocaleTimeString('es-EC')}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
+
+    // Reset colors
     doc.setTextColor(0, 0, 0);
 }
 
@@ -630,9 +950,14 @@ function agregarPiePagina(doc: jsPDF) {
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(100);
+        doc.setTextColor(150);
+
+        // Línea separadora
+        doc.setDrawColor(200, 200, 200);
+        doc.line(15, doc.internal.pageSize.height - 15, doc.internal.pageSize.width - 15, doc.internal.pageSize.height - 15);
+
         doc.text(
-            `Página ${i} de ${totalPages} | Sistema de Facturación UTN`,
+            `Sistema de Facturación UTN - Página ${i} de ${totalPages}`,
             doc.internal.pageSize.width / 2,
             doc.internal.pageSize.height - 10,
             { align: 'center' }
@@ -641,7 +966,9 @@ function agregarPiePagina(doc: jsPDF) {
 }
 
 function formatearFecha(fecha: string): string {
-    return new Date(fecha).toLocaleDateString('es-EC');
+    if (!fecha) return 'N/A';
+    const date = new Date(fecha);
+    return isNaN(date.getTime()) ? 'Fecha Inválida' : date.toLocaleDateString('es-EC');
 }
 
 function getFechaActual(): string {
@@ -659,9 +986,9 @@ function mostrarToast(mensaje: string, tipo: 'success' | 'error' | 'info' = 'suc
         error: { bg: 'bg-danger', icon: 'exclamation-triangle-fill' },
         info: { bg: 'bg-info', icon: 'info-circle-fill' }
     };
-    
+
     const { bg, icon } = colores[tipo];
-    
+
     const toast = document.createElement('div');
     toast.className = 'position-fixed top-0 start-50 translate-middle-x p-3';
     toast.style.zIndex = '9999';

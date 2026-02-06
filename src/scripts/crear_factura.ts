@@ -1,4 +1,4 @@
-import { getAuthHeaders, checkAuth } from "./auth";
+import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 
 // --- CONFIGURACIÓN API (Del Archivo Verdadero) ---
 const API_URL = import.meta.env.PUBLIC_BACKEND_URL;
@@ -174,7 +174,7 @@ function setupModalProductos() {
             if (existe) {
                 // AQUI ESTÁ EL CAMBIO: Usamos tu modal de error en lugar de alert()
                 mostrarErrorEnModal(`El producto "${productoSeleccionadoTemp.nombre}" ya está agregado. Modifica la cantidad en la tabla.`);
-                return; 
+                return;
             }
             // ------------------------------------------
 
@@ -421,14 +421,14 @@ async function loadSelects() {
     allClientes = Array.isArray(clientesData) ? clientesData : (clientesData.data || []);
     allProductos = Array.isArray(prodData) ? prodData : (prodData.data || []);
     allPuntosEmision = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
-    
+
     // Datos de Establecimientos y Puntos (Búsqueda automática de los fijos)
     const establecimientos = Array.isArray(estData) ? estData : (estData.data || []);
     const puntos = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
 
     // 1. Buscar y setear "Gran Aqui"
-    const establecimientoFijo = establecimientos.find((e: any) => 
-        e.estNombre.trim().toLowerCase() === "gran aqui" || 
+    const establecimientoFijo = establecimientos.find((e: any) =>
+        e.estNombre.trim().toLowerCase() === "gran aqui" ||
         e.estNombre.includes("Gran Aqui") // Fallback por si hay espacios extra
     );
 
@@ -439,12 +439,12 @@ async function loadSelects() {
 
         // 2. Buscar y setear "Caja de cobro - 001" basado en el RUC encontrado
         // La lógica original era: `${p.pemDescripcion} - ${p.pemIdPuntoEmision}`
-        const puntoFijo = puntos.find((p: any) => 
-            p.estRuc === establecimientoFijo.estRuc && 
+        const puntoFijo = puntos.find((p: any) =>
+            p.estRuc === establecimientoFijo.estRuc &&
             p.pemEstado === true &&
             // Buscamos coincidencia con el formato visual que tenías
             (`${p.pemDescripcion} - ${p.pemIdPuntoEmision}` === "Caja de cobro - 001" ||
-             p.pemDescripcion.includes("Caja de cobro")) // Fallback flexible
+                p.pemDescripcion.includes("Caja de cobro")) // Fallback flexible
         );
 
         const inputPemId = document.getElementById("pemId") as HTMLInputElement;
@@ -631,7 +631,7 @@ async function handleSubmit(e: Event) {
     // --- MANEJO DE MODAL DE CARGA ---
     const loadingModalEl = document.getElementById("loadingModal");
     let loadingModalInstance: any = null;
-    
+
     if (loadingModalEl) {
         loadingModalInstance = new bootstrap.Modal(loadingModalEl);
         loadingModalInstance.show();
@@ -639,6 +639,7 @@ async function handleSubmit(e: Event) {
     // -------------------------------
 
     // 5. Enviar
+    mostrarLoading();
     try {
         const response = await fetch(FACTURAS_URL, {
             method: "POST",
@@ -651,9 +652,9 @@ async function handleSubmit(e: Event) {
 
         // Ocultar modal de carga antes de mostrar resultado
         if (loadingModalInstance) {
-             // Pequeño timeout para asegurar transición suave
-             await new Promise(r => setTimeout(r, 500)); 
-             loadingModalInstance.hide();
+            // Pequeño timeout para asegurar transición suave
+            await new Promise(r => setTimeout(r, 500));
+            loadingModalInstance.hide();
         }
 
         if (response.ok) {
@@ -665,14 +666,21 @@ async function handleSubmit(e: Event) {
                 console.warn("La respuesta no tiene JSON válido, pero fue exitosa.");
             }
 
+            await registrarAuditoria(
+                'Generar Facturas',
+                'CREATE',
+                `Se creó la factura ${numeroFactura || '(Pendiente)'} para ${cliCedula}`,
+                `Total: $${totalFactura.toFixed(2)}`
+            ).catch(err => console.warn('Error en auditoría:', err));
+
+            ocultarLoading();
             const modalEl = document.getElementById('successModal');
             if (modalEl) {
                 const modal = new bootstrap.Modal(modalEl);
-                const msgExito = document.getElementById('mensajeExitoId'); // Asegúrate que este ID exista en tu HTML si lo usas, si no, ignora esta línea
-                
-                // Si tienes un elemento para mensaje dinámico:
+                const msgExito = document.getElementById('mensajeExitoId');
+
                 if (msgExito) {
-                    msgExito.innerText = numeroFactura 
+                    msgExito.innerText = numeroFactura
                         ? `Factura ${numeroFactura} generada correctamente.`
                         : `Factura generada correctamente.`;
                 }
@@ -686,15 +694,33 @@ async function handleSubmit(e: Event) {
                 return;
             }
 
-            let msg = "Error al crear factura";
+            let msg = `Error al crear factura (${response.status})`;
             const rawText = await response.text();
+
+            // Log para debug en consola, siempre útil
+            console.error("Error backend status:", response.status);
+            console.error("Error backend raw:", rawText);
+
             try {
                 const errData = JSON.parse(rawText);
-                msg = errData.detail || errData.message || JSON.stringify(errData);
-                if (errData.errors) msg += ": " + JSON.stringify(errData.errors);
+                // Prioridad de mensajes
+                const mainMsg = errData.detail || errData.message || errData.title;
+                if (mainMsg) {
+                    msg = mainMsg;
+                }
+
+                // Si hay validaciones específicas (campo 'errors' o 'validationErrors')
+                if (errData.errors) {
+                    msg += "\n\n" + JSON.stringify(errData.errors, null, 2);
+                } else if (!mainMsg) {
+                    // Fallback: si es JSON pero no tiene estructura conocida, mostrar todo
+                    msg += "\n\n" + JSON.stringify(errData, null, 2);
+                }
             } catch (e) {
-                if (rawText) msg = rawText;
+                // Si no es JSON, mostrar el texto crudo (puede ser HTML de error 500)
+                if (rawText) msg += "\n\n" + rawText;
             }
+            ocultarLoading();
             mostrarErrorEnModal(msg);
         }
     } catch (error) {
@@ -702,6 +728,7 @@ async function handleSubmit(e: Event) {
         if (loadingModalInstance) loadingModalInstance.hide();
 
         console.error("Error de red:", error);
+        ocultarLoading();
         mostrarErrorEnModal("Error de conexión con el servidor.");
     }
 }
@@ -712,5 +739,21 @@ function mostrarErrorEnModal(msg: string) {
     if (msgEl && modalEl) {
         msgEl.innerText = msg;
         new bootstrap.Modal(modalEl).show();
+    }
+}
+
+function mostrarLoading() {
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) {
+        overlay.classList.remove("d-none");
+        overlay.classList.add("d-flex");
+    }
+}
+
+function ocultarLoading() {
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) {
+        overlay.classList.add("d-none");
+        overlay.classList.remove("d-flex");
     }
 }
