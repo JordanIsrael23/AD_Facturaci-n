@@ -53,6 +53,14 @@ async function handleLogin(e: Event) {
         showError("Por favor, completa todos los campos.");
         return;
     }
+    if (!esCorreoValido(email)) {
+        showError("El correo electrónico ingresado no es válido.");
+        return;
+    }
+    if (!esContrasenaValida(password)) {
+        showError("La contraseña no es válida. Debe tener al menos 8 caracteres.");
+        return;
+    }
 
     const submitBtn = document.getElementById("btnSubmit") as HTMLButtonElement;
     const originalBtnText = submitBtn.innerHTML;
@@ -129,7 +137,7 @@ async function handleLogin(e: Event) {
                     errorMsg = "Verifica que todos los campos estén completos.";
                 }
             } else if (response.status === 401) {
-                errorMsg = "Credenciales incorrectas. Verifica tu usuario y contraseña.";
+                errorMsg = "Credenciales incorrectas. Verifica tu contraseña.";
             } else if (response.status === 403) {
                 if (data.message?.includes("inactivo")) {
                     errorMsg = "Tu usuario está inactivo. Contacta al administrador.";
@@ -244,4 +252,13 @@ function showSuccess(msg: string, callback?: () => void) {
     if (callback) {
         setTimeout(callback, 2000);
     }
+}
+function esCorreoValido(correo: string): boolean {
+    const regex = /^[^\s@]+@utn\.edu\.ec$/i;
+    return regex.test(correo);
+}
+
+function esContrasenaValida(password: string): boolean {
+    // mínimo 8 caracteres
+    return password.length >= 8;
 }
