@@ -1,6 +1,8 @@
 import { getAuthHeaders, checkAuth } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { uploadPDFToS3 } from "../utils/storage";
+import { initAmplify } from "../aws-config";
 
 // Definimos la URL de la API
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
@@ -29,6 +31,7 @@ let globalFilters = {
 declare const bootstrap: any;
 
 export function initFacturas() {
+    initAmplify();
     checkAuth();
     loadFacturas();
 
@@ -466,6 +469,16 @@ function generarPDFFactura() {
         const nombreArchivo = `Factura_${formatInvoiceNumber(factura.facNumeroFactura).replace(/\//g, '-')}.pdf`;
         doc.save(nombreArchivo);
 
+        // Upload to S3
+        (async () => {
+            try {
+                showLoadingToast("Subiendo respaldo...");
+                const blob = doc.output('blob');
+                await uploadPDFToS3(blob, 'facturas', nombreArchivo);
+                console.log("Factura subida a S3");
+            } catch (e) { console.warn("S3 Upload Failed", e); }
+        })();
+
         removeLoadingToast();
         showSuccessToast();
     }, 1000);
@@ -625,7 +638,15 @@ async function generarReporteGlobalPDF() {
         const lastY = (doc as any).lastAutoTable?.finalY;
         yPos = lastY ? lastY + 15 : yPos + 60;
     }
-    doc.save(`Reporte_Global_Facturas_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+    const fileName = `Reporte_Global_Facturas_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
+    doc.save(fileName);
+
+    // Upload to S3
+    try {
+        const blob = doc.output('blob');
+        // No await here to not block UI or use loading toast if preferred
+        uploadPDFToS3(blob, 'reportes', fileName).catch(err => console.error("S3 Background Upload Failed", err));
+    } catch (e) { console.warn("S3 Upload init Failed", e); }
     removeLoadingToast();
     showSuccessToast();
 }
@@ -662,7 +683,7 @@ function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
     currentY = drawTextBlock(doc, `Cliente: ${clienteNombre}`, margin, currentY, maxWidth);
     currentY = drawTextBlock(doc, `Tipo de Pago: ${tipoPago}`, margin, currentY, maxWidth);
     currentY = drawTextBlock(doc, `Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}`, margin, currentY, maxWidth);
-   
+
 
     const tableStartY = currentY + 4;
     const detalles = factura.detallesFactura || [];

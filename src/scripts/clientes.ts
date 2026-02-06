@@ -3,6 +3,8 @@
 import { getAuthHeaders, checkAuth, hasFunction, registrarAuditoria } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { uploadPDFToS3 } from "../utils/storage";
+import { initAmplify } from "../aws-config";
 
 // Definimos la URL de la API
 // Definimos la URL de la API
@@ -23,6 +25,7 @@ let currentClienteForPdf: string | null = null;
 declare const bootstrap: any;
 
 export function initClientes() {
+    initAmplify();
     checkAuth(); // Verificar auth al cargar
     loadClientes();
     setupDeleteModal();
@@ -562,7 +565,17 @@ async function generarPDFCliente(cedula: string) {
         // Ajustamos endY un poco mas para cerrar
         drawClientBorder(doc, startPage, startY, doc.getNumberOfPages(), endY + 5);
 
-        doc.save(`Reporte_Cliente_${cliente.cliCedula}.pdf`);
+        const fileName = `Reporte_Cliente_${cliente.cliCedula}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        (async () => {
+            try {
+                const blob = doc.output('blob');
+                await uploadPDFToS3(blob, 'clientes', fileName);
+            } catch (e) { console.warn("S3 Upload Failed", e); }
+        })();
+
         showSuccessToast();
 
     } catch (err) {
@@ -854,7 +867,14 @@ async function generarReporteGlobalPDF() {
         // Prepare for next iteration
         yPos = endY + 15; // Vertical margin between boxes
     }
-    doc.save(`Reporte_Global_Clientes_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+    const fileName = `Reporte_Global_Clientes_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
+    doc.save(fileName);
+
+    // Upload to S3
+    try {
+        const blob = doc.output('blob');
+        uploadPDFToS3(blob, 'reportes', fileName).catch(e => console.error(e));
+    } catch (e) { console.warn("S3 Upload Init Failed", e); }
     removeLoadingToast();
     showSuccessToast();
 }

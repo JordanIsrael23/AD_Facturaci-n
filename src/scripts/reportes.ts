@@ -3,6 +3,8 @@ import { getAuthHeaders, checkAuth, registrarAuditoria } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Chart from 'chart.js/auto';
+import { uploadPDFToS3 } from "../utils/storage";
+import { initAmplify } from "../aws-config";
 
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
 
@@ -16,6 +18,7 @@ let tiposPagoData: any[] = [];
 let charts: Record<string, Chart> = {};
 
 export function initReportes() {
+    initAmplify();
     checkAuth();
     cargarDatos();
     setupEventListeners();
@@ -164,7 +167,20 @@ async function generarReporteClientesGeneral() {
         }
 
         agregarPiePagina(doc);
-        doc.save(`Clientes_General_${getFechaActual()}.pdf`);
+        const fileName = `Clientes_General_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            mostrarToast('Subiendo respaldo a la nube...', 'info');
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+            mostrarToast('Reporte subido a S3 exitosamente', 'success');
+        } catch (e) {
+            console.warn("Error subiendo a S3", e);
+            mostrarToast('Error al subir respaldo a S3', 'error');
+        }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -241,7 +257,15 @@ async function generarReporteClientesTipo() {
         if (credito.length > 0) await generarBloqueTipo(doc, 'CLIENTES DE CRÉDITO', credito);
 
         agregarPiePagina(doc);
-        doc.save(`Clientes_Por_Tipo_${getFechaActual()}.pdf`);
+        const fileName = `Clientes_Por_Tipo_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -286,7 +310,15 @@ async function generarReporteClientesFacturas() {
         });
 
         agregarPiePagina(doc);
-        doc.save(`Clientes_Historial_${getFechaActual()}.pdf`);
+        const fileName = `Clientes_Historial_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -343,7 +375,15 @@ async function generarReporteTopClientes() {
         });
 
         agregarPiePagina(doc);
-        doc.save(`Top_10_Clientes_${getFechaActual()}.pdf`);
+        const fileName = `Top_10_Clientes_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -388,7 +428,15 @@ async function generarReporteFacturasGeneral() {
         }
 
         agregarPiePagina(doc);
-        doc.save(`Facturas_General_${getFechaActual()}.pdf`);
+        const fileName = `Facturas_General_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -449,7 +497,15 @@ async function generarReporteFacturasPeriodo() {
         doc.text(`Total Período: $${total.toFixed(2)}`, 15, 20);
 
         agregarPiePagina(doc);
-        doc.save(`Facturas_Periodo_${fechaInicio}_${fechaFin}.pdf`);
+        const fileName = `Facturas_Periodo_${fechaInicio}_${fechaFin}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -501,7 +557,15 @@ async function generarReporteVentasCliente() {
         });
 
         agregarPiePagina(doc);
-        doc.save(`Ventas_Por_Cliente_${getFechaActual()}.pdf`);
+        const fileName = `Ventas_Por_Cliente_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
@@ -635,7 +699,16 @@ async function generarReporteAnalisisCompleto() {
         doc.text(`Total Ventas: $${totalVentas.toFixed(2)}`, 20, yPos);
 
         agregarPiePagina(doc);
-        doc.save(`Analisis_Completo_${getFechaActual()}.pdf`);
+        const fileName = `Analisis_Completo_${getFechaActual()}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        try {
+            const blob = doc.output('blob');
+            await uploadPDFToS3(blob, 'reportes', fileName);
+            mostrarToast('Reporte subido a S3 exitosamente', 'success');
+        } catch (e) { console.warn("S3 Upload Failed", e); }
+
         mostrarToast('Reporte generado exitosamente', 'success');
     } catch (error) {
         console.error('Error generando reporte:', error);
