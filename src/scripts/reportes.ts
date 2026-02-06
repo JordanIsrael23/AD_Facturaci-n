@@ -45,7 +45,9 @@ function setupEventListeners() {
     document.getElementById('btnReporteVentasCliente')?.addEventListener('click', () => generarReporteVentasCliente());
 
     // Análisis
-    document.getElementById('btnReporteAnalisis')?.addEventListener('click', () => generarReporteAnalisisCompleto());
+    // Análisis
+    // Documento analisis removido por solicitud
+    // document.getElementById('btnReporteAnalisis')?.addEventListener('click', () => generarReporteAnalisisCompleto());
 
     // Limpiar fechas
     document.getElementById('btnLimpiarFechas')?.addEventListener('click', limpiarFechas);
