@@ -653,7 +653,7 @@ function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
     currentY = drawTextBlock(doc, `Cliente: ${clienteNombre}`, margin, currentY, maxWidth);
     currentY = drawTextBlock(doc, `Tipo de Pago: ${tipoPago}`, margin, currentY, maxWidth);
     currentY = drawTextBlock(doc, `Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}`, margin, currentY, maxWidth);
-    currentY = drawTextBlock(doc, `Total: $${factura.facTotal.toFixed(2)}`, margin, currentY, maxWidth);
+   
 
     const tableStartY = currentY + 4;
     const detalles = factura.detallesFactura || [];
