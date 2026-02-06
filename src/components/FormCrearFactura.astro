@@ -552,6 +552,29 @@ import background from "../assets/background.svg";
     </div>
   </div>
 
+  <div class="modal fade" id="modalAdvertenciaStock" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-warning border-3">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title d-flex align-items-center fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+            Advertencia
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <h4 class="text-dark mb-3">Inventario insuficiente</h4>
+          <p class="text-muted">La cantidad ingresada supera el stock disponible de este producto.</p>
+        </div>
+        <div class="modal-footer justify-content-center bg-light">
+          <button type="button" class="btn btn-warning px-5 fw-bold" data-bs-dismiss="modal">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     import { initCrearFactura } from "../scripts/crear_factura";
     document.addEventListener("DOMContentLoaded", initCrearFactura);

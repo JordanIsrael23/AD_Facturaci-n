@@ -219,6 +219,19 @@ function renderTablaProductosModal() {
 
     tbody.innerHTML = "";
 
+    // ---Validar si no hay resultados ---
+    if (productosFiltrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center" style="padding: 1rem;">
+                    No se encontraron resultados
+                </td>
+            </tr>
+        `;
+        if (info) info.innerText = "Mostrando 0 de 0";
+        return; // Detenemos la función para que no intente paginar
+    }
+
     const inicio = (paginaActualProd - 1) * registrosPorPaginaProd;
     const fin = inicio + registrosPorPaginaProd;
     const items = productosFiltrados.slice(inicio, fin);
@@ -528,9 +541,30 @@ function agregarFilaDetalle(prod: ProductoExterno) {
     verificarEstadoBotonEmitir();
 
     const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    qtyInput.addEventListener("input", () => {
+        const valorIngresado = parseFloat(qtyInput.value);
+        
+        // Verificamos si supera el stock
+        if (valorIngresado > prod.stock) {
+            // 1. Mostrar el modal de advertencia
+            const modalEl = document.getElementById('modalAdvertenciaStock');
+            if (modalEl) {
+                new bootstrap.Modal(modalEl).show();
+            }
+
+            // 2. Resetear el valor a 1
+            qtyInput.value = "1";
+        }
+
+        // 3. Calcular totales (ya sea con el valor válido o con el 1 reseteado)
+        calcularFila(tr);
+    });
+
     calcularFila(tr);
 
-    qtyInput.addEventListener("input", () => calcularFila(tr));
+    //qtyInput.addEventListener("input", () => calcularFila(tr));
 
     tr.querySelector(".btn-remove-row")?.addEventListener("click", () => {
         tr.remove();
