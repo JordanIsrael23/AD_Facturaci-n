@@ -24,8 +24,11 @@ let allInvoicesCache: any[] = [];
 let allClientsCache: any[] = [];
 let filteredGlobalFacturas: any[] = [];
 let globalFilters = {
-    tipoPago: "", // ID del tipo pago
+    tipoPago: "",      // ID del tipo pago
+    fechaInicio: "",   // YYYY-MM-DD
+    fechaFin: ""       // YYYY-MM-DD
 };
+
 
 // Declaramos bootstrap para evitar errores de TS
 declare const bootstrap: any;
@@ -535,10 +538,23 @@ async function openReporteGlobal() {
 }
 
 function setupGlobalReportFiltersListeners() {
-    const el = document.getElementById("globalFiltroTipoPago");
-    if (el && !el.dataset.listenerAttached) {
-        el.addEventListener("change", applyGlobalFilters);
-        el.dataset.listenerAttached = "true";
+
+    const tipoPago = document.getElementById("globalFiltroTipoPago");
+    if (tipoPago && !tipoPago.dataset.listenerAttached) {
+        tipoPago.addEventListener("change", applyGlobalFilters);
+        tipoPago.dataset.listenerAttached = "true";
+    }
+
+    const fechaInicio = document.getElementById("globalFechaInicio");
+    if (fechaInicio && !fechaInicio.dataset.listenerAttached) {
+        fechaInicio.addEventListener("change", applyGlobalFilters);
+        fechaInicio.dataset.listenerAttached = "true";
+    }
+
+    const fechaFin = document.getElementById("globalFechaFin");
+    if (fechaFin && !fechaFin.dataset.listenerAttached) {
+        fechaFin.addEventListener("change", applyGlobalFilters);
+        fechaFin.dataset.listenerAttached = "true";
     }
 
     const btnClear = document.getElementById("btnLimpiarFiltrosGlobal");
@@ -551,24 +567,59 @@ function setupGlobalReportFiltersListeners() {
     }
 }
 
+
 function resetGlobalFilters() {
-    globalFilters = { tipoPago: "" };
+    globalFilters = {
+        tipoPago: "",
+        fechaInicio: "",
+        fechaFin: ""
+    };
+
     (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value = "";
+    (document.getElementById("globalFechaInicio") as HTMLInputElement).value = "";
+    (document.getElementById("globalFechaFin") as HTMLInputElement).value = "";
 }
 
+
 function applyGlobalFilters() {
-    globalFilters.tipoPago = (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value;
+
+    globalFilters.tipoPago =
+        (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value;
+
+    globalFilters.fechaInicio =
+        (document.getElementById("globalFechaInicio") as HTMLInputElement)?.value || "";
+
+    globalFilters.fechaFin =
+        (document.getElementById("globalFechaFin") as HTMLInputElement)?.value || "";
 
     filteredGlobalFacturas = allInvoicesCache.filter(f => {
+
+        // ===== TIPO DE PAGO =====
         let validTipo = true;
         if (globalFilters.tipoPago !== "") {
             const tipoId = parseInt(globalFilters.tipoPago);
             validTipo = !isNaN(tipoId) && f.tipIdTipop === tipoId;
         }
-        return validTipo;
+
+        // ===== FECHA =====
+        let validFecha = true;
+        if (globalFilters.fechaInicio) {
+            validFecha =
+                new Date(f.facFechaEmision) >= new Date(globalFilters.fechaInicio);
+        }
+
+        if (validFecha && globalFilters.fechaFin) {
+            const fin = new Date(globalFilters.fechaFin);
+            fin.setHours(23, 59, 59, 999);
+            validFecha = new Date(f.facFechaEmision) <= fin;
+        }
+
+        return validTipo && validFecha;
     });
+
     renderGlobalReportTable();
 }
+
 
 function renderGlobalReportTable() {
     const tbody = document.getElementById("globalReportBody");
