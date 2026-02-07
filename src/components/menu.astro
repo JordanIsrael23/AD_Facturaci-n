@@ -97,7 +97,13 @@ import background from "../assets/background.svg";
 
                 <!-- Cerrar Sesión (Siempre visible) -->
                 <div class="col-md-6">
-                    <a href="#" id="btnLogout" class="btn-menu-custom">
+                    <a
+                        href="#"
+                        id="btnLogout"
+                        class="btn-menu-custom"
+                        data-bs-toggle="modal"
+                        data-bs-target="#logoutModal"
+                    >
                         <div class="icon-wrapper bg-danger-subtle text-danger">
                             <i class="bi bi-box-arrow-right"></i>
                         </div>
@@ -121,6 +127,51 @@ import background from "../assets/background.svg";
         </div>
     </div>
 </main>
+
+<!-- Modal de Confirmación de Logout -->
+<div
+    class="modal fade"
+    id="logoutModal"
+    tabindex="-1"
+    aria-labelledby="logoutModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0">
+                <h5
+                    class="modal-title fw-bold text-danger"
+                    id="logoutModalLabel"
+                >
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>Cerrar
+                    Sesión
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="fs-5 text-muted mb-0">
+                    ¿Estás seguro que deseas salir del sistema?
+                </p>
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center pb-4">
+                <button
+                    type="button"
+                    class="btn btn-secondary px-4 rounded-pill"
+                    data-bs-dismiss="modal">Cancelar</button
+                >
+                <button
+                    type="button"
+                    class="btn btn-danger px-4 rounded-pill"
+                    id="btnConfirmLogout">Cerrar Sesión</button
+                >
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     import {
@@ -177,25 +228,22 @@ import background from "../assets/background.svg";
         }
     }
 
-    // Registrar auditoría de acceso al menú
-    if (funciones.length > 0) {
-        registrarAuditoria(
-            funciones[0].nombre, // Usar la primera función disponible
-            "VIEW",
-            "Usuario accedió al menú principal",
-            `Rol: ${rol}, Funciones: ${funciones.length}`,
-        );
-    }
+    // Auditoria de acceso eliminada por solicitud del usuario
+    // if (funciones.length > 0) {
+    //     registrarAuditoria(
+    //         funciones[0].nombre,
+    //         "VIEW",
+    //         "Usuario accedió al menú principal",
+    //         `Rol: ${rol}, Funciones: ${funciones.length}`,
+    //     );
+    // }
 
-    // Manejar logout
-    document.getElementById("btnLogout")?.addEventListener("click", (e) => {
-        e.preventDefault();
-
-        // Confirmar antes de cerrar sesión
-        if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
+    // Manejar logout (Confirmación en Modal)
+    document
+        .getElementById("btnConfirmLogout")
+        ?.addEventListener("click", () => {
             logout();
-        }
-    });
+        });
 </script>
 
 <style>

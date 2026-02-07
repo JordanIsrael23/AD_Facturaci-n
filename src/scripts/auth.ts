@@ -2,14 +2,16 @@
 
 // Configuración dinámica de API_BASE_URL
 let API_BASE_URL = import.meta.env.PUBLIC_LOGIN_URL;
+let API_AUDITORIA_URL = import.meta.env.PUBLIC_AUDITORIA_URL;
 
 if (typeof window !== "undefined" && (
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname.includes("amplifyapp.com")
 )) {
-    console.log("⚠️ Entorno Proxy: Usando Proxy /security-proxy");
+    console.log("⚠️ Entorno Proxy: Usando Proxy /security-proxy y /auditoria-proxy");
     API_BASE_URL = "/security-proxy";
+    API_AUDITORIA_URL = "/auditoria-proxy/auditoria";
 }
 
 const MODULO_ID = 5; // 🔴 CAMBIA ESTE ID POR EL QUE TE ASIGNARON
@@ -266,24 +268,39 @@ export async function registrarAuditoria(
 
     try {
         const ip = await getUserIP();
-        const response = await fetch(`${API_BASE_URL}/api/auditoria`, {
+
+        // 1. Construir el objeto de auditoría original
+        const auditoriaPayload = {
+            id_funcion: funcionId,
+            accion: accion,
+            descripcion: descripcion,
+            observacion: observacion || `Acción realizada desde el módulo de Facturación`,
+            ip_usuario: ip,
+            token: token
+        };
+
+        // 2. Convertir a Base64 (Manejando caracteres Unicode correctamente)
+        const jsonString = JSON.stringify(auditoriaPayload);
+        const base64Data = btoa(unescape(encodeURIComponent(jsonString)));
+
+        // 3. Crear el cuerpo de la solicitud con el formato requerido
+        const requestBody = {
+            key: "test",
+            data: base64Data
+        };
+
+        const response = await fetch(API_AUDITORIA_URL, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({
-                id_funcion: funcionId,
-                accion,
-                descripcion,
-                observacion: observacion || `Acción realizada desde el módulo de Facturación`,
-                ip_usuario: ip,
-            }),
+            body: JSON.stringify(requestBody),
         });
 
         if (response.ok) {
             console.log(`✅ Auditoría registrada: ${accion} - ${nombreFuncion}`);
             return true;
         } else {
-            const error = await response.json();
-            console.error("Error en auditoría:", error);
+            const errorText = await response.text();
+            console.error("Error en auditoría:", errorText);
             return false;
         }
     } catch (error) {

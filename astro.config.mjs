@@ -11,6 +11,12 @@ export default defineConfig({
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/security-proxy/, ''),
           secure: false,
+        },
+        '/auditoria-proxy': {
+          target: 'https://zbfoxel9cd.execute-api.us-east-1.amazonaws.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/auditoria-proxy/, ''),
+          secure: false,
         }
       }
     }
