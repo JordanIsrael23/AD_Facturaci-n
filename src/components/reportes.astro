@@ -28,13 +28,18 @@ import background from "../assets/background.svg";
 >
 </div>
 
-<main class="container-fluid d-flex flex-column align-items-center p-0 min-vh-100">
+<main
+    class="container-fluid d-flex flex-column align-items-center p-0 min-vh-100"
+>
     <section class="container mt-5 p-3">
-        
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+        <div
+            class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2"
+        >
             <div class="d-flex align-items-center">
-                <h1 class="h2 text-primary fw-bold me-2 mb-0">Centro de Reportes</h1>
+                <h1 class="h2 text-primary fw-bold me-2 mb-0">
+                    Centro de Reportes
+                </h1>
                 <i class="bi bi-graph-up-arrow text-secondary fs-2"></i>
             </div>
             <div class="d-flex gap-2">
@@ -127,29 +132,43 @@ import background from "../assets/background.svg";
             </li>
         </ul>
 
-        <div class="tab-content border border-top-0 rounded-bottom p-4 bg-white" id="reportesTabContent">
-            
+        <div
+            class="tab-content border border-top-0 rounded-bottom p-4 bg-white"
+            id="reportesTabContent"
+        >
             <!-- TAB: Reportes de Clientes -->
-            <div class="tab-pane fade show active" id="clientes" role="tabpanel">
+            <div
+                class="tab-pane fade show active"
+                id="clientes"
+                role="tabpanel"
+            >
                 <h4 class="mb-3">
                     <i class="bi bi-people-fill text-primary me-2"></i>
                     Reportes de Clientes
                 </h4>
-                
+
                 <div class="row g-3">
                     <!-- Reporte General de Clientes -->
                     <div class="col-md-6">
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                    <i
+                                        class="bi bi-file-earmark-text text-primary me-2"
+                                    ></i>
                                     Listado General de Clientes
                                 </h5>
                                 <p class="card-text text-muted">
-                                    Reporte completo con todos los clientes registrados, incluyendo datos personales y estado.
+                                    Reporte completo con todos los clientes
+                                    registrados, incluyendo datos personales y
+                                    estado.
                                 </p>
-                                <button class="btn btn-primary" id="btnReporteClientesGeneral">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-primary"
+                                    id="btnReporteClientesGeneral"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -160,14 +179,20 @@ import background from "../assets/background.svg";
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-funnel text-success me-2"></i>
+                                    <i class="bi bi-funnel text-success me-2"
+                                    ></i>
                                     Clientes por Tipo
                                 </h5>
                                 <p class="card-text text-muted">
-                                    Clasificación de clientes según tipo (Contado/Crédito) con estadísticas.
+                                    Clasificación de clientes según tipo
+                                    (Contado/Crédito) con estadísticas.
                                 </p>
-                                <button class="btn btn-success" id="btnReporteClientesTipo">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-success"
+                                    id="btnReporteClientesTipo"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -178,14 +203,21 @@ import background from "../assets/background.svg";
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-receipt-cutoff text-info me-2"></i>
+                                    <i
+                                        class="bi bi-receipt-cutoff text-info me-2"
+                                    ></i>
                                     Clientes con Historial de Compras
                                 </h5>
                                 <p class="card-text text-muted">
-                                    Reporte de clientes con su historial completo de facturas y totales.
+                                    Reporte de clientes con su historial
+                                    completo de facturas y totales.
                                 </p>
-                                <button class="btn btn-info text-white" id="btnReporteClientesFacturas">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-info text-white"
+                                    id="btnReporteClientesFacturas"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -196,14 +228,20 @@ import background from "../assets/background.svg";
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-award text-warning me-2"></i>
+                                    <i class="bi bi-award text-warning me-2"
+                                    ></i>
                                     Top 10 Mejores Clientes
                                 </h5>
                                 <p class="card-text text-muted">
-                                    Ranking de los 10 clientes con mayor volumen de compras.
+                                    Ranking de los 10 clientes con mayor volumen
+                                    de compras.
                                 </p>
-                                <button class="btn btn-warning" id="btnReporteTopClientes">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-warning"
+                                    id="btnReporteTopClientes"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -217,27 +255,40 @@ import background from "../assets/background.svg";
                     <i class="bi bi-receipt text-success me-2"></i>
                     Reportes de Facturas
                 </h4>
-                
+
                 <!-- Filtros de Fechas -->
                 <div class="card mb-4">
                     <div class="card-header bg-light">
                         <h6 class="mb-0">
-                            <i class="bi bi-calendar-range me-2"></i>Filtrar por Rango de Fechas
+                            <i class="bi bi-calendar-range me-2"></i>Filtrar por
+                            Rango de Fechas
                         </h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3 align-items-end">
                             <div class="col-md-4">
                                 <label class="form-label">Fecha Inicio</label>
-                                <input type="date" id="facturaFechaInicio" class="form-control" />
+                                <input
+                                    type="date"
+                                    id="facturaFechaInicio"
+                                    class="form-control"
+                                />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Fecha Fin</label>
-                                <input type="date" id="facturaFechaFin" class="form-control" />
+                                <input
+                                    type="date"
+                                    id="facturaFechaFin"
+                                    class="form-control"
+                                />
                             </div>
                             <div class="col-md-4">
-                                <button class="btn btn-outline-secondary w-100" id="btnLimpiarFechas">
-                                    <i class="bi bi-x-circle me-1"></i>Limpiar Fechas
+                                <button
+                                    class="btn btn-outline-secondary w-100"
+                                    id="btnLimpiarFechas"
+                                >
+                                    <i class="bi bi-x-circle me-1"></i>Limpiar
+                                    Fechas
                                 </button>
                             </div>
                         </div>
@@ -250,32 +301,21 @@ import background from "../assets/background.svg";
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                    <i
+                                        class="bi bi-file-earmark-text text-primary me-2"
+                                    ></i>
                                     Listado General de Facturas
                                 </h5>
                                 <p class="card-text text-muted">
-                                    Todas las facturas registradas con detalles completos.
+                                    Todas las facturas registradas con detalles
+                                    completos.
                                 </p>
-                                <button class="btn btn-primary" id="btnReporteFacturasGeneral">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Facturas por Estado -->
-                    <div class="col-md-6">
-                        <div class="card h-100 shadow-sm reporte-card">
-                            <div class="card-body">
-                                <h5 class="card-title">
-                                    <i class="bi bi-check-circle text-success me-2"></i>
-                                    Facturas por Estado
-                                </h5>
-                                <p class="card-text text-muted">
-                                    Clasificación de facturas activas vs anuladas.
-                                </p>
-                                <button class="btn btn-success" id="btnReporteFacturasEstado">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-primary"
+                                    id="btnReporteFacturasGeneral"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -286,14 +326,21 @@ import background from "../assets/background.svg";
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-calendar-event text-info me-2"></i>
+                                    <i
+                                        class="bi bi-calendar-event text-info me-2"
+                                    ></i>
                                     Facturas por Período
                                 </h5>
                                 <p class="card-text text-muted">
-                                    Facturas filtradas por el rango de fechas seleccionado arriba.
+                                    Facturas filtradas por el rango de fechas
+                                    seleccionado arriba.
                                 </p>
-                                <button class="btn btn-info text-white" id="btnReporteFacturasPeriodo">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-info text-white"
+                                    id="btnReporteFacturasPeriodo"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -304,14 +351,20 @@ import background from "../assets/background.svg";
                         <div class="card h-100 shadow-sm reporte-card">
                             <div class="card-body">
                                 <h5 class="card-title">
-                                    <i class="bi bi-person-lines-fill text-warning me-2"></i>
+                                    <i
+                                        class="bi bi-person-lines-fill text-warning me-2"
+                                    ></i>
                                     Resumen por Cliente
                                 </h5>
                                 <p class="card-text text-muted">
                                     Total de ventas agrupadas por cada cliente.
                                 </p>
-                                <button class="btn btn-warning" id="btnReporteVentasCliente">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar PDF
+                                <button
+                                    class="btn btn-warning"
+                                    id="btnReporteVentasCliente"
+                                >
+                                    <i class="bi bi-file-pdf-fill me-2"
+                                    ></i>Generar PDF
                                 </button>
                             </div>
                         </div>
@@ -337,7 +390,8 @@ import background from "../assets/background.svg";
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="chartVentasMes" height="80"></canvas>
+                                <canvas id="chartVentasMes" height="80"
+                                ></canvas>
                             </div>
                         </div>
                     </div>
@@ -353,39 +407,6 @@ import background from "../assets/background.svg";
                             </div>
                             <div class="card-body">
                                 <canvas id="chartClientesTipo"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Gráfico de Dona: Estado de Facturas -->
-                    <div class="col-md-6">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-light">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-pie-chart me-2"></i>
-                                    Estado de Facturas
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="chartFacturasEstado"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Exportar Análisis -->
-                    <div class="col-md-12">
-                        <div class="card shadow-sm reporte-card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">
-                                    <i class="bi bi-file-earmark-bar-graph text-danger me-2"></i>
-                                    Reporte Completo de Análisis
-                                </h5>
-                                <p class="card-text text-muted">
-                                    Genera un PDF con todos los gráficos y análisis estadísticos.
-                                </p>
-                                <button class="btn btn-danger btn-lg" id="btnReporteAnalisis">
-                                    <i class="bi bi-file-pdf-fill me-2"></i>Generar Reporte Completo
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -405,7 +426,9 @@ import background from "../assets/background.svg";
 
 <style>
     .stat-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s;
         cursor: pointer;
     }
 
@@ -415,7 +438,9 @@ import background from "../assets/background.svg";
     }
 
     .reporte-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s;
     }
 
     .reporte-card:hover {

@@ -2,6 +2,9 @@
   "name": "c-users-asus-documents-6to-semestre-aplicaciones-distribuidas-proyecto-ad-facturaci-n",
   "type": "module",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=18.17.1"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -9,7 +12,9 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.984.0",
     "astro": "^5.16.5",
+    "aws-amplify": "^6.16.2",
     "chart.js": "^4.5.1",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7"

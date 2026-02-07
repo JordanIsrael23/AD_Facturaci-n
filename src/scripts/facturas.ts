@@ -1,6 +1,8 @@
 import { getAuthHeaders, checkAuth } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { uploadPDFToS3 } from "../utils/storage";
+import { initAmplify } from "../aws-config";
 
 // Definimos la URL de la API
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
@@ -22,13 +24,17 @@ let allInvoicesCache: any[] = [];
 let allClientsCache: any[] = [];
 let filteredGlobalFacturas: any[] = [];
 let globalFilters = {
-    tipoPago: "", // ID del tipo pago
+    tipoPago: "",      // ID del tipo pago
+    fechaInicio: "",   // YYYY-MM-DD
+    fechaFin: ""       // YYYY-MM-DD
 };
+
 
 // Declaramos bootstrap para evitar errores de TS
 declare const bootstrap: any;
 
 export function initFacturas() {
+    initAmplify();
     checkAuth();
     loadFacturas();
 
@@ -284,7 +290,16 @@ function generarPDFFactura() {
     showLoadingToast("Generando PDF...");
 
     setTimeout(() => {
-        const doc = new jsPDF();
+
+        // Generamos una contraseña para que el usuario no pueda editar
+        const doc = new jsPDF({
+            encryption: {
+                userPassword: "", // Se deja vacío para que abran el PDF sin pedir clave
+                ownerPassword: "ADMIN_BLOCK_EDIT_123", // Esta clave se requiere si alguien intenta editarlo
+                userPermissions: ["print"] // Solo permitimos IMPRIMIR. 'modify', 'copy', etc. quedan bloqueados.
+            }
+        });
+
         const factura = facturaActual;
 
         const colorPrimario = [0, 123, 255];
@@ -457,6 +472,16 @@ function generarPDFFactura() {
         const nombreArchivo = `Factura_${formatInvoiceNumber(factura.facNumeroFactura).replace(/\//g, '-')}.pdf`;
         doc.save(nombreArchivo);
 
+        // Upload to S3
+        (async () => {
+            try {
+                showLoadingToast("Subiendo respaldo...");
+                const blob = doc.output('blob');
+                await uploadPDFToS3(blob, 'facturas', nombreArchivo);
+                console.log("Factura subida a S3");
+            } catch (e) { console.warn("S3 Upload Failed", e); }
+        })();
+
         removeLoadingToast();
         showSuccessToast();
     }, 1000);
@@ -513,10 +538,23 @@ async function openReporteGlobal() {
 }
 
 function setupGlobalReportFiltersListeners() {
-    const el = document.getElementById("globalFiltroTipoPago");
-    if (el && !el.dataset.listenerAttached) {
-        el.addEventListener("change", applyGlobalFilters);
-        el.dataset.listenerAttached = "true";
+
+    const tipoPago = document.getElementById("globalFiltroTipoPago");
+    if (tipoPago && !tipoPago.dataset.listenerAttached) {
+        tipoPago.addEventListener("change", applyGlobalFilters);
+        tipoPago.dataset.listenerAttached = "true";
+    }
+
+    const fechaInicio = document.getElementById("globalFechaInicio");
+    if (fechaInicio && !fechaInicio.dataset.listenerAttached) {
+        fechaInicio.addEventListener("change", applyGlobalFilters);
+        fechaInicio.dataset.listenerAttached = "true";
+    }
+
+    const fechaFin = document.getElementById("globalFechaFin");
+    if (fechaFin && !fechaFin.dataset.listenerAttached) {
+        fechaFin.addEventListener("change", applyGlobalFilters);
+        fechaFin.dataset.listenerAttached = "true";
     }
 
     const btnClear = document.getElementById("btnLimpiarFiltrosGlobal");
@@ -529,24 +567,59 @@ function setupGlobalReportFiltersListeners() {
     }
 }
 
+
 function resetGlobalFilters() {
-    globalFilters = { tipoPago: "" };
+    globalFilters = {
+        tipoPago: "",
+        fechaInicio: "",
+        fechaFin: ""
+    };
+
     (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value = "";
+    (document.getElementById("globalFechaInicio") as HTMLInputElement).value = "";
+    (document.getElementById("globalFechaFin") as HTMLInputElement).value = "";
 }
 
+
 function applyGlobalFilters() {
-    globalFilters.tipoPago = (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value;
+
+    globalFilters.tipoPago =
+        (document.getElementById("globalFiltroTipoPago") as HTMLSelectElement).value;
+
+    globalFilters.fechaInicio =
+        (document.getElementById("globalFechaInicio") as HTMLInputElement)?.value || "";
+
+    globalFilters.fechaFin =
+        (document.getElementById("globalFechaFin") as HTMLInputElement)?.value || "";
 
     filteredGlobalFacturas = allInvoicesCache.filter(f => {
+
+        // ===== TIPO DE PAGO =====
         let validTipo = true;
         if (globalFilters.tipoPago !== "") {
             const tipoId = parseInt(globalFilters.tipoPago);
             validTipo = !isNaN(tipoId) && f.tipIdTipop === tipoId;
         }
-        return validTipo;
+
+        // ===== FECHA =====
+        let validFecha = true;
+        if (globalFilters.fechaInicio) {
+            validFecha =
+                new Date(f.facFechaEmision) >= new Date(globalFilters.fechaInicio);
+        }
+
+        if (validFecha && globalFilters.fechaFin) {
+            const fin = new Date(globalFilters.fechaFin);
+            fin.setHours(23, 59, 59, 999);
+            validFecha = new Date(f.facFechaEmision) <= fin;
+        }
+
+        return validTipo && validFecha;
     });
+
     renderGlobalReportTable();
 }
+
 
 function renderGlobalReportTable() {
     const tbody = document.getElementById("globalReportBody");
@@ -616,7 +689,15 @@ async function generarReporteGlobalPDF() {
         const lastY = (doc as any).lastAutoTable?.finalY;
         yPos = lastY ? lastY + 15 : yPos + 60;
     }
-    doc.save(`Reporte_Global_Facturas_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+    const fileName = `Reporte_Global_Facturas_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
+    doc.save(fileName);
+
+    // Upload to S3
+    try {
+        const blob = doc.output('blob');
+        // No await here to not block UI or use loading toast if preferred
+        uploadPDFToS3(blob, 'reportes', fileName).catch(err => console.error("S3 Background Upload Failed", err));
+    } catch (e) { console.warn("S3 Upload init Failed", e); }
     removeLoadingToast();
     showSuccessToast();
 }
@@ -653,7 +734,7 @@ function generateFacturaSection(doc: jsPDF, factura: any, startY: number) {
     currentY = drawTextBlock(doc, `Cliente: ${clienteNombre}`, margin, currentY, maxWidth);
     currentY = drawTextBlock(doc, `Tipo de Pago: ${tipoPago}`, margin, currentY, maxWidth);
     currentY = drawTextBlock(doc, `Fecha: ${factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A"}`, margin, currentY, maxWidth);
-    currentY = drawTextBlock(doc, `Total: $${factura.facTotal.toFixed(2)}`, margin, currentY, maxWidth);
+
 
     const tableStartY = currentY + 4;
     const detalles = factura.detallesFactura || [];

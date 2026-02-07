@@ -71,11 +71,6 @@ function setupListeners() {
     const form = document.getElementById("formCrearFactura") as HTMLFormElement;
     form?.addEventListener("submit", handleSubmit);
 
-    // Cambio en Establecimiento -> Filtrar Puntos
-    const estSelect = document.getElementById("estRuc");
-    estSelect?.addEventListener("change", (e) => {
-        filtrarPuntosEmision((e.target as HTMLSelectElement).value);
-    });
 
     // Cambio en Tipo Pago -> Limpiar Cliente
     const tipoPagoSelect = document.getElementById("tipIdTipop");
@@ -172,10 +167,22 @@ function setupModalProductos() {
 
     btnAceptar?.addEventListener("click", () => {
         if (productoSeleccionadoTemp) {
+            // --- VALIDACIÓN DE DUPLICADOS CORREGIDA ---
+            const existe = Array.from(document.querySelectorAll('#tbodyDetalles .input-producto-codigo'))
+                .some((input: any) => input.value === productoSeleccionadoTemp?.codigo);
+
+            if (existe) {
+                // AQUI ESTÁ EL CAMBIO: Usamos tu modal de error en lugar de alert()
+                mostrarErrorEnModal(`El producto "${productoSeleccionadoTemp.nombre}" ya está agregado. Modifica la cantidad en la tabla.`);
+                return;
+            }
+            // ------------------------------------------
+
             if (productoSeleccionadoTemp.stock <= 0) {
                 mostrarErrorEnModal(`El producto "${productoSeleccionadoTemp.nombre}" no tiene Stock.`);
                 return;
             }
+
             agregarFilaDetalle(productoSeleccionadoTemp);
             const modalEl = document.getElementById("modalBuscarProducto");
             if (modalEl) {
@@ -211,6 +218,19 @@ function renderTablaProductosModal() {
     if (!tbody) return;
 
     tbody.innerHTML = "";
+
+    // ---Validar si no hay resultados ---
+    if (productosFiltrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center" style="padding: 1rem;">
+                    No se encontraron resultados
+                </td>
+            </tr>
+        `;
+        if (info) info.innerText = "Mostrando 0 de 0";
+        return; // Detenemos la función para que no intente paginar
+    }
 
     const inicio = (paginaActualProd - 1) * registrosPorPaginaProd;
     const fin = inicio + registrosPorPaginaProd;
@@ -336,6 +356,19 @@ function renderTablaClientesModal() {
 
     tbody.innerHTML = "";
 
+    // ---Validar si no hay resultados ---
+    if (clientesFiltrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center" style="padding: 1rem;">
+                    No se encontraron resultados
+                </td>
+            </tr>
+        `;
+        if (info) info.innerText = "Mostrando 0 de 0";
+        return; // Detenemos la función para que no intente paginar
+    }
+
     const inicio = (paginaActualModal - 1) * registrosPorPaginaModal;
     const fin = inicio + registrosPorPaginaModal;
     const items = clientesFiltrados.slice(inicio, fin);
@@ -393,8 +426,8 @@ function llenarDatosCliente(cliente: any) {
 // =========================================================
 // CARGA DE DATOS (CON INTEGRACIÓN DE HEADERS)
 // =========================================================
+// Reemplaza tu función loadSelects actual por esta:
 async function loadSelects() {
-    // Helper para fetch con o sin auth
     const fetchApi = async (url: string, isInternal: boolean) => {
         try {
             const opts = isInternal ? { headers: getAuthHeaders() } : {};
@@ -403,53 +436,71 @@ async function loadSelects() {
         } catch { return []; }
     };
 
-    // Paralelismo para carga rápida
     const [clientesData, estData, puntosData, tiposData, prodData] = await Promise.all([
-        fetchApi(CLIENTES_URL, true),        // Auth
-        fetchApi(ESTABLECIMIENTOS_URL, true), // Auth
-        fetchApi(PUNTOS_URL, true),          // Auth
-        fetchApi(TIPOS_PAGO_URL, true),      // Auth
-        fetchApi(PRODUCTOS_EXTERNAL_URL, false) // Sin Auth (Pública)
+        fetchApi(CLIENTES_URL, true),
+        fetchApi(ESTABLECIMIENTOS_URL, true),
+        fetchApi(PUNTOS_URL, true),
+        fetchApi(TIPOS_PAGO_URL, true),
+        fetchApi(PRODUCTOS_EXTERNAL_URL, false)
     ]);
 
     allClientes = Array.isArray(clientesData) ? clientesData : (clientesData.data || []);
     allProductos = Array.isArray(prodData) ? prodData : (prodData.data || []);
     allPuntosEmision = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
 
+    // Datos de Establecimientos y Puntos (Búsqueda automática de los fijos)
+    const establecimientos = Array.isArray(estData) ? estData : (estData.data || []);
+    const puntos = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
+
+    // 1. Buscar y setear "Gran Aqui"
+    const establecimientoFijo = establecimientos.find((e: any) =>
+        e.estNombre.trim().toLowerCase() === "gran aqui" ||
+        e.estNombre.includes("Gran Aqui") // Fallback por si hay espacios extra
+    );
+
+    const inputEstRuc = document.getElementById("estRuc") as HTMLInputElement;
+    if (establecimientoFijo && inputEstRuc) {
+        inputEstRuc.value = establecimientoFijo.estRuc; // Asignamos el RUC al input hidden
+        console.log("Establecimiento fijado:", establecimientoFijo.estNombre);
+
+        // 2. Buscar y setear "Caja de cobro - 001" basado en el RUC encontrado
+        // La lógica original era: `${p.pemDescripcion} - ${p.pemIdPuntoEmision}`
+        const puntoFijo = puntos.find((p: any) =>
+            p.estRuc === establecimientoFijo.estRuc &&
+            p.pemEstado === true &&
+            // Buscamos coincidencia con el formato visual que tenías
+            (`${p.pemDescripcion} - ${p.pemIdPuntoEmision}` === "Caja de cobro - 001" ||
+                p.pemDescripcion.includes("Caja de cobro")) // Fallback flexible
+        );
+
+        const inputPemId = document.getElementById("pemId") as HTMLInputElement;
+        if (puntoFijo && inputPemId) {
+            inputPemId.value = puntoFijo.pemId; // Asignamos el ID al input hidden
+            console.log("Punto de emisión fijado:", puntoFijo.pemDescripcion);
+        } else {
+            console.error("No se encontró el Punto de Emisión 'Caja de cobro - 001' en la API");
+        }
+    } else {
+        console.error("No se encontró el Establecimiento 'Gran Aqui' en la API");
+    }
+
+    // Llenar solo el select de Tipo de Pago (que sigue siendo select)
     const llenarSelect = (id: string, data: any[], valProp: string, txtProp: string) => {
         const sel = document.getElementById(id) as HTMLSelectElement;
         if (sel) {
             sel.innerHTML = '<option value="">Seleccione...</option>';
             data.forEach(d => {
-                if (d.estEstado !== false) {
-                    const opt = document.createElement("option");
-                    opt.value = d[valProp] || d.id;
-                    opt.text = d[txtProp] || d.nombre;
-                    sel.appendChild(opt);
-                }
+                const opt = document.createElement("option");
+                opt.value = d[valProp] || d.id;
+                opt.text = d[txtProp] || d.nombre;
+                sel.appendChild(opt);
             });
         }
     };
-
-    llenarSelect("estRuc", Array.isArray(estData) ? estData : (estData.data || []), "estRuc", "estNombre");
     llenarSelect("tipIdTipop", Array.isArray(tiposData) ? tiposData : (tiposData.data || []), "tipIdTipop", "tipDescripcion");
 }
 
-function filtrarPuntosEmision(estRuc: string) {
-    const select = document.getElementById("pemId") as HTMLSelectElement;
-    if (!select) return;
 
-    select.innerHTML = '<option value="">Seleccione...</option>';
-    select.disabled = !estRuc;
-
-    const filtrados = allPuntosEmision.filter((p: any) => p.pemEstado && p.estRuc === estRuc);
-    filtrados.forEach((p: any) => {
-        const option = document.createElement("option");
-        option.value = p.pemId;
-        option.text = `${p.pemDescripcion} - ${p.pemIdPuntoEmision}`;
-        select.appendChild(option);
-    });
-}
 
 function setupDetalles() {
     document.getElementById("btnAddDetalle")?.addEventListener("click", () => abrirModalProductosParaAgregar());
@@ -490,9 +541,30 @@ function agregarFilaDetalle(prod: ProductoExterno) {
     verificarEstadoBotonEmitir();
 
     const qtyInput = tr.querySelector(".input-cantidad") as HTMLInputElement;
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    qtyInput.addEventListener("input", () => {
+        const valorIngresado = parseFloat(qtyInput.value);
+        
+        // Verificamos si supera el stock
+        if (valorIngresado > prod.stock) {
+            // 1. Mostrar el modal de advertencia
+            const modalEl = document.getElementById('modalAdvertenciaStock');
+            if (modalEl) {
+                new bootstrap.Modal(modalEl).show();
+            }
+
+            // 2. Resetear el valor a 1
+            qtyInput.value = "1";
+        }
+
+        // 3. Calcular totales (ya sea con el valor válido o con el 1 reseteado)
+        calcularFila(tr);
+    });
+
     calcularFila(tr);
 
-    qtyInput.addEventListener("input", () => calcularFila(tr));
+    //qtyInput.addEventListener("input", () => calcularFila(tr));
 
     tr.querySelector(".btn-remove-row")?.addEventListener("click", () => {
         tr.remove();
@@ -530,10 +602,10 @@ async function handleSubmit(e: Event) {
 
     // 1. Recolectar Cabecera
     const cliCedula = (document.getElementById("cliCedula") as HTMLInputElement).value;
-    const pemId = (document.getElementById("pemId") as HTMLSelectElement).value;
-    const estRuc = (document.getElementById("estRuc") as HTMLSelectElement).value;
+    const pemId = (document.getElementById("pemId") as HTMLInputElement).value;
+    const estRuc = (document.getElementById("estRuc") as HTMLInputElement).value;
     const tipIdTipop = (document.getElementById("tipIdTipop") as HTMLSelectElement).value;
-    const fecha = (document.getElementById("facFechaVisual") as HTMLInputElement).value; // Tomar la fecha del input
+    const fecha = (document.getElementById("facFechaVisual") as HTMLInputElement).value;
 
     if (!cliCedula || !pemId || !tipIdTipop) {
         mostrarErrorEnModal("Completa todos los campos de la cabecera.");
@@ -593,7 +665,7 @@ async function handleSubmit(e: Event) {
         cliCedula: cliCedula,
         pemId: parseInt(pemId),
         tipIdTipop: parseInt(tipIdTipop),
-        facFechaEmision: new Date(fecha).toISOString(), // Usar la fecha del formulario
+        facFechaEmision: new Date(fecha).toISOString(),
         facEstadoFactura: true,
         facUsuarioCreacion: "Admin",
         facSubtotalSinIva: totalSubtotalSinIva,
@@ -602,6 +674,16 @@ async function handleSubmit(e: Event) {
         facTotal: totalFactura,
         detallesFactura: detallesPayload
     };
+
+    // --- MANEJO DE MODAL DE CARGA ---
+    const loadingModalEl = document.getElementById("loadingModal");
+    let loadingModalInstance: any = null;
+
+    if (loadingModalEl) {
+        loadingModalInstance = new bootstrap.Modal(loadingModalEl);
+        loadingModalInstance.show();
+    }
+    // -------------------------------
 
     // 5. Enviar
     mostrarLoading();
@@ -615,11 +697,16 @@ async function handleSubmit(e: Event) {
             body: JSON.stringify(factura)
         });
 
+        // Ocultar modal de carga antes de mostrar resultado
+        if (loadingModalInstance) {
+            // Pequeño timeout para asegurar transición suave
+            await new Promise(r => setTimeout(r, 500));
+            loadingModalInstance.hide();
+        }
+
         if (response.ok) {
-            // === CORRECCIÓN AQUÍ ===
             let numeroFactura = "";
             try {
-                // Intentamos leer el JSON, pero si falla (cuerpo vacío), no lanzamos error general
                 const data = await response.json();
                 numeroFactura = data.facNumeroFactura || "";
             } catch (e) {
@@ -649,7 +736,6 @@ async function handleSubmit(e: Event) {
                 document.getElementById('btnOkSuccess')?.addEventListener('click', () => window.location.href = "/facturas");
             }
         } else {
-            // Manejo de errores del servidor (400, 500, etc.)
             if (response.status === 401) {
                 window.location.href = '/login';
                 return;
@@ -685,7 +771,9 @@ async function handleSubmit(e: Event) {
             mostrarErrorEnModal(msg);
         }
     } catch (error) {
-        // Manejo de errores de red reales (servidor caído, sin internet)
+        // Ocultar modal de carga si hay error de red
+        if (loadingModalInstance) loadingModalInstance.hide();
+
         console.error("Error de red:", error);
         ocultarLoading();
         mostrarErrorEnModal("Error de conexión con el servidor.");

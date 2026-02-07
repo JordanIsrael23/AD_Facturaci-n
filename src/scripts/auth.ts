@@ -3,8 +3,12 @@
 // Configuración dinámica de API_BASE_URL
 let API_BASE_URL = import.meta.env.PUBLIC_LOGIN_URL;
 
-if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-    console.log("⚠️ Entorno Local: Usando Proxy /security-proxy");
+if (typeof window !== "undefined" && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.includes("amplifyapp.com")
+)) {
+    console.log("⚠️ Entorno Proxy: Usando Proxy /security-proxy");
     API_BASE_URL = "/security-proxy";
 }
 
@@ -107,7 +111,7 @@ export function hasAnyFunction(nombresFunciones: string[]): boolean {
 
 export function hasAllFunctions(nombresFunciones: string[]): boolean {
     const funciones = getUserFunciones();
-    return nombresFunciones.every(nombre => 
+    return nombresFunciones.every(nombre =>
         funciones.some(f => f.nombre === nombre)
     );
 }
@@ -174,7 +178,8 @@ export async function verifyToken(): Promise<boolean> {
 
 export function checkAuth() {
     // Evitar loop infinito si ya estamos en login
-    if (window.location.pathname === "/login") return;
+    const path = window.location.pathname.replace(/\/$/, "");
+    if (path === "/login") return;
 
     const token = getAuthToken();
     if (!token) {
@@ -212,12 +217,6 @@ export function checkRoutePermission(pathname: string): boolean {
         '/facturas': ['Generar Facturas'],
         '/crear-factura': ['Generar Facturas'],
         '/reportes': ['Generar Reportes'],
-        '/establecimientos': ['Crear Establecimientos', 'Editar Establecimientos', 'Desactivar Establecimientos'],
-        '/crear-establecimiento': ['Crear Establecimientos'],
-        '/editar-establecimientos': ['Editar Establecimientos'],
-        '/puntos-emision': ['Crear Puntos de emisión', 'Editar Puntos de emisión', 'Desactivar Puntos de emisión'],
-        '/crear-punto-emision': ['Crear Puntos de emisión'],
-        '/editar-punto-emision': ['Editar Puntos de emisión'],
         '/auditoria': ['Ver Pistas de Auditoria'],
     };
 
@@ -231,8 +230,8 @@ export function checkRoutePermission(pathname: string): boolean {
 }
 
 export function redirectIfNoPermission() {
-    const pathname = window.location.pathname;
-    
+    const pathname = window.location.pathname.replace(/\/$/, "");
+
     // Rutas públicas
     const publicRoutes = ['/login', '/sin-acceso', '/'];
     if (publicRoutes.includes(pathname)) return;
@@ -375,31 +374,31 @@ export async function obtenerAuditorias(
 
 export function getRoleName(): string {
     const funciones = getUserFunciones();
-    
+
     // Determinar el rol basado en las funciones
     const funcionesNombres = funciones.map(f => f.nombre);
-    
-    if (funcionesNombres.includes('Ver Pistas de Auditoria') && 
+
+    if (funcionesNombres.includes('Ver Pistas de Auditoria') &&
         funcionesNombres.includes('Crear Establecimientos')) {
         return 'Administrador';
     }
-    
-    if (funcionesNombres.includes('Ver Pistas de Auditoria') && 
+
+    if (funcionesNombres.includes('Ver Pistas de Auditoria') &&
         funcionesNombres.includes('Generar Reportes') &&
         funcionesNombres.length === 2) {
         return 'Gerente';
     }
-    
-    if (funcionesNombres.includes('Generar Reportes') && 
+
+    if (funcionesNombres.includes('Generar Reportes') &&
         funcionesNombres.includes('Desactivar Clientes')) {
         return 'Cajero';
     }
-    
-    if (funcionesNombres.includes('Crear Clientes') && 
+
+    if (funcionesNombres.includes('Crear Clientes') &&
         funcionesNombres.length === 2) {
         return 'Operador';
     }
-    
+
     return 'Usuario';
 }
 
@@ -415,7 +414,8 @@ export function getUserDisplayName(): string {
 // Auto-verificar autenticación al cargar
 if (typeof window !== 'undefined') {
     // No verificar en la página de login
-    if (window.location.pathname !== '/login') {
+    const path = window.location.pathname.replace(/\/$/, "");
+    if (path !== '/login') {
         // Verificar que haya token
         const token = getAuthToken();
         if (!token) {

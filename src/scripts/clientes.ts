@@ -3,7 +3,10 @@
 import { getAuthHeaders, checkAuth, hasFunction, registrarAuditoria } from "./auth";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { uploadPDFToS3 } from "../utils/storage";
+import { initAmplify } from "../aws-config";
 
+// Definimos la URL de la API
 // Definimos la URL de la API
 const BASE_URL = import.meta.env.PUBLIC_BACKEND_URL;
 const API_URL = BASE_URL + "Clientes";
@@ -22,6 +25,7 @@ let currentClienteForPdf: string | null = null;
 declare const bootstrap: any;
 
 export function initClientes() {
+    initAmplify();
     checkAuth(); // Verificar auth al cargar
     loadClientes();
     setupDeleteModal();
@@ -75,6 +79,7 @@ async function loadClientes() {
 
         if (!response.ok) {
             if (response.status === 401) {
+                alert(`Error 401 en CARGAR CLIENTES.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                 window.location.href = '/login';
                 return;
             }
@@ -210,14 +215,34 @@ function setupDeleteModal() {
     confirmBtn?.addEventListener("click", async () => {
         if (!clienteIdToDelete) return;
         try {
-            const response = await fetch(`${API_URL}/${clienteIdToDelete}/estado`, {
-                method: "PATCH",
+            // WORKAROUND: Endpoint PATCH da error 500. Usamos actualización completa (PUT).
+
+            // 1. Obtener datos actuales del cliente
+            const resGet = await fetch(`${API_URL}/${clienteIdToDelete}`, { headers: getAuthHeaders() });
+            if (!resGet.ok) throw new Error("No se pudo obtener la información del cliente para actualizarlo.");
+            const clientData = await resGet.json();
+
+            // 2. Preparar objeto completo con el nuevo estado
+            const clientToUpdate = {
+                cliCedula: clientData.cliCedula,
+                cliNombre: clientData.cliNombre,
+                cliFechaNacimiento: clientData.cliFechaNacimiento ? String(clientData.cliFechaNacimiento).split("T")[0] : null,
+                ticIdTipoc: clientData.ticIdTipoc,
+                cliDireccion: clientData.cliDireccion,
+                cliTelefono: clientData.cliTelefono,
+                cliEmail: clientData.cliEmail,
+                cliEstado: clienteNuevoEstado // El nuevo estado (true/false)
+            };
+
+            // 3. Enviar actualización completa (PUT)
+            const response = await fetch(`${API_URL}/${clienteIdToDelete}`, {
+                method: "PUT",
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ estado: clienteNuevoEstado }),
+                body: JSON.stringify(clientToUpdate),
             });
 
-            if (response.ok) {
-                // ⭐ NUEVO: Registrar auditoría
+            if (response.ok || response.status === 204) {
+                // ⭐ Registrar auditoría
                 const accion = clienteNuevoEstado ? 'ACTIVATE' : 'DELETE';
                 const descripcion = `Usuario ${clienteNuevoEstado ? 'activó' : 'desactivó'} el cliente con cédula: ${clienteIdToDelete}`;
 
@@ -233,10 +258,32 @@ function setupDeleteModal() {
                 modal.hide();
                 loadClientes();
             } else if (response.status === 401) {
+                alert(`Error 401 en ELIMINAR/ACTIVAR CLIENTE.\nAPI URL: ${API_URL}\nTu token no es válido para este backend.`);
                 window.location.href = '/login';
+            } else {
+                let errorMsg = "Ocurrió un error al actualizar el estado.";
+                try {
+                    const errorObj = await response.json();
+                    if (errorObj.message) {
+                        // Mensaje limpio del backend (Ej: Reglas de negocio)
+                        errorMsg = errorObj.message;
+                    } else if (errorObj.title) {
+                        errorMsg = errorObj.title;
+                    } else {
+                        errorMsg = JSON.stringify(errorObj);
+                    }
+                } catch (e) {
+                    // Si no es JSON, texto plano
+                    errorMsg = await response.text();
+                }
+
+                // Mostrar alerta más limpia
+                alert(errorMsg);
+                console.warn("Backend validation:", errorMsg);
             }
         } catch (error) {
-            alert("Error de conexión");
+            console.error("Error red:", error);
+            alert("Error de conexión al intentar actualizar el cliente.");
         }
     });
 }
@@ -465,11 +512,70 @@ async function generarPDFCliente(cedula: string) {
             const all = await res.json();
             const lista = Array.isArray(all) ? all : (all.data || []);
             facturasCliente = lista.filter((f: any) => f.cliCedula === cedula || f.cliente?.cliCedula === cedula);
+
+            // --- FETCH DETAILS FOR INVOICES (Required for product breakdown) ---
+            for (const invoice of facturasCliente) {
+                if (!invoice.detallesFactura) {
+                    try {
+                        const resDet = await fetch(`${FACTURAS_URL}/${invoice.facNumeroFactura}`, { headers: getAuthHeaders() });
+                        if (resDet.ok) {
+                            const fullFactura = await resDet.json();
+                            Object.assign(invoice, fullFactura);
+                        }
+                    } catch (e) {
+                        console.warn(`Error fetching details for invoice ${invoice.facNumeroFactura}`, e);
+                    }
+                }
+            }
         }
 
         const doc = new jsPDF();
-        generateSingleClientPDF(doc, cliente, facturasCliente);
-        doc.save(`Reporte_Cliente_${cliente.cliCedula}.pdf`);
+
+        // --- TRACKING FOR CONTAINER BORDER ---
+        let yPos = 20;
+        const startPage = doc.getNumberOfPages(); // Usually 1
+        const startY = yPos;
+
+        // Generar contenido reutilizando la lógica del reporte global
+        generateClientSection(doc, cliente, facturasCliente, yPos + 5);
+
+        // Recuperar Y final y Página Final
+        const endPage = doc.getNumberOfPages();
+        const lastY = (doc as any).customLastY || (doc as any).lastAutoTable?.finalY;
+        let endY = (lastY || (startY + 60)) + 5;
+
+        // --- TOTAL GENERAL AL FINAL ---
+        if (facturasCliente.length > 0) {
+            const finalPageHeight = doc.internal.pageSize.height;
+            // Chequear si cabe el total
+            if (endY + 15 > finalPageHeight - 20) {
+                doc.addPage();
+                endY = 20;
+            }
+
+            const totalGlobal = facturasCliente.filter((f: any) => f.facEstadoFactura).reduce((sum, f) => sum + f.facTotal, 0);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(33, 37, 41);
+            doc.text(`TOTAL GENERAL: $${totalGlobal.toFixed(2)}`, doc.internal.pageSize.width - 15 - 10, endY + 10, { align: 'right' });
+            endY += 15;
+        }
+
+        // --- DRAW CONTAINER BORDER ---
+        // Ajustamos endY un poco mas para cerrar
+        drawClientBorder(doc, startPage, startY, doc.getNumberOfPages(), endY + 5);
+
+        const fileName = `Reporte_Cliente_${cliente.cliCedula}.pdf`;
+        doc.save(fileName);
+
+        // Upload to S3
+        (async () => {
+            try {
+                const blob = doc.output('blob');
+                await uploadPDFToS3(blob, 'clientes', fileName);
+            } catch (e) { console.warn("S3 Upload Failed", e); }
+        })();
+
         showSuccessToast();
 
     } catch (err) {
@@ -479,6 +585,29 @@ async function generarPDFCliente(cedula: string) {
         removeLoadingToast();
     }
 }
+
+// Deprecated or removed separate function in favor of inline logic or simpler wrapper?
+// Actually I will remove generateSingleClientPDF definition since I logic'd it into generarPDFCliente 
+// OR I keep it empty/dummy or remove calls to it?
+// The current replacementREMOVES generateSingleClientPDF entirely if I target the right range.
+// But wait, generateSingleClientPDF definition is what I am replacing?
+// The tool says "Updating generarPDFCliente...".
+// My ReplacementContent starts with `async function generarPDFCliente...`
+// So I should target from `async function generarPDFCliente` down to `function generateSingleClientPDF... end`.
+// `generarPDFCliente` starts at 453. `generateSingleClientPDF` seems to follow or be elsewhere.
+// Ah, the view showed `generateSingleClientPDF` usage inside `generarPDFCliente` at line 471.
+// And `generateSingleClientPDF` DEFINITION was likely removed in my thought? No, I need to remove it.
+// The view showed `generateSingleClientPDF` definition starts around 1000? No, I viewed 1000-1096 and didn't see `function generateSingleClientPDF`.
+// Wait, looking at grep results, it was in `clientes.ts`.
+// Looking at lines 1000-1096 again... 
+// Line 1003 `let yPos = 40;`... this looks like the body of `generateSingleClientPDF` but without the function signature?
+// NO, that was just loose code? Or I missed the signature line 999?
+// I need to be careful. I'll search for the signature again.
+
+// Actually, I'll just update `generarPDFCliente` to NOT call `generateSingleClientPDF` and implement the logic directly.
+// And I will try to delete `generateSingleClientPDF` if I can find it.
+// Let's first update `generarPDFCliente`.
+
 
 // NUEVAS FUNCIONES PARA REPORTE GLOBAL
 
@@ -682,146 +811,316 @@ async function generarReporteGlobalPDF() {
         const client = filteredGlobalClients[i];
         const clientInvoices = allInvoicesCache.filter((f: any) => f.cliCedula === client.cliCedula || f.cliente?.cliCedula === client.cliCedula);
 
-        // Verificar espacio para encabezado de cliente
-        if (yPos > doc.internal.pageSize.height - 40) {
+        // --- FETCH DETAILS FOR INVOICES (Required for product breakdown) ---
+        for (const invoice of clientInvoices) {
+            if (!invoice.detallesFactura) {
+                try {
+                    const res = await fetch(`${FACTURAS_URL}/${invoice.facNumeroFactura}`, { headers: getAuthHeaders() });
+                    if (res.ok) {
+                        const fullFactura = await res.json();
+                        // Update the invoice object in the cache (reference) with full details
+                        Object.assign(invoice, fullFactura);
+                    }
+                } catch (e) {
+                    console.warn(`Error fetching details for invoice ${invoice.facNumeroFactura}`, e);
+                }
+            }
+        }
+
+        // PRE-CALCULATE CARD HEIGHT TO CHECK PAGE BREAK
+        // Estimación base (Nombre + espacios)
+        let estimatedHeight = 60;
+
+        // Calcular altura real de la tarjeta del cliente antes de dibujar
+        // (Lógica replicada de generateClientSection para 'dry-run')
+        const contentWidth = doc.internal.pageSize.width - 30; // Margin 15*2
+        const _nLines = doc.splitTextToSize(client.cliNombre, contentWidth - 10);
+        const _nH = doc.getTextDimensions(_nLines).h;
+        const _addrLines = doc.splitTextToSize(client.cliDireccion || 'N/A', contentWidth - (doc.getTextWidth("Dirección:") + 10));
+        const _addrH = doc.getTextDimensions(_addrLines).h;
+        // Altura base Aprox: PaddingTop(10) + Nombre(_nH) + LineSep(2) + Gap(8) + 3 filas de datos(Lines*3) + Gap(4) + Address(_addrH) + PaddingBot(5)
+        const clientCardHeight = 10 + _nH + 2 + 8 + 24 + 4 + _addrH + 5;
+
+        // Verificar espacio para encabezado de cliente usando la altura real
+        if (yPos + clientCardHeight > doc.internal.pageSize.height - 20) {
             doc.addPage();
             yPos = 20;
         } else if (!isFirstPage && i > 0) {
-            // Separador visual
-            doc.setDrawColor(200, 200, 200);
-            doc.line(15, yPos - 5, doc.internal.pageSize.width - 15, yPos - 5);
+            yPos += 10; // Espacio extra entre cuadros
         }
         isFirstPage = false;
 
-        generateClientSection(doc, client, clientInvoices, yPos);
+        // --- TRACKING FOR CONTAINER BORDER ---
+        const startPage = doc.getNumberOfPages();
+        const startY = yPos; // Start of the box
 
-        // Actualizar yPos basado en lastAutoTable o estimación
-        // autoTable escribe en el doc y actualiza lastAutoTable.finalY
-        const lastY = (doc as any).lastAutoTable?.finalY;
-        yPos = lastY ? lastY + 15 : yPos + 40;
+        generateClientSection(doc, client, clientInvoices, yPos + 5); // Add internal padding top
+
+        // Recuperar Y final y Página Final
+        const endPage = doc.getNumberOfPages();
+        const lastY = (doc as any).customLastY || (doc as any).lastAutoTable?.finalY;
+        const endY = (lastY || (startY + 60)) + 5; // Add internal padding bottom
+
+        // --- DRAW CONTAINER BORDER ---
+        drawClientBorder(doc, startPage, startY, endPage, endY);
+
+        // Prepare for next iteration
+        yPos = endY + 15; // Vertical margin between boxes
     }
+    const fileName = `Reporte_Global_Clientes_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
+    doc.save(fileName);
 
-    doc.save(`Reporte_Global_Clientes_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+    // Upload to S3
+    try {
+        const blob = doc.output('blob');
+        uploadPDFToS3(blob, 'reportes', fileName).catch(e => console.error(e));
+    } catch (e) { console.warn("S3 Upload Init Failed", e); }
     removeLoadingToast();
     showSuccessToast();
 }
 
-function generateClientSection(doc: jsPDF, client: any, invoices: any[], startY: number) {
-    const margin = 15;
+/**
+ * Dibuja un borde alrededor de una sección que puede abarcar múltiples páginas.
+ */
+function drawClientBorder(doc: jsPDF, startPage: number, startY: number, endPage: number, endY: number) {
+    const margin = 10; // Margen externo del borde (más amplio que el contenido)
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const boxWidth = pageWidth - (margin * 2);
+    const boxX = margin;
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${client.cliNombre}`, margin, startY);
+    // Configuración de estilo del borde
+    doc.setDrawColor(108, 117, 125); // Gris secundario bootstrap
+    doc.setLineWidth(0.5);
 
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    const tipo = client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito");
-    const estado = client.cliEstado ? "Activo" : "Inactivo";
-    doc.text(`C.I/RUC: ${client.cliCedula} | Tipo: ${tipo} | Estado: ${estado}`, margin, startY + 6);
-    doc.text(`Email: ${client.cliEmail || 'N/A'} | Tel: ${client.cliTelefono || 'N/A'}`, margin, startY + 11);
+    // Guardar página actual para restaurarla al final
+    const originalPage = doc.getNumberOfPages();
 
-    const tableStartY = startY + 15; // Adjusted for extra line
+    for (let p = startPage; p <= endPage; p++) {
+        doc.setPage(p);
 
-    if (invoices.length > 0) {
-        const tableData = invoices.map((f: any) => [
-            f.facNumeroFactura,
-            f.facFechaEmision ? String(f.facFechaEmision).split("T")[0] : "N/A",
-            f.facEstadoFactura ? "Activa" : "Anulada",
-            `$${f.facTotal.toFixed(2)}`
-        ]);
+        const topY = (p === startPage) ? startY : 20; // 20 es margen superior standard si no es startPage
+        const bottomY = (p === endPage) ? endY : (pageHeight - 20); // 20 margen inferior standard
 
-        autoTable(doc, {
-            startY: tableStartY,
-            head: [['Factura', 'Fecha', 'Estado', 'Total']],
-            body: tableData,
-            theme: 'plain',
-            margin: { left: margin + 5 },
-            tableWidth: 100, // Tabla compacta
-            styles: { fontSize: 8, cellPadding: 1 },
-            headStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold' },
-        });
-    } else {
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "italic");
-        doc.text("(Sin historial de facturas)", margin + 5, tableStartY + 4);
-        // Mocking lastAutoTable for spacing if no table
-        (doc as any).lastAutoTable = { finalY: tableStartY + 5 };
+        // DIBUJAR BORDES
+
+        // 1. Línea Izquierda
+        doc.line(boxX, topY, boxX, bottomY);
+
+        // 2. Línea Derecha
+        doc.line(boxX + boxWidth, topY, boxX + boxWidth, bottomY);
+
+        // 3. Línea Superior (Solo en startPage)
+        if (p === startPage) {
+            doc.line(boxX, topY, boxX + boxWidth, topY);
+        }
+
+        // 4. Línea Inferior (Solo en endPage)
+        if (p === endPage) {
+            doc.line(boxX, bottomY, boxX + boxWidth, bottomY);
+        }
     }
+
+    // Restaurar página original
+    doc.setPage(originalPage);
 }
 
-// --- Helpers para reutilizar PDF logic del cliente individual ---
-function generateSingleClientPDF(doc: jsPDF, client: any, invoices: any[]) {
-    // ... codigo de diseño anterior adaptado o reutilizado si se desea, 
-    // pero aqui copiaremos la logica original de generarPDFCliente para integridad
-    const pageWidth = doc.internal.pageSize.width;
+function generateClientSection(doc: jsPDF, client: any, invoices: any[], startY: number) {
     const margin = 15;
+    const pageWidth = doc.internal.pageSize.width;
+    const contentWidth = pageWidth - (margin * 2);
 
-    const colorPrimario = [0, 123, 255];
-    doc.setFillColor(colorPrimario[0], colorPrimario[1], colorPrimario[2]);
-    doc.rect(0, 0, pageWidth, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REPORTE DE CLIENTE', pageWidth / 2, 12, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Generado el: ${new Date().toLocaleDateString()}`, pageWidth / 2, 22, { align: 'center' });
+    // --- SECCIÓN DEL CLIENTE (DISEÑO VERTICAL TIPO TARJETA) ---
+    // Colores
+    const bgFill = [248, 249, 250];
+    const borderColor = [220, 220, 220];
+    const labelColor = [33, 37, 41];
+    const textColor = [73, 80, 87];
 
-    let yPos = 40;
+    let currentY = startY + 10;
+    const cardStartX = margin;
+    const cardStartY = startY;
+
+    // Definir función de dibujo para reutilizar después de pintar el fondo
+    const drawContent = () => {
+        let cy = startY + 10;
+
+        doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+
+        const nLines = doc.splitTextToSize(client.cliNombre, contentWidth - 10);
+        doc.text(nLines, margin + 5, cy);
+        const nH = doc.getTextDimensions(nLines).h;
+
+        const lY = cy + nH + 2;
+        doc.setDrawColor(13, 110, 253);
+        doc.setLineWidth(0.5);
+        doc.line(margin + 5, lY, margin + 5 + 50, lY);
+
+        cy = lY + 8;
+
+        // Helper interno
+        const pField = (lbl: string, val: string, x: number, y: number, maxW: number) => {
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+            doc.text(lbl, x, y);
+            const lW = doc.getTextWidth(lbl);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            const vLines = doc.splitTextToSize(val, maxW - lW - 5);
+            doc.text(vLines, x + lW + 2, y);
+            return doc.getTextDimensions(vLines).h;
+        };
+
+        const halfWidth = contentWidth / 2;
+
+        const h1_ = pField("Cédula/RUC:", client.cliCedula, margin + 5, cy, halfWidth);
+        cy += Math.max(h1_, 6) + 2;
+
+        const h2_ = pField("Email:", client.cliEmail || 'N/A', margin + 5, cy, contentWidth);
+        cy += Math.max(h2_, 6) + 2;
+
+        // Teléfono
+        pField("Teléfono:", client.cliTelefono || 'N/A', margin + 5, cy, halfWidth);
+
+        // Col 2
+        let c2y = lY + 8;
+        const c2x = margin + halfWidth + 5;
+        pField("Tipo:", client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito"), c2x, c2y, halfWidth);
+
+        c2y += 8;
+        // Estado circle
+        doc.setFillColor(client.cliEstado ? 40 : 220, client.cliEstado ? 167 : 53, client.cliEstado ? 69 : 69);
+        doc.circle(c2x + 15, c2y - 1, 1.5, 'F');
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.text(client.cliEstado ? "Activo" : "Inactivo", c2x + 20, c2y);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.text("Estado:", c2x, c2y);
+
+        // Dirección
+        cy = Math.max(cy, c2y + 6) + 4;
+        const ha = pField("Dirección:", client.cliDireccion || 'N/A', margin + 5, cy, contentWidth);
+        cy += Math.max(ha, 6) + 5;
+
+        return cy; // Retorna Y final
+    };
+
+    // 1. Simulación (o run real tapado) para obtener altura
+    // O mejor, dibujamos el rectangulo blanco encima del primer run? No.
+    // Vamos a fiarnos del cálculo manual de altura que hicimos antes.
+
+    // Ok, ejecutamos drawContent una vez para pintar ENCIMA del rectangulo, 
+    // PERO primero pintamos el rectangulo. ¿Cómo sabemos la altura antes?
+    // Estimación conservadora o dry-run real.
+
+    // Vamos a hacer un "pseudo-dry-run" calculando solo alturas de textos largos.
+    const _nLines = doc.splitTextToSize(client.cliNombre, contentWidth - 10);
+    const _nH = doc.getTextDimensions(_nLines).h;
+
+    const _addrLines = doc.splitTextToSize(client.cliDireccion || 'N/A', contentWidth - (doc.getTextWidth("Dirección:") + 10));
+    const _addrH = doc.getTextDimensions(_addrLines).h;
+
+    // Altura base Aprox: PaddingTop(10) + Nombre(_nH) + LineSep(2) + Gap(8) + 3 filas de datos(Lines*3) + Gap(4) + Address(_addrH) + PaddingBot(5)
+    // Filas de datos ~ 8pts * 3 = 24.
+    const calculatedHeight = 10 + _nH + 2 + 8 + 24 + 4 + _addrH + 5; // Aprox
+
+    // Pintar Fondo Correcto
+    doc.setFillColor(bgFill[0], bgFill[1], bgFill[2]);
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.roundedRect(cardStartX, cardStartY, contentWidth, calculatedHeight, 3, 3, 'FD');
+
+    // Ahora pintar contenido real
+    drawContent();
+
+    // --- SECCIÓN DE FACTURAS ---
+    currentY = startY + calculatedHeight + 10;
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Datos del Cliente", margin, yPos);
-    yPos += 8;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const info = [
-        `Cédula: ${client.cliCedula}`,
-        `Nombre: ${client.cliNombre}`,
-        `Dirección: ${client.cliDireccion || 'N/A'}`,
-        `Teléfono: ${client.cliTelefono || 'N/A'}`,
-        `Email: ${client.cliEmail || 'N/A'}`,
-        `Tipo: ${client.tipoCliente?.ticDescripcion || (client.ticIdTipoc === 1 ? "Contado" : "Crédito")}`,
-        `Estado: ${client.cliEstado ? "Activo" : "Inactivo"}`
-    ];
-    info.forEach(line => { doc.text(line, margin, yPos); yPos += 6; });
-    yPos += 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Historial de Facturas", margin, yPos);
-    yPos += 5;
 
     if (invoices.length > 0) {
-        const tableData = invoices.map((f: any) => [
-            f.facNumeroFactura,
-            f.facFechaEmision ? String(f.facFechaEmision).split("T")[0] : "N/A",
-            f.facEstadoFactura ? "Activa" : "Anulada",
-            `$${f.facTotal.toFixed(2)}`
-        ]);
-        autoTable(doc, {
-            startY: yPos,
-            head: [['Nº Factura', 'Fecha', 'Estado', 'Total']],
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [100, 100, 100] },
-            styles: { fontSize: 10 }
-        });
-        const totalGlobal = invoices.filter((f: any) => f.facEstadoFactura).reduce((sum, f) => sum + f.facTotal, 0);
-        const finalY = (doc as any).lastAutoTable.finalY + 10;
         doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Total Facturado (Activas): $${totalGlobal.toFixed(2)}`, pageWidth - margin, finalY, { align: 'right' });
+        doc.setFont("helvetica", "bold");
+        doc.text(`Historial de Facturas (${invoices.length})`, margin, currentY);
+        currentY += 5;
+
+        invoices.forEach((factura, index) => {
+            // Check page break para Info Factura ( Header ~ 20 height )
+            if (currentY + 30 > doc.internal.pageSize.height - 20) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            // Cabecera Factura
+            doc.setFillColor(52, 58, 64);
+            doc.rect(margin, currentY, contentWidth, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+
+            const fechaFac = factura.facFechaEmision ? String(factura.facFechaEmision).split("T")[0] : "N/A";
+            const estadoFac = factura.facEstadoFactura ? "ACTIVA" : "ANULADA";
+            doc.text(`FACTURA #${factura.facNumeroFactura}  |  Fecha: ${fechaFac}  |  Estado: ${estadoFac}`, margin + 3, currentY + 5.5);
+            doc.text(`Total: $${factura.facTotal.toFixed(2)}`, pageWidth - margin - 3, currentY + 5.5, { align: 'right' });
+
+            currentY += 8;
+
+            const detalles = factura.detallesFactura || [];
+            if (detalles.length > 0) {
+                const bodyData = detalles.map((d: any) => [
+                    d.detCodigoProducto || String(d.detIdProductoExterno),
+                    d.detNombreProducto,
+                    d.detCantidad,
+                    `$${d.detPrecioUnitario.toFixed(2)}`,
+                    `$${d.detTotal.toFixed(2)}`
+                ]);
+
+                autoTable(doc, {
+                    startY: currentY,
+                    head: [['Cód.', 'Producto', 'Cant.', 'P. Unit', 'Total']],
+                    body: bodyData,
+                    theme: 'plain',
+                    styles: { fontSize: 8, cellPadding: 1.5, overflow: 'linebreak' },
+                    headStyles: { fillColor: [233, 236, 239], textColor: [73, 80, 87], fontStyle: 'bold', lineWidth: 0 },
+                    columnStyles: {
+                        0: { cellWidth: 25 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 15, halign: 'center' },
+                        3: { cellWidth: 20, halign: 'right' },
+                        4: { cellWidth: 20, halign: 'right' }
+                    },
+                    margin: { left: margin, right: margin },
+                    // IMPORTANTE: Manejo de salto de página automático de autoTable
+                    // Si autoTable salta de pagina, queremos que el siguiente contenido respete el margen top
+                    pageBreak: 'auto',
+                });
+
+                // Actualizar currentY
+                currentY = (doc as any).lastAutoTable.finalY + 5;
+            } else {
+                doc.setTextColor(150, 150, 150);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                doc.text("(Sin detalles de productos disponibles)", margin + 3, currentY + 5);
+                currentY += 10;
+            }
+            currentY += 2;
+        });
     } else {
         doc.setFontSize(10);
         doc.setFont("helvetica", "italic");
-        doc.setTextColor(100, 100, 100);
-        doc.text("Este cliente no tiene facturas registradas.", margin, yPos + 10);
+        doc.setTextColor(108, 117, 125);
+        doc.text("(Este cliente no tiene facturas registradas)", margin, currentY + 5);
+        currentY += 10;
     }
+
+    // Guardar posición final en variable custom para el loop principal
+    (doc as any).customLastY = currentY;
 }
+
+// --- Helpers para reutilizar PDF logic del cliente individual ---
+
 
 // --- Toast Helpers ---
 function showLoadingToast(msg = "Generando Reporte...") {

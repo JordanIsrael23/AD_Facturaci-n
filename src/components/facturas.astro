@@ -321,81 +321,83 @@ import background from "../assets/background.svg";
     class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
   >
     <div class="modal-content shadow-lg border-0">
-      <div class="modal-header bg-dark text-white">
-        <h5
-          class="modal-title d-flex align-items-center"
-          id="reporteGlobalModalLabel"
-        >
-          <i class="bi bi-file-earmark-bar-graph-fill me-2 fs-4"></i>
-          Vista Previa: Reporte General de Facturas
-        </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-          aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="alert alert-info d-flex align-items-center" role="alert">
-          <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-          <div>
-            Este reporte incluye todas las facturas registradas y sus detalles.
-            Revise la lista antes de generar el PDF final.
-          </div>
-        </div>
-        <div
-          class="row g-2 mb-3 bg-light p-3 rounded border align-items-center"
-        >
-          <div class="col-md-6">
-            <label class="form-label small fw-bold d-block mb-2"
-              >Tipo de Pago:</label
-            >
-            <select
-              id="globalFiltroTipoPago"
-              class="form-select form-select-sm"
-            >
-              <option value="">Todos los tipos</option>
-            </select>
-          </div>
-          <div class="col-md-6 d-flex align-items-end">
-            <button
-              id="btnLimpiarFiltrosGlobal"
-              class="btn btn-outline-secondary btn-sm w-100"
-              title="Restablecer Filtros"
-            >
-              <i class="bi bi-arrow-counterclockwise"></i> Restablecer Filtros
-            </button>
-          </div>
-        </div>
-        <div class="table-responsive rounded border">
-          <table
-            class="table table-striped table-hover mb-0 text-center align-middle"
-          >
-            <thead class="table-dark text-white small text-uppercase">
-              <tr>
-                <th>Número</th>
-                <th>Cliente</th>
-                <th>Fecha</th>
-                <th>Total</th>
-                <th>Tipo Pago</th>
-                </tr>
-            </thead>
-            <tbody id="globalReportBody"> </tbody>
-          </table>
+    <div class="modal-header bg-dark text-white">
+      <h5 class="modal-title d-flex align-items-center" id="reporteGlobalModalLabel">
+        <i class="bi bi-file-earmark-bar-graph-fill me-2 fs-4"></i>
+        Vista Previa: Reporte General de Facturas
+      </h5>
+      <button
+        type="button"
+        class="btn-close btn-close-white"
+        data-bs-dismiss="modal"
+        aria-label="Cerrar">
+      </button>
+    </div>
+
+    <div class="modal-body p-4">
+      <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+        <div>
+          Este reporte incluye todas las facturas registradas y sus detalles.
+          Revise la lista antes de generar el PDF final.
         </div>
       </div>
-      <div class="modal-footer bg-light">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Cerrar
-        </button>
-        <button
-          type="button"
-          class="btn btn-success d-flex align-items-center px-4"
-          id="btnDownloadGlobalPdf"
-        >
-          <i class="bi bi-download me-2"></i> Descargar Reporte Completo (PDF)
-        </button>
+
+      <!-- FILTROS -->
+      <div class="row g-2 mb-3 bg-light p-3 rounded border align-items-center">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Fecha Inicio:</label>
+          <input type="date" id="globalFechaInicio" class="form-control form-control-sm" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Fecha Fin:</label>
+          <input type="date" id="globalFechaFin" class="form-control form-control-sm" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Tipo de Pago:</label>
+          <select id="globalFiltroTipoPago" class="form-select form-select-sm">
+            <option value="">Todos los tipos</option>
+          </select>
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+          <button
+            id="btnLimpiarFiltrosGlobal"
+            class="btn btn-outline-secondary btn-sm w-100">
+            <i class="bi bi-arrow-counterclockwise"></i> Restablecer Filtros
+          </button>
+        </div>
       </div>
+
+      <!-- TABLA -->
+      <div class="table-responsive rounded border">
+        <table class="table table-striped table-hover mb-0 text-center align-middle">
+          <thead class="table-dark text-white small text-uppercase">
+            <tr>
+              <th>Número</th>
+              <th>Cliente</th>
+              <th>Fecha</th>
+              <th>Total</th>
+              <th>Tipo Pago</th>
+            </tr>
+          </thead>
+          <tbody id="globalReportBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer bg-light">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        Cerrar
+      </button>
+      <button
+        type="button"
+        class="btn btn-success d-flex align-items-center px-4"
+        id="btnDownloadGlobalPdf">
+        <i class="bi bi-download me-2"></i> Descargar Reporte Completo (PDF)
+      </button>
     </div>
   </div>
 </div>

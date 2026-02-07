@@ -7,10 +7,10 @@ export default defineConfig({
     server: {
       proxy: {
         '/security-proxy': {
-          target: 'https://api-seguridad.sistemanh.shop',
+          target: 'https://98.84.67.160.nip.io',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/security-proxy/, ''),
-          secure: false, 
+          secure: false,
         }
       }
     }
