@@ -13,7 +13,7 @@ export default defineConfig({
           secure: false,
         },
         '/auditoria-proxy': {
-          target: 'https://zbfoxel9cd.execute-api.us-east-1.amazonaws.com',
+          target: 'https://ro0c7gwb09.execute-api.us-east-1.amazonaws.com',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/auditoria-proxy/, ''),
           secure: false,
