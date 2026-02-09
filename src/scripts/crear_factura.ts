@@ -430,10 +430,71 @@ function llenarDatosCliente(cliente: any) {
 async function loadSelects() {
     const fetchApi = async (url: string, isInternal: boolean) => {
         try {
-            const opts = isInternal ? { headers: getAuthHeaders() } : {};
-            const r = await fetch(url, opts);
+            // Convertir headers a objeto simple para poder extenderlo si es necesario
+            const baseHeaders = isInternal ? getAuthHeaders() : {};
+
+            // 🔥 Cache Buster: Agregar timestamp unico para evitar caché del navegador o proxy
+            const separator = url.includes('?') ? '&' : '?';
+            const cacheBusterUrl = `${url}${separator}_t=${Date.now()}`;
+
+            const opts: RequestInit = {
+                headers: baseHeaders as Record<string, string>, // Asegurar compatibilidad
+                cache: 'no-store' // 🔴 FORZAR NO CACHÉ para evitar datos viejos de stock
+            };
+
+            console.log(`📡 Fetching: ${cacheBusterUrl}`);
+            const r = await fetch(cacheBusterUrl, opts);
             return r.ok ? await r.json() : [];
-        } catch { return []; }
+        } catch (e) {
+            console.error("Error fetching", url, e);
+            return [];
+        }
+    };
+
+    // Modificación: Función específica para cargar productos paginados
+    const fetchProductosPaginated = async () => {
+        try {
+            // I. Pedir página 1
+            const firstPageData = await fetchApi(`${PRODUCTOS_EXTERNAL_URL}?page=1`, false);
+
+            // Si es un array directo, no hay paginación
+            if (Array.isArray(firstPageData)) return firstPageData;
+
+            // Si tiene data y last_page, es paginado (estilo Laravel)
+            if (firstPageData.data && Array.isArray(firstPageData.data)) {
+                let allProducts = [...firstPageData.data];
+                const lastPage = firstPageData.last_page || 1;
+
+                if (lastPage > 1) {
+                    console.log(`📦 Detectada paginación: Cargando ${lastPage} páginas de productos...`);
+
+                    const promises = [];
+                    for (let i = 2; i <= lastPage; i++) {
+                        promises.push(fetchApi(`${PRODUCTOS_EXTERNAL_URL}?page=${i}`, false));
+                    }
+
+                    const restPages = await Promise.all(promises);
+                    restPages.forEach((pageData, index) => {
+                        // Verificamos si la página trajo datos
+                        if (pageData && pageData.data) {
+                            allProducts = allProducts.concat(pageData.data);
+                        } else if (Array.isArray(pageData)) {
+                            // Por si acaso la estructura cambia en otras paginas
+                            allProducts = allProducts.concat(pageData);
+                        } else {
+                            console.warn(`Página ${index + 2} de productos no trajo datos válidos.`);
+                        }
+                    });
+                }
+                return allProducts;
+            }
+
+            // Si es un objeto pero no tiene last_page ni data array
+            return [];
+        } catch (error) {
+            console.error("Error cargando productos paginados:", error);
+            return [];
+        }
     };
 
     const [clientesData, estData, puntosData, tiposData, prodData] = await Promise.all([
@@ -441,11 +502,25 @@ async function loadSelects() {
         fetchApi(ESTABLECIMIENTOS_URL, true),
         fetchApi(PUNTOS_URL, true),
         fetchApi(TIPOS_PAGO_URL, true),
-        fetchApi(PRODUCTOS_EXTERNAL_URL, false)
+        fetchProductosPaginated() // Usamos la nueva función con soporte de paginación
     ]);
 
     allClientes = Array.isArray(clientesData) ? clientesData : (clientesData.data || []);
-    allProductos = Array.isArray(prodData) ? prodData : (prodData.data || []);
+    // prodData ya es el array completo gracias a fetchProductosPaginated
+    allProductos = Array.isArray(prodData) ? prodData : [];
+
+    // 🔍 DEBUG EXPECIFICO PARA EL PRODUCTO QUE FALLA
+    const debugProd = allProductos.find(p => p.codigo === 'PRD-0001');
+    if (debugProd) {
+        console.warn("🔍 DATA PRD-0001:", debugProd);
+        console.warn(`🔍 STOCK: ${debugProd.stock} (Tipo: ${typeof debugProd.stock})`);
+        console.warn(`🔍 COSTO: ${debugProd.costo} (Tipo: ${typeof debugProd.costo})`);
+    } else {
+        console.warn("🔍 No se encontró PRD-0001 en la respuesta de la API");
+    }
+
+    console.log(`📦 Total productos cargados: ${allProductos.length}`, allProductos);
+
     allPuntosEmision = Array.isArray(puntosData) ? puntosData : (puntosData.data || []);
 
     // Datos de Establecimientos y Puntos (Búsqueda automática de los fijos)
@@ -545,7 +620,7 @@ function agregarFilaDetalle(prod: ProductoExterno) {
     // --- INICIO DE LA MODIFICACIÓN ---
     qtyInput.addEventListener("input", () => {
         const valorIngresado = parseFloat(qtyInput.value);
-        
+
         // Verificamos si supera el stock
         if (valorIngresado > prod.stock) {
             // 1. Mostrar el modal de advertencia
