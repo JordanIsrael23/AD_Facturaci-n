@@ -11,7 +11,7 @@ if (typeof window !== "undefined" && (
 )) {
     console.log("⚠️ Entorno Proxy: Usando Proxy /security-proxy y /auditoria-proxy");
     API_BASE_URL = "/security-proxy";
-    API_AUDITORIA_URL = "/auditoria-proxy/auditoria";
+    API_AUDITORIA_URL = "/auditoria-proxy/Prod/auditoria";
 }
 
 const MODULO_ID = 5; // 🔴 CAMBIA ESTE ID POR EL QUE TE ASIGNARON
@@ -291,16 +291,18 @@ export async function registrarAuditoria(
 
         const response = await fetch(API_AUDITORIA_URL, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(requestBody),
         });
 
         if (response.ok) {
-            console.log(`✅ Auditoría registrada: ${accion} - ${nombreFuncion}`);
+            console.log(`✅ Auditoría registrada exitosamente: ${accion} - ${nombreFuncion}`);
             return true;
         } else {
             const errorText = await response.text();
-            console.error("Error en auditoría:", errorText);
+            console.error(`❌ Error en respuesta de auditoría (${response.status}):`, errorText);
             return false;
         }
     } catch (error) {
